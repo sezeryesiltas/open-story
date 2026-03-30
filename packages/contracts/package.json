@@ -1,0 +1,21 @@
+{
+  "name": "@open-story/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "echo \"contracts package scaffold pending\"",
+    "lint": "echo \"contracts lint scaffold pending\"",
+    "test": "echo \"contracts test scaffold pending\"",
+    "check": "echo \"contracts check scaffold pending\""
+  }
+}
