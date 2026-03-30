@@ -10,5 +10,12 @@
   },
   "dependencies": {
     "zod": "^3.24.1"
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "echo \"contracts package scaffold pending\"",
+    "lint": "echo \"contracts lint scaffold pending\"",
+    "test": "echo \"contracts test scaffold pending\"",
+    "check": "echo \"contracts check scaffold pending\""
   }
 }

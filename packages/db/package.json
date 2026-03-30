@@ -1,0 +1,11 @@
+{
+  "name": "@open-story/db",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "echo \"db package scaffold pending\"",
+    "lint": "echo \"db lint scaffold pending\"",
+    "test": "echo \"db test scaffold pending\"",
+    "check": "echo \"db check scaffold pending\""
+  }
+}

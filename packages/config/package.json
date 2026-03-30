@@ -1,0 +1,11 @@
+{
+  "name": "@open-story/config",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "echo \"config package scaffold pending\"",
+    "lint": "echo \"config lint scaffold pending\"",
+    "test": "echo \"config test scaffold pending\"",
+    "check": "echo \"config check scaffold pending\""
+  }
+}
