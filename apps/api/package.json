@@ -6,7 +6,7 @@
     "dev": "echo \"api app scaffold pending\"",
     "build": "echo \"api build scaffold pending\"",
     "lint": "echo \"api lint scaffold pending\"",
-    "test": "echo \"api test scaffold pending\"",
-    "check": "echo \"api check scaffold pending\""
+    "test": "node --test test/**/*.test.js",
+    "check": "node --test test/**/*.test.js"
   }
 }
