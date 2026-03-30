@@ -1,0 +1,11 @@
+{
+  "name": "@open-story/ui",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "echo \"ui package scaffold pending\"",
+    "lint": "echo \"ui lint scaffold pending\"",
+    "test": "echo \"ui test scaffold pending\"",
+    "check": "echo \"ui check scaffold pending\""
+  }
+}

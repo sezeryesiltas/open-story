@@ -1,0 +1,12 @@
+{
+  "name": "@open-story/admin-web",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "echo \"admin-web app scaffold pending\"",
+    "build": "echo \"admin-web build scaffold pending\"",
+    "lint": "echo \"admin-web lint scaffold pending\"",
+    "test": "echo \"admin-web test scaffold pending\"",
+    "check": "echo \"admin-web check scaffold pending\""
+  }
+}
