@@ -1,0 +1,106 @@
+import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { unauthorized, type AuthErrorResponse } from '../common/auth-error-response';
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  passwordHash: string;
+  active: boolean;
+};
+
+export type AdminSession = {
+  id: string;
+  userId: string;
+  issuedAt: Date;
+  expiresAt: Date;
+};
+
+export interface AdminUserStore {
+  findByEmail(email: string): Promise<AdminUser | null>;
+}
+
+export interface AdminSessionStore {
+  create(session: AdminSession): Promise<void>;
+}
+
+export interface JwtSigner {
+  sign(payload: Record<string, unknown>, ttlSeconds: number): string;
+}
+
+export type AdminSignInResult =
+  | {
+      ok: true;
+      session: AdminSession;
+      accessToken: string;
+    }
+  | {
+      ok: false;
+      error: AuthErrorResponse;
+    };
+
+export class AdminAuthService {
+  constructor(
+    private readonly userStore: AdminUserStore,
+    private readonly sessionStore: AdminSessionStore,
+    private readonly jwtSigner: JwtSigner,
+    private readonly sessionTtlSeconds = 60 * 60 * 12,
+  ) {}
+
+  async signIn(email: string, password: string): Promise<AdminSignInResult> {
+    const user = await this.userStore.findByEmail(email.toLowerCase());
+
+    if (!user || !user.active) {
+      return { ok: false, error: unauthorized('AUTH_UNAUTHORIZED', 'Invalid email or password.') };
+    }
+
+    const passwordValid = verifyPassword(password, user.passwordHash);
+    if (!passwordValid) {
+      return { ok: false, error: unauthorized('AUTH_UNAUTHORIZED', 'Invalid email or password.') };
+    }
+
+    const issuedAt = new Date();
+    const expiresAt = new Date(issuedAt.getTime() + this.sessionTtlSeconds * 1000);
+
+    const session: AdminSession = {
+      id: randomUUID(),
+      userId: user.id,
+      issuedAt,
+      expiresAt,
+    };
+
+    await this.sessionStore.create(session);
+
+    const accessToken = this.jwtSigner.sign(
+      {
+        sub: user.id,
+        sid: session.id,
+        scope: 'admin',
+      },
+      this.sessionTtlSeconds,
+    );
+
+    return { ok: true, session, accessToken };
+  }
+}
+
+export const hashPassword = (password: string, salt: string): string => {
+  const derived = scryptSync(password, salt, 64).toString('hex');
+  return `scrypt:${salt}:${derived}`;
+};
+
+export const verifyPassword = (password: string, hashedPassword: string): boolean => {
+  const [algo, salt, expected] = hashedPassword.split(':');
+  if (algo !== 'scrypt' || !salt || !expected) {
+    return false;
+  }
+
+  const actual = scryptSync(password, salt, 64).toString('hex');
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  const actualBuffer = Buffer.from(actual, 'hex');
+
+  if (expectedBuffer.length !== actualBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, actualBuffer);
+};
