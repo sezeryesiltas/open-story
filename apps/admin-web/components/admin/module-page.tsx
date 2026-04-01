@@ -7,8 +7,8 @@ function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-3">
       {items.map((item) => (
-        <li key={item} className="flex items-start gap-3 text-sm leading-6 text-slate-300">
-          <span className="mt-2 h-2 w-2 rounded-full bg-sky-300" />
+        <li key={item} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+          <span className="mt-2 h-2 w-2 rounded-full bg-primary/70" />
           <span>{item}</span>
         </li>
       ))}
@@ -38,7 +38,7 @@ export function ModulePage({
       <PageHeader description={description} eyebrow={eyebrow} title={title} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <Card className="rounded-[28px] border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-32px_rgba(0,0,0,0.92)]">
+        <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Implementation slices</CardTitle>
             <CardDescription>
@@ -52,7 +52,7 @@ export function ModulePage({
         </Card>
 
         <div className="space-y-6">
-          <Card className="rounded-[28px] border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-32px_rgba(0,0,0,0.92)]">
+          <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Supported actions</CardTitle>
               <CardDescription>PRD’de bu modül için beklenen temel operasyonlar.</CardDescription>
@@ -62,7 +62,7 @@ export function ModulePage({
             </CardContent>
           </Card>
 
-          <Card className="rounded-[28px] border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-32px_rgba(0,0,0,0.92)]">
+          <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Guardrails</CardTitle>
               <CardDescription>Bu ekranı v1 scope içinde tutan ürün kuralları.</CardDescription>

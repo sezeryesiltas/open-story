@@ -23,5 +23,11 @@ pnpm --filter @open-story/admin-web check
 ## Current state
 
 - Landing/dashboard skeleton created.
-- Placement creation demo form added with validation.
+- Placements ekranı hero + card list + empty state + right sheet create/edit akışı ile çalışıyor.
 - Query provider wiring ready for API integration.
+- `Settings` ekranı aktif sqlite hedefini gösterir ve harici sqlite URL/path geçişini yapar.
+
+## Runtime notes
+
+- Admin API çağrıları için varsayılan adres `http://localhost:3000` kullanılır.
+- Gerekirse `NEXT_PUBLIC_API_BASE_URL` ile farklı backend adresi verilebilir.

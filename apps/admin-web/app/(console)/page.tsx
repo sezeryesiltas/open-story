@@ -63,7 +63,7 @@ export default function DashboardPage() {
         title="Placement-managed story operations"
       />
 
-      <section className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-4">
+      <section className="grid auto-rows-min gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {deliverySlices.map((slice) => {
           const icons = {
             'Admin auth + user flows': ShieldCheck,
@@ -75,12 +75,9 @@ export default function DashboardPage() {
           const Icon = icons[slice.title as keyof typeof icons];
 
           return (
-            <Card
-              key={slice.title}
-              className="rounded-[28px] border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-32px_rgba(0,0,0,0.92)]"
-            >
+            <Card key={slice.title} className="border-border/60 bg-card/80">
               <CardHeader>
-                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-sky-300">
+                <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                   <Icon className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-lg">{slice.title}</CardTitle>
@@ -92,7 +89,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <Card className="rounded-[28px] border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-32px_rgba(0,0,0,0.92)]">
+        <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Ekran haritası</CardTitle>
             <CardDescription>
@@ -103,20 +100,18 @@ export default function DashboardPage() {
             {adminNavSections.map((section) => (
               <div
                 key={section.title}
-                className="rounded-3xl border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                className="rounded-lg border border-border/60 bg-muted/30 p-4"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  {section.title}
-                </p>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{section.title}</p>
                 <div className="mt-4 space-y-3">
                   {section.items.map((item) => (
                     <Link
                       key={item.href}
-                      className="block rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:-translate-y-0.5 hover:bg-white/[0.07] hover:shadow-[0_18px_30px_-22px_rgba(0,0,0,0.85)]"
+                      className="block rounded-lg border border-border/60 bg-background/60 px-4 py-3 transition-colors hover:bg-accent"
                       href={item.href}
                     >
-                      <p className="text-sm font-semibold text-slate-100">{item.title}</p>
-                      <p className="mt-1 text-sm leading-6 text-slate-400">{item.description}</p>
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
                     </Link>
                   ))}
                 </div>
@@ -126,7 +121,7 @@ export default function DashboardPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="rounded-[28px] border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-32px_rgba(0,0,0,0.92)]">
+          <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Product guardrails</CardTitle>
               <CardDescription>
@@ -136,8 +131,8 @@ export default function DashboardPage() {
             <CardContent>
               <ul className="space-y-3">
                 {productGuardrails.map((rule) => (
-                  <li key={rule} className="flex items-start gap-3 text-sm leading-6 text-slate-300">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-sky-300" />
+                  <li key={rule} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-primary/70" />
                     <span>{rule}</span>
                   </li>
                 ))}
@@ -145,7 +140,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[28px] border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_60px_-32px_rgba(0,0,0,0.92)]">
+          <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Delivery order</CardTitle>
               <CardDescription>Bu shell bundan sonraki geliştirmeleri şu sırada taşıyacak.</CardDescription>
@@ -153,8 +148,8 @@ export default function DashboardPage() {
             <CardContent>
               <ol className="space-y-3">
                 {deliveryOrder.map((step, index) => (
-                  <li key={step} className="flex items-start gap-3 text-sm leading-6 text-slate-300">
-                    <span className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xs font-semibold text-sky-300">
+                  <li key={step} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+                    <span className="inline-flex size-6 flex-none items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-foreground">
                       {index + 1}
                     </span>
                     <span>{step}</span>

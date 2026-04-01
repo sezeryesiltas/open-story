@@ -1,5 +1,6 @@
 import {
   Clapperboard,
+  Database,
   Eye,
   Home,
   KeyRound,
@@ -44,6 +45,12 @@ export const adminNavSections: AdminNavSection[] = [
         description: 'Tek client görünümü ve static token operasyonları.',
         href: '/client',
         icon: KeyRound
+      },
+      {
+        title: 'Settings',
+        description: 'Varsayılan sqlite ve harici DB hedefi ayarları.',
+        href: '/settings',
+        icon: Database
       }
     ]
   },

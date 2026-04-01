@@ -1,12 +1,13 @@
 export * from './dto';
-export * from './common/context';
 export * from './common/cta';
 export * from './common/revision';
+export { appVersionSchema, platformSchema, userSegmentSchema, userSegmentsSchema } from './common/context';
+export type { AppVersion, UserSegment, UserSegments } from './common/context';
 
 export * from './sdk/feed';
 
-export * from './admin/placement';
-export * from './admin/token';
-export * from './admin/set';
-export * from './admin/group';
-export * from './admin/story';
+export * as adminPlacement from './admin/placement';
+export * as adminToken from './admin/token';
+export * as adminSet from './admin/set';
+export * as adminGroup from './admin/group';
+export * as adminStory from './admin/story';

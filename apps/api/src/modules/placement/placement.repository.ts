@@ -6,7 +6,23 @@ import { PlacementDto } from '@open-story/contracts';
 export class PlacementRepository {
   constructor(private readonly db: DbService) {}
 
+  list(): PlacementDto[] {
+    return this.db.list<PlacementDto>('placements');
+  }
+
+  findById(id: string): PlacementDto | undefined {
+    return this.db.findById<PlacementDto>('placements', id);
+  }
+
+  findByKey(key: string): PlacementDto | undefined {
+    return this.list().find((placement) => placement.key === key);
+  }
+
   create(payload: PlacementDto): PlacementDto {
     return this.db.insert<PlacementDto>('placements', payload);
+  }
+
+  update(id: string, patch: Partial<PlacementDto>): PlacementDto | undefined {
+    return this.db.updateById<PlacementDto>('placements', id, patch);
   }
 }

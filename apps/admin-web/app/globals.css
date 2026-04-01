@@ -4,31 +4,39 @@
 
 :root {
   color-scheme: dark;
-  --background: 224 39% 8%;
+  --background: 222 24% 10%;
   --foreground: 210 20% 96%;
-  --card: 223 27% 11%;
+  --card: 222 20% 12%;
   --card-foreground: 210 20% 96%;
-  --popover: 223 27% 11%;
+  --popover: 222 20% 12%;
   --popover-foreground: 210 20% 96%;
-  --primary: 213 100% 70%;
-  --primary-foreground: 224 35% 10%;
-  --secondary: 223 23% 16%;
+  --primary: 214 95% 68%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 222 18% 16%;
   --secondary-foreground: 210 20% 96%;
-  --muted: 223 18% 14%;
-  --muted-foreground: 217 14% 67%;
-  --accent: 223 24% 18%;
+  --muted: 222 16% 16%;
+  --muted-foreground: 217 10% 64%;
+  --accent: 222 16% 18%;
   --accent-foreground: 210 20% 96%;
   --destructive: 0 78% 61%;
   --destructive-foreground: 210 20% 98%;
-  --border: 222 18% 18%;
-  --input: 222 18% 18%;
-  --ring: 214 100% 72%;
-  --radius: 0.9rem;
+  --border: 222 14% 22%;
+  --input: 222 14% 22%;
+  --ring: 214 95% 68%;
+  --sidebar-background: 222 20% 12%;
+  --sidebar-foreground: 210 20% 96%;
+  --sidebar-primary: 214 95% 68%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-accent: 222 16% 18%;
+  --sidebar-accent-foreground: 210 20% 96%;
+  --sidebar-border: 222 14% 22%;
+  --sidebar-ring: 214 95% 68%;
+  --radius: 0.75rem;
 }
 
 html {
   min-height: 100%;
-  background: hsl(228 26% 8%);
+  background: hsl(var(--background));
 }
 
 @layer base {
@@ -39,7 +47,6 @@ html {
   body {
     @apply bg-background text-foreground antialiased;
     min-height: 100vh;
-    background-attachment: fixed;
   }
 }
 
@@ -49,5 +56,5 @@ a {
 }
 
 ::selection {
-  background: hsl(213 100% 70% / 0.28);
+  background: hsl(var(--primary) / 0.28);
 }

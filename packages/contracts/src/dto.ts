@@ -10,6 +10,19 @@ export interface AuthLoginResponseDto {
   expiresIn: number;
 }
 
+export interface DatabaseSettingsDto {
+  defaultSqliteUrl: string;
+  activeDatabaseUrl: string;
+  externalDatabaseUrl: string | null;
+  isUsingExternalDatabase: boolean;
+  migratedAt: string | null;
+  tableCounts: Record<string, number>;
+}
+
+export interface UpdateDatabaseSettingsDto {
+  externalDatabaseUrl?: string | null;
+}
+
 export interface CreateStaticTokenDto {
   label: string;
 }
@@ -28,12 +41,22 @@ export interface RevokeStaticTokenDto {
 export interface CreatePlacementDto {
   key: string;
   name: string;
+  description?: string;
+}
+
+export interface UpdatePlacementDto {
+  key?: string;
+  name?: string;
+  description?: string;
 }
 
 export interface PlacementDto {
   id: string;
   key: string;
   name: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateStoryGroupSetDto {
