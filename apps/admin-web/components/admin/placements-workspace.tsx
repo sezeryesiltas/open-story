@@ -27,7 +27,7 @@ type PlacementRecord = {
   id: string;
   name: string;
   placementKey: string;
-  description: string;
+  description: string | null;
   createdAt: string;
   updatedAt: string;
   connectedSetCount: number;
@@ -52,7 +52,7 @@ function mapPlacement(apiPlacement: PlacementApiRecord): PlacementRecord {
     id: apiPlacement.id,
     name: apiPlacement.name,
     placementKey: apiPlacement.key,
-    description: apiPlacement.description ?? 'Açıklama girilmedi.',
+    description: apiPlacement.description,
     createdAt: apiPlacement.createdAt,
     updatedAt: apiPlacement.updatedAt,
     connectedSetCount: 0,
@@ -107,7 +107,7 @@ export function PlacementsWorkspace() {
     ? {
         name: editingPlacement.name,
         placementKey: editingPlacement.placementKey,
-        description: editingPlacement.description,
+        description: editingPlacement.description ?? '',
       }
     : emptyPlacementFormValues;
 
@@ -278,7 +278,9 @@ export function PlacementsWorkspace() {
                       </div>
                       <div className="space-y-2">
                         <CardTitle className="text-xl">{placement.name}</CardTitle>
-                        <CardDescription className="leading-6">{placement.description}</CardDescription>
+                        <CardDescription className="leading-6">
+                          {placement.description ?? 'Açıklama girilmedi.'}
+                        </CardDescription>
                       </div>
                     </div>
 
