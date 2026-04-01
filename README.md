@@ -17,7 +17,7 @@ Initial monorepo foundation is created on branch:
     api/             # NestJS + Fastify delivery API
   packages/
     contracts/       # Shared API/domain contracts
-    db/              # Prisma schema and DB utilities
+    db/              # SQLite-backed storage and DB utilities
     config/          # Shared lint/ts/build configs
     ui/              # Shared admin web UI primitives
   sdk/
@@ -47,3 +47,9 @@ Feature implementation starts next in this order:
 3. placement/client/token management
 4. revision model and feed resolution API
 5. native SDK implementation
+
+## Database
+
+- Varsayılan storage `apps/api/data/open-story.sqlite` dosyasıdır.
+- Aktif DB hedefi local bootstrap config ile saklanır.
+- Admin `Settings` ekranı üzerinden harici sqlite URL/path tanımlanabilir.
