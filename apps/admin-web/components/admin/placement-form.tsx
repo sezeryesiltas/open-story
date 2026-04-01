@@ -77,8 +77,8 @@ export function PlacementForm({
   });
 
   return (
-    <form className="flex h-full flex-col" onSubmit={handleFormSubmit}>
-      <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleFormSubmit}>
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
           <p className="text-sm font-medium">{mode === 'create' ? 'Yeni placement tanımı' : 'Placement düzenleme'}</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">

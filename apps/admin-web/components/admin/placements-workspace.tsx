@@ -38,6 +38,7 @@ const emptyPlacementFormValues: PlacementFormValues = {
   placementKey: '',
   description: '',
 };
+const emptyPlacements: PlacementRecord[] = [];
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('tr-TR', {
@@ -94,7 +95,7 @@ export function PlacementsWorkspace() {
     },
   });
 
-  const placements = placementsQuery.data ?? [];
+  const placements = placementsQuery.data ?? emptyPlacements;
 
   const editingPlacement = useMemo(
     () => placements.find((placement) => placement.id === editingPlacementId) ?? null,

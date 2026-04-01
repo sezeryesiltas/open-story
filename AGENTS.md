@@ -152,6 +152,14 @@ Keep SDK dependencies minimal and battle-tested.
 
 ---
 
+## Local tooling
+
+- `node`, `pnpm` ve `corepack` binary'leri `~/.local/bin` altındadır.
+- Tool çağrılarında bu binary'ler PATH üzerinde görünmüyorsa `PATH="$HOME/.local/bin:$PATH"` ile shell ortamına ekle veya binary'leri doğrudan bu dizinden çağır.
+- Özellikle typecheck, lint, test ve workspace script çalıştırırken önce bu lokasyonu kullan.
+
+---
+
 ## Core domain model
 
 Use these names exactly.

@@ -26,7 +26,7 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = Dialog.Overlay.displayName;
 
 const sheetVariants = cva(
-  'fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out',
+  'fixed z-50 flex min-h-0 flex-col gap-4 overflow-hidden bg-background shadow-lg transition ease-in-out',
   {
     variants: {
       side: {
