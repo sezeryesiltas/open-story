@@ -9,12 +9,15 @@ const badgeSchema = z
   })
   .strict();
 
+const bottomLabelSchema = z.string().trim().min(1).max(256);
+
 export const storyGroupSchema = z
   .object({
     id: rootIdSchema,
     current_draft_revision_id: revisionIdSchema,
     current_published_revision_id: revisionIdSchema.nullable(),
     name: z.string().trim().min(1).max(256),
+    bottom_label: bottomLabelSchema.nullable(),
     logo_asset_id: rootIdSchema,
     badge: badgeSchema.nullable(),
     story_ids: z.array(rootIdSchema),
@@ -25,6 +28,7 @@ export const storyGroupSchema = z
 export const createStoryGroupDtoSchema = z
   .object({
     name: z.string().trim().min(1).max(256),
+    bottom_label: bottomLabelSchema.nullable().optional(),
     logo_asset_id: rootIdSchema,
     badge: badgeSchema.nullable().optional(),
     story_ids: z.array(rootIdSchema).default([]),

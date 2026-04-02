@@ -18,6 +18,6 @@ export async function PUT(
       return jsonError(error.message, error.status, error.code);
     }
 
-    return jsonError('Story Group Set güncellenemedi.', 500, 'validation_error');
+    return jsonError('Story Bar güncellenemedi.', 500, 'validation_error');
   }
 }

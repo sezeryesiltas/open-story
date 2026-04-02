@@ -5,6 +5,14 @@ import { appVersionSchema, userSegmentSchema } from '@open-story/contracts';
 import { Button } from '@open-story/ui/components/button';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@open-story/ui/components/select';
 import { Switch } from '@open-story/ui/components/switch';
 import { Textarea } from '@open-story/ui/components/textarea';
 import { useEffect, useMemo } from 'react';
@@ -19,7 +27,7 @@ type PlacementOption = {
 
 const formSchema = z
   .object({
-    name: z.string().trim().min(2, 'Set adı en az 2 karakter olmalıdır.'),
+    name: z.string().trim().min(2, 'Story Bar adı en az 2 karakter olmalıdır.'),
     placementId: z.string().trim().min(1, 'Bir placement seçin.'),
     minStoryGroupCount: z.coerce
       .number({ invalid_type_error: 'Min group sayısı sayı olmalıdır.' })
@@ -232,10 +240,10 @@ export function StoryGroupSetForm({
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
           <p className="text-sm font-medium">
-            {mode === 'create' ? 'Yeni Story Group Set' : 'Story Group Set düzenleme'}
+            {mode === 'create' ? 'Yeni Story Bar' : 'Story Bar düzenleme'}
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Set targeting yalnızca Story Group Set seviyesinde yaşar. Fallback set işaretlenirse
+            Targeting yalnızca Story Bar seviyesinde yaşar. Fallback Story Bar işaretlenirse
             platform ve segment hedefleri bu kayıtta tutulmaz.
           </p>
         </div>
@@ -247,30 +255,38 @@ export function StoryGroupSetForm({
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="name">Set adı</Label>
-          <Input id="name" placeholder="Home Top Default Set" {...register('name')} />
+          <Label htmlFor="name">Story Bar adı</Label>
+          <Input id="name" placeholder="Home Top Default Story Bar" {...register('name')} />
           {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="placementId">Placement</Label>
-          <select
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            id="placementId"
-            {...register('placementId')}
-          >
-            <option value="">Placement seçin</option>
-            {placementOptions.map((placement) => (
-              <option key={placement.id} value={placement.id}>
-                {placement.name} ({placement.placementKey})
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="placementId"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <SelectTrigger id="placementId">
+                  <SelectValue placeholder="Placement seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {placementOptions.map((placement) => (
+                      <SelectItem key={placement.id} value={placement.id}>
+                        {placement.name} ({placement.placementKey})
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.placementId ? (
             <p className="text-sm text-destructive">{errors.placementId.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Set her zaman tek bir placement altında çözülür.
+              Story Bar her zaman tek bir placement altında çözülür.
             </p>
           )}
         </div>
@@ -304,9 +320,9 @@ export function StoryGroupSetForm({
             {...register('isFallback')}
           />
           <div className="space-y-1">
-            <p className="text-sm font-medium">Fallback set</p>
+            <p className="text-sm font-medium">Fallback Story Bar</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Bu set yalnızca hiçbir normal targeting eşleşmediğinde kullanılmalıdır.
+              Bu Story Bar yalnızca hiçbir normal targeting eşleşmediğinde kullanılmalıdır.
             </p>
           </div>
         </label>
@@ -315,8 +331,8 @@ export function StoryGroupSetForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Platform targets</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Fallback set için platform hedefleri devre dışıdır. Normal setlerde platform başına tek
-              min app version girin.
+              Fallback Story Bar için platform hedefleri devre dışıdır. Normal Story Bar'larda
+              platform başına tek min app version girin.
             </p>
           </div>
 
@@ -411,7 +427,7 @@ export function StoryGroupSetForm({
             <p className="text-sm text-destructive">{errors.userSegmentsText.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Virgül veya satır sonu ile ayırın. Segment yoksa set segmentless/default davranır.
+              Virgül veya satır sonu ile ayırın. Segment yoksa Story Bar segmentless/default davranır.
             </p>
           )}
         </div>
@@ -427,7 +443,7 @@ export function StoryGroupSetForm({
               ? 'Oluşturuluyor...'
               : 'Kaydediliyor...'
             : mode === 'create'
-              ? 'Story Group Set oluştur'
+              ? 'Story Bar oluştur'
               : 'Değişiklikleri kaydet'}
         </Button>
       </div>

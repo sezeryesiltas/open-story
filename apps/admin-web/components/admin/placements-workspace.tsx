@@ -21,6 +21,7 @@ type PlacementApiRecord = {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  connectedSetCount?: number;
 };
 
 type PlacementRecord = {
@@ -56,7 +57,7 @@ function mapPlacement(apiPlacement: PlacementApiRecord): PlacementRecord {
     description: apiPlacement.description,
     createdAt: apiPlacement.createdAt,
     updatedAt: apiPlacement.updatedAt,
-    connectedSetCount: 0,
+    connectedSetCount: apiPlacement.connectedSetCount ?? 0,
   };
 }
 
@@ -303,10 +304,10 @@ export function PlacementsWorkspace() {
 
                 <CardContent className="grid gap-3 border-t border-border/60 pt-6 text-sm sm:grid-cols-2">
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Bağlı set</p>
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Bağlı Story Bar</p>
                     <p className="mt-3 text-2xl font-semibold">{placement.connectedSetCount}</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Placement üstünde aktif olarak düzenlenen StoryGroupSet sayısı.
+                      Placement üstünde aktif olarak düzenlenen Story Bar sayısı.
                     </p>
                   </div>
 

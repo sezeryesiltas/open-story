@@ -4,16 +4,34 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@open-story/ui/components/button';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@open-story/ui/components/select';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
+
+import { LogoAssetPicker } from '@/components/admin/logo-asset-picker';
+import { StoryGroupSetMultiSelect } from '@/components/admin/story-group-set-multi-select';
+
+type StoryGroupSetOption = {
+  id: string;
+  name: string;
+};
 
 const formSchema = z
   .object({
     name: z.string().trim().min(2, 'Group adı en az 2 karakter olmalıdır.').max(256, 'Group adı en fazla 256 karakter olabilir.'),
+    bottomLabel: z.string().trim().max(256, 'Bottom label en fazla 256 karakter olabilir.'),
     logoAssetId: z.string().uuid('Geçerli bir logo asset id girin.'),
     badgeType: z.enum(['none', 'emoji', 'svg']).default('none'),
     badgeValue: z.string().trim().max(1024, 'Badge değeri en fazla 1024 karakter olabilir.').optional(),
+    storyGroupSetIds: z.array(z.string().uuid('Geçerli bir Story Bar id girin.')).default([]),
   })
   .superRefine((values, context) => {
     if (values.badgeType !== 'none' && !values.badgeValue?.trim()) {
@@ -29,7 +47,9 @@ export type StoryGroupFormValues = z.infer<typeof formSchema>;
 
 export type StoryGroupFormSubmitValues = {
   name: string;
+  bottom_label: string | null;
   logo_asset_id: string;
+  story_group_set_ids: string[];
   badge: {
     type: 'emoji' | 'svg';
     value: string;
@@ -45,7 +65,9 @@ export type StoryGroupFormSubmitResult =
 function toSubmitValues(values: StoryGroupFormValues): StoryGroupFormSubmitValues {
   return {
     name: values.name.trim(),
+    bottom_label: values.bottomLabel.trim() || null,
     logo_asset_id: values.logoAssetId,
+    story_group_set_ids: values.storyGroupSetIds,
     badge:
       values.badgeType === 'none'
         ? null
@@ -57,11 +79,15 @@ function toSubmitValues(values: StoryGroupFormValues): StoryGroupFormSubmitValue
 }
 
 export function StoryGroupForm({
+  mode,
+  storyGroupSetOptions,
   initialValues,
   generalError,
   onCancel,
   onSubmit,
 }: {
+  mode: 'create' | 'edit' | 'copy';
+  storyGroupSetOptions: StoryGroupSetOption[];
   initialValues: StoryGroupFormValues;
   generalError?: string | null;
   onCancel: () => void;
@@ -70,6 +96,7 @@ export function StoryGroupForm({
   ) => Promise<StoryGroupFormSubmitResult> | StoryGroupFormSubmitResult;
 }) {
   const {
+    control,
     register,
     reset,
     setError,
@@ -108,7 +135,9 @@ export function StoryGroupForm({
     <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleFormSubmit}>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-          <p className="text-sm font-medium">Yeni Story Group</p>
+          <p className="text-sm font-medium">
+            {mode === 'edit' ? 'Story Group düzenleme' : mode === 'copy' ? 'Story Group kopyası' : 'Yeni Story Group'}
+          </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             Group root kaydı oluşturulur. Logo asset zorunludur; badge tamamen opsiyoneldir ve varsa
             yalnızca `emoji` veya `svg` olabilir.
@@ -128,28 +157,80 @@ export function StoryGroupForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="logoAssetId">Logo asset id</Label>
-          <Input id="logoAssetId" placeholder="00000000-0000-0000-0000-000000000000" {...register('logoAssetId')} />
+          <Label htmlFor="bottomLabel">Bottom label</Label>
+          <Input id="bottomLabel" placeholder="Editor's picks" {...register('bottomLabel')} />
+          {errors.bottomLabel ? (
+            <p className="text-sm text-destructive">{errors.bottomLabel.message}</p>
+          ) : (
+            <p className="text-xs leading-5 text-muted-foreground">
+              Story bar altında görünecek kısa label. Boş bırakılabilir.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Logo asset</Label>
+          <Controller
+            control={control}
+            name="logoAssetId"
+            render={({ field }) => (
+              <LogoAssetPicker
+                onChange={(asset) => field.onChange(asset.id)}
+                value={field.value}
+              />
+            )}
+          />
           {errors.logoAssetId ? (
             <p className="text-sm text-destructive">{errors.logoAssetId.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Asset picker henüz ekli değil. Şimdilik mevcut square logo asset UUID değerini manuel girin.
+              Kare group logo asseti seçin. İsterseniz mevcut kayıtlardan seçebilir, URL ile ekleyebilir veya bilgisayardan yükleyebilirsiniz.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Story Bars</Label>
+          <Controller
+            control={control}
+            name="storyGroupSetIds"
+            render={({ field }) => (
+              <StoryGroupSetMultiSelect
+                onChange={field.onChange}
+                options={storyGroupSetOptions}
+                value={field.value}
+              />
+            )}
+          />
+          {errors.storyGroupSetIds ? (
+            <p className="text-sm text-destructive">{errors.storyGroupSetIds.message}</p>
+          ) : (
+            <p className="text-xs leading-5 text-muted-foreground">
+              Group hangi Story Bar&apos;larda referanslanacaksa burada seçin. Bu seçim Story Bar composition etkisidir.
             </p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="badgeType">Badge tipi</Label>
-          <select
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            id="badgeType"
-            {...register('badgeType')}
-          >
-            <option value="none">Badge yok</option>
-            <option value="emoji">Emoji</option>
-            <option value="svg">SVG</option>
-          </select>
+          <Controller
+            control={control}
+            name="badgeType"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger id="badgeType">
+                  <SelectValue placeholder="Badge tipi seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="none">Badge yok</SelectItem>
+                    <SelectItem value="emoji">Emoji</SelectItem>
+                    <SelectItem value="svg">SVG</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
 
         <div className="space-y-2">
@@ -175,7 +256,15 @@ export function StoryGroupForm({
           Vazgeç
         </Button>
         <Button disabled={isSubmitting} type="submit">
-          {isSubmitting ? 'Oluşturuluyor...' : 'Story Group oluştur'}
+          {isSubmitting
+            ? mode === 'edit'
+              ? 'Kaydediliyor...'
+              : 'Oluşturuluyor...'
+            : mode === 'edit'
+              ? 'Değişiklikleri kaydet'
+              : mode === 'copy'
+                ? 'Kopyayı oluştur'
+                : 'Story Group oluştur'}
         </Button>
       </div>
     </form>

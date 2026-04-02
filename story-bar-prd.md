@@ -15,7 +15,7 @@ Bu PRD, kullanıcı tarafından paylaşılan PDF beklentileri ve sonrasında tek
 Ürün 4 ana parçadan oluşur:
 
 1. **Web Admin Console**
-   İç ekiplerin placement, story group set, story group, story ve asset yönetimini yapabildiği panel.
+   İç ekiplerin placement, story bar, story group, story ve asset yönetimini yapabildiği panel.
 
 2. **Delivery API**
    `client_id + static token` ile yetkilendirilmiş native SDK çağrılarına, ilgili placement ve context için geçerli story feed’ini dönen API katmanı.
@@ -39,7 +39,7 @@ Bu PRD, kullanıcı tarafından paylaşılan PDF beklentileri ve sonrasında tek
 Aşağıdakiler sorunsuz çalışıyorsa v1 başarılı kabul edilir:
 
 - Admin panelden placement, set, group ve story tanımlanabilir.
-- Story Group Set, Story Group ve Story seviyesinde draft/published akışı kontrollü şekilde yönetilir.
+- Story Bar, Story Group ve Story seviyesinde draft/published akışı kontrollü şekilde yönetilir.
 - SDK cache varsa bar’ı hızlıca gösterir, arka planda refresh yapar.
 - Fullscreen viewer image ve video story’leri oynatır.
 - CTA host app’e callback ile iletilir; SDK navigasyon yapmaz.
@@ -56,7 +56,7 @@ Aşağıdakiler sorunsuz çalışıyorsa v1 başarılı kabul edilir:
 - Single-tenant web admin console
 - Placement yönetimi
 - Tek client için `client_id` ve çoklu aktif static token yönetimi
-- Story Group Set oluşturma, düzenleme, listeleme, draft kaydetme, publish/unpublish, hard delete
+- Story Bar oluşturma, düzenleme, listeleme, draft kaydetme, publish/unpublish, hard delete
 - Story Group oluşturma, düzenleme, kopyalama, listeleme, archive/restore, publish/unpublish
 - Story oluşturma, düzenleme, listeleme, draft kaydetme, archive/restore, publish/unpublish, taşıma, hard delete
 - Upload-first asset yönetimi
@@ -138,7 +138,7 @@ Temel ekranlar:
 - Login / change password
 - Placements
 - Client & static tokens
-- Story Group Sets
+- Story Bars
 - Story Groups
 - Stories
 - Users
@@ -439,7 +439,7 @@ Kurallar:
 - revoke edilen token ile yeni request yetkisiz sayılır
 - token hash’li saklanır
 
-## 9.4 Story Group Set yönetimi
+## 9.4 Story Bar yönetimi
 
 Desteklenen işlemler:
 - oluşturma
@@ -1052,7 +1052,7 @@ Codex için önerilen geliştirme sırası:
 3. Admin auth + user management
 4. Placement + client + token yönetimi
 5. Asset upload
-6. Story Group Set / Story Group / Story draft-revision modeli
+6. Story Bar / Story Group / Story draft-revision modeli
 7. Publish validation kuralları
 8. Feed resolution API
 9. Android SDK metadata cache + story bar + viewer

@@ -300,6 +300,14 @@ export class DbService {
     });
   }
 
+  deleteById(table: TableName, id: string): boolean {
+    const result = this.database()
+      .prepare('DELETE FROM records WHERE table_name = ? AND id = ?')
+      .run(table, id) as { changes?: number | bigint };
+
+    return Number(result.changes ?? 0) > 0;
+  }
+
   getDatabaseSettings(): DatabaseSettingsSnapshot {
     const config = readBootstrapConfig();
     const activeDatabasePath = getActiveDatabasePath(config);

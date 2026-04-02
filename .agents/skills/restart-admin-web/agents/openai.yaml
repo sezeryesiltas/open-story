@@ -1,0 +1,4 @@
+interface:
+  display_name: "Restart Admin Web"
+  short_description: "Restarts the open-story admin web dev server on port 3000."
+  default_prompt: "Use $restart-admin-web to stop the process on port 3000 and restart the open-story admin web dev server."

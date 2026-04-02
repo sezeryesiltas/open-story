@@ -4,13 +4,41 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@open-story/ui/components/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
 import Link from 'next/link';
-import { Archive, ArrowRight, CalendarClock, CheckCircle2, CircleSlash, ListFilter, Plus, SquareStack } from 'lucide-react';
-import { ReactNode, useMemo, useState } from 'react';
+import {
+  Archive,
+  ArrowRight,
+  CalendarClock,
+  CheckCircle2,
+  CircleSlash,
+  Copy,
+  ListFilter,
+  MoreHorizontal,
+  PencilLine,
+  Plus,
+  SquareStack,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
+import { StoryGroupLogo } from '@/components/admin/story-group-logo';
 import {
   StoryGroupFormSubmitResult,
   StoryGroupFormSubmitValues,
@@ -24,9 +52,16 @@ type StoryGroupSetApiRecord = {
   name: string;
 };
 
+type AssetApiRecord = {
+  id: string;
+  url: string;
+  name: string;
+};
+
 type StoryGroupApiRecord = {
   id: string;
   name: string;
+  bottomLabel: string | null;
   currentDraftRevisionId: string;
   currentPublishedRevisionId: string | null;
   logoAssetId: string;
@@ -52,6 +87,7 @@ type StoryGroupApiRecord = {
 type WorkspaceData = {
   storyGroups: StoryGroupApiRecord[];
   storyGroupSets: StoryGroupSetApiRecord[];
+  groupLogoAssets: AssetApiRecord[];
 };
 
 type ArchiveFilterValue = 'all' | 'active' | 'archived';
@@ -61,9 +97,11 @@ const emptyStoryGroups: StoryGroupApiRecord[] = [];
 const emptyStoryGroupSets: StoryGroupSetApiRecord[] = [];
 const emptyStoryGroupFormValues: StoryGroupFormValues = {
   name: '',
+  bottomLabel: '',
   logoAssetId: '',
   badgeType: 'none',
   badgeValue: '',
+  storyGroupSetIds: [],
 };
 
 function formatDate(value: string) {
@@ -78,24 +116,34 @@ function FilterSelect({
   label,
   value,
   onChange,
-  children,
+  options,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  children: ReactNode;
+  options: Array<{
+    value: string;
+    label: string;
+  }>;
 }) {
   return (
-    <label className="space-y-2">
+    <div className="flex flex-col gap-2">
       <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
-      <select
-        className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {children}
-      </select>
-    </label>
+      <Select onValueChange={onChange} value={value}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -140,36 +188,51 @@ function StateBadge({
 export function StoryGroupsWorkspace() {
   const queryClient = useQueryClient();
   const [selectedStoryGroupSetId, setSelectedStoryGroupSetId] = useState('all');
-  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('all');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [publishFilter, setPublishFilter] = useState<PublishFilterValue>('all');
-  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'create' | 'edit' | 'copy'>('create');
+  const [activeStoryGroupId, setActiveStoryGroupId] = useState<string | null>(null);
+  const [sheetInitialValues, setSheetInitialValues] = useState<StoryGroupFormValues>(emptyStoryGroupFormValues);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const workspaceQuery = useQuery({
     queryKey: ['story-groups-workspace'],
     queryFn: async (): Promise<WorkspaceData> => {
-      const [storyGroups, storyGroupSets] = await Promise.all([
+      const [storyGroups, storyGroupSets, groupLogoAssets] = await Promise.all([
         apiRequest<StoryGroupApiRecord[]>('/api/story-groups'),
         apiRequest<StoryGroupSetApiRecord[]>('/api/story-group-sets'),
+        apiRequest<AssetApiRecord[]>('/api/assets?type=group_logo'),
       ]);
 
       return {
         storyGroups,
         storyGroupSets,
+        groupLogoAssets,
       };
     },
   });
 
   const storyGroups = workspaceQuery.data?.storyGroups ?? emptyStoryGroups;
   const storyGroupSets = workspaceQuery.data?.storyGroupSets ?? emptyStoryGroupSets;
+  const groupLogoAssets = workspaceQuery.data?.groupLogoAssets ?? [];
   const storyGroupSetOptions = useMemo(
     () => [...storyGroupSets].sort((left, right) => left.name.localeCompare(right.name, 'tr')),
     [storyGroupSets],
   );
+  const groupLogoAssetById = useMemo(
+    () => new Map(groupLogoAssets.map((asset) => [asset.id, asset])),
+    [groupLogoAssets],
+  );
 
   const filteredStoryGroups = useMemo(() => {
     return storyGroups.filter((storyGroup) => {
-      if (
+      if (selectedStoryGroupSetId === 'unassigned') {
+        if (storyGroup.storyGroupSets.length > 0) {
+          return false;
+        }
+      } else if (
         selectedStoryGroupSetId !== 'all' &&
         !storyGroup.storyGroupSets.some((storyGroupSet) => storyGroupSet.id === selectedStoryGroupSetId)
       ) {
@@ -202,13 +265,48 @@ export function StoryGroupsWorkspace() {
   );
 
   const hasActiveFilters =
-    selectedStoryGroupSetId !== 'all' || archiveFilter !== 'all' || publishFilter !== 'all';
+    selectedStoryGroupSetId !== 'all' || archiveFilter !== 'active' || publishFilter !== 'all';
 
   const resetFilters = () => {
     setSelectedStoryGroupSetId('all');
-    setArchiveFilter('all');
+    setArchiveFilter('active');
     setPublishFilter('all');
   };
+
+  const updateStoryGroupMutation = useMutation({
+    mutationFn: ({
+      storyGroupId,
+      values,
+    }: {
+      storyGroupId: string;
+      values: StoryGroupFormSubmitValues;
+    }) =>
+      apiRequest<StoryGroupApiRecord>(`/api/story-groups/${storyGroupId}`, {
+        method: 'PUT',
+        body: JSON.stringify(values),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
+      handleSheetChange(false);
+    },
+  });
+
+  const patchStoryGroupMutation = useMutation({
+    mutationFn: ({
+      storyGroupId,
+      action,
+    }: {
+      storyGroupId: string;
+      action: 'archive' | 'restore' | 'publish' | 'unpublish';
+    }) =>
+      apiRequest<StoryGroupApiRecord>(`/api/story-groups/${storyGroupId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
+    },
+  });
 
   const createStoryGroupMutation = useMutation({
     mutationFn: (values: StoryGroupFormSubmitValues) =>
@@ -218,21 +316,58 @@ export function StoryGroupsWorkspace() {
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
-      handleCreateSheetChange(false);
+      handleSheetChange(false);
     },
   });
 
-  const handleCreateSheetChange = (open: boolean) => {
-    setIsCreateSheetOpen(open);
+  function toFormValues(storyGroup: StoryGroupApiRecord): StoryGroupFormValues {
+    return {
+      name: storyGroup.name,
+      bottomLabel: storyGroup.bottomLabel ?? '',
+      logoAssetId: storyGroup.logoAssetId,
+      badgeType: storyGroup.badge?.type ?? 'none',
+      badgeValue: storyGroup.badge?.value ?? '',
+      storyGroupSetIds: storyGroup.storyGroupSets.map((storyGroupSet) => storyGroupSet.id),
+    };
+  }
+
+  const handleSheetChange = (open: boolean) => {
+    setIsSheetOpen(open);
 
     if (!open) {
       setSubmitError(null);
+      setSheetMode('create');
+      setActiveStoryGroupId(null);
+      setSheetInitialValues(emptyStoryGroupFormValues);
     }
   };
 
   const openCreateSheet = () => {
     setSubmitError(null);
-    setIsCreateSheetOpen(true);
+    setSheetMode('create');
+    setActiveStoryGroupId(null);
+    setSheetInitialValues(emptyStoryGroupFormValues);
+    setIsSheetOpen(true);
+  };
+
+  const openEditSheet = (storyGroup: StoryGroupApiRecord) => {
+    setSubmitError(null);
+    setSheetMode('edit');
+    setActiveStoryGroupId(storyGroup.id);
+    setSheetInitialValues(toFormValues(storyGroup));
+    setIsSheetOpen(true);
+  };
+
+  const openCopySheet = (storyGroup: StoryGroupApiRecord) => {
+    setSubmitError(null);
+    setSheetMode('copy');
+    setActiveStoryGroupId(null);
+    setSheetInitialValues({
+      ...toFormValues(storyGroup),
+      name: `${storyGroup.name} Copy`,
+      storyGroupSetIds: [],
+    });
+    setIsSheetOpen(true);
   };
 
   const handleSubmitStoryGroup = async (
@@ -241,7 +376,20 @@ export function StoryGroupsWorkspace() {
     setSubmitError(null);
 
     try {
-      await createStoryGroupMutation.mutateAsync(values);
+      if (sheetMode === 'edit') {
+        if (!activeStoryGroupId) {
+          setSubmitError('Düzenlenecek Story Group bulunamadı. Listeyi yenileyin.');
+          return undefined;
+        }
+
+        await updateStoryGroupMutation.mutateAsync({
+          storyGroupId: activeStoryGroupId,
+          values,
+        });
+      } else {
+        await createStoryGroupMutation.mutateAsync(values);
+      }
+
       return undefined;
     } catch (error) {
       if (error instanceof ApiRequestError && error.code === 'validation_error') {
@@ -260,10 +408,48 @@ export function StoryGroupsWorkspace() {
             },
           };
         }
+
+        if (error.message.includes('bottom')) {
+          return {
+            fieldErrors: {
+              bottomLabel: error.message,
+            },
+          };
+        }
+
+        if (error.message.includes('Story Bar')) {
+          return {
+            fieldErrors: {
+              storyGroupSetIds: error.message,
+            },
+          };
+        }
       }
 
-      setSubmitError(error instanceof Error ? error.message : 'Story Group oluşturulamadı.');
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : sheetMode === 'edit'
+            ? 'Story Group güncellenemedi.'
+            : 'Story Group oluşturulamadı.',
+      );
       return undefined;
+    }
+  };
+
+  const handleRowAction = async (
+    storyGroup: StoryGroupApiRecord,
+    action: 'archive' | 'restore' | 'publish' | 'unpublish',
+  ) => {
+    setActionError(null);
+
+    try {
+      await patchStoryGroupMutation.mutateAsync({
+        storyGroupId: storyGroup.id,
+        action,
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Story Group aksiyonu uygulanamadı.');
     }
   };
 
@@ -271,14 +457,20 @@ export function StoryGroupsWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button asChild variant="outline">
-            <Link href="/story-group-sets">
-              Story Group Sets
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <>
+            <Button className="gap-2" onClick={openCreateSheet}>
+              <Plus className="h-4 w-4" />
+              Yeni Story Group
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/story-group-sets">
+                Story Bars
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </>
         }
-        description="Story Groups ekranı paylaşımlı group root kayıtlarını tablo üzerinden izler. Liste, set referanslarını ve archive / publish durumlarını aynı yüzeyde filtrelemeye odaklanır."
+        description="Story Groups ekranı paylaşımlı group root kayıtlarını tablo üzerinden izler. Liste, Story Bar referanslarını ve archive / publish durumlarını aynı yüzeyde filtrelemeye odaklanır."
         eyebrow="Story Groups"
         title="Group listesi ve lifecycle filtreleri"
       />
@@ -295,10 +487,6 @@ export function StoryGroupsWorkspace() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="gap-2" onClick={openCreateSheet}>
-              <Plus className="h-4 w-4" />
-              Yeni Story Group
-            </Button>
             <Badge variant="secondary">{storyGroups.length} group</Badge>
             <Badge variant="secondary">{publishedCount} published</Badge>
             <Badge variant="secondary">{archiveCount} archived</Badge>
@@ -306,50 +494,11 @@ export function StoryGroupsWorkspace() {
           </div>
         </div>
 
-        <Card className="border-border/60 bg-card/80">
-          <CardHeader>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  <ListFilter className="h-4 w-4" />
-                  Filters
-                </div>
-                <CardTitle>Listeyi daralt</CardTitle>
-                <CardDescription>
-                  Story Group Set referansı, archive durumu ve publish durumu birlikte filtrelenir.
-                </CardDescription>
-              </div>
-
-              {hasActiveFilters ? (
-                <Button onClick={resetFilters} size="sm" variant="outline">
-                  Filtreleri temizle
-                </Button>
-              ) : null}
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <FilterSelect label="Story Group Set" onChange={setSelectedStoryGroupSetId} value={selectedStoryGroupSetId}>
-              <option value="all">Tüm setler</option>
-              {storyGroupSetOptions.map((storyGroupSet) => (
-                <option key={storyGroupSet.id} value={storyGroupSet.id}>
-                  {storyGroupSet.name}
-                </option>
-              ))}
-            </FilterSelect>
-
-            <FilterSelect label="Archive State" onChange={(value) => setArchiveFilter(value as ArchiveFilterValue)} value={archiveFilter}>
-              <option value="all">Tümü</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </FilterSelect>
-
-            <FilterSelect label="Publish State" onChange={(value) => setPublishFilter(value as PublishFilterValue)} value={publishFilter}>
-              <option value="all">Tümü</option>
-              <option value="published">Published</option>
-              <option value="unpublished">Unpublished</option>
-            </FilterSelect>
-          </CardContent>
-        </Card>
+        {actionError ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+            {actionError}
+          </div>
+        ) : null}
 
         {workspaceQuery.isLoading ? (
           <LoadingState />
@@ -376,14 +525,14 @@ export function StoryGroupsWorkspace() {
               </div>
               <CardTitle className="text-xl">Henüz Story Group kaydı yok</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Bu ekran liste ve lifecycle görünümü için hazır. Group kayıtları geldikçe set referansı,
+                Bu ekran liste ve lifecycle görünümü için hazır. Group kayıtları geldikçe Story Bar referansı,
                 archive durumu ve publish durumu tabloya yansıyacak.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button asChild className="gap-2">
                 <Link href="/story-group-sets">
-                  Story Group Set ekranına git
+                  Story Bar ekranına git
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -394,7 +543,7 @@ export function StoryGroupsWorkspace() {
             <CardHeader>
               <CardTitle>Filtrelerle eşleşen Story Group bulunamadı</CardTitle>
               <CardDescription>
-                Seçili Story Group Set veya durum filtreleri altında sonuç kalmadı. Filtreleri temizleyip
+                Seçili Story Bar veya durum filtreleri altında sonuç kalmadı. Filtreleri temizleyip
                 tekrar deneyin.
               </CardDescription>
             </CardHeader>
@@ -408,126 +557,198 @@ export function StoryGroupsWorkspace() {
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-1">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    <ListFilter className="h-4 w-4" />
+                    Filters
+                  </div>
                   <CardTitle>Story Group tablosu</CardTitle>
-                  <CardDescription>
-                    {filteredStoryGroups.length} sonuç gösteriliyor. Publish durumu `current_published_revision_id`
-                    varlığına göre, archive durumu ise archive kaydına göre türetilir.
-                  </CardDescription>
                 </div>
 
-                <Badge variant="secondary">{filteredStoryGroups.length} görünür satır</Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasActiveFilters ? (
+                    <Button onClick={resetFilters} size="sm" variant="outline">
+                      Filtreleri temizle
+                    </Button>
+                  ) : null}
+                  <Badge variant="secondary">{filteredStoryGroups.length} görünür satır</Badge>
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-3">
+                <FilterSelect
+                  label="Story Bar"
+                  onChange={setSelectedStoryGroupSetId}
+                  options={[
+                    { label: "Tüm Story Bar'lar", value: 'all' },
+                    { label: 'Atanmamış grouplar', value: 'unassigned' },
+                    ...storyGroupSetOptions.map((storyGroupSet) => ({
+                      label: storyGroupSet.name,
+                      value: storyGroupSet.id,
+                    })),
+                  ]}
+                  value={selectedStoryGroupSetId}
+                />
+
+                <FilterSelect
+                  label="Archive State"
+                  onChange={(value) => setArchiveFilter(value as ArchiveFilterValue)}
+                  options={[
+                    { label: 'Tümü', value: 'all' },
+                    { label: 'Active', value: 'active' },
+                    { label: 'Archived', value: 'archived' },
+                  ]}
+                  value={archiveFilter}
+                />
+
+                <FilterSelect
+                  label="Publish State"
+                  onChange={(value) => setPublishFilter(value as PublishFilterValue)}
+                  options={[
+                    { label: 'Tümü', value: 'all' },
+                    { label: 'Published', value: 'published' },
+                    { label: 'Unpublished', value: 'unpublished' },
+                  ]}
+                  value={publishFilter}
+                />
+              </div>
+
               <Table className="min-w-[980px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="border-b border-border/60">Group</TableHead>
-                    <TableHead className="border-b border-border/60">Story Group Sets</TableHead>
+                    <TableHead className="border-b border-border/60">Story Bars</TableHead>
                     <TableHead className="border-b border-border/60">Archive</TableHead>
                     <TableHead className="border-b border-border/60">Publish</TableHead>
                     <TableHead className="border-b border-border/60">Stories</TableHead>
                     <TableHead className="border-b border-border/60">Last Update</TableHead>
+                    <TableHead className="border-b border-border/60 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredStoryGroups.map((storyGroup) => (
-                    <TableRow key={storyGroup.id} className="align-top">
-                      <TableCell className="border-b border-border/60 py-4 align-top">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold">{storyGroup.name}</p>
-                              {storyGroup.badge ? (
-                                <Badge variant="outline">
-                                  {storyGroup.badge.type === 'emoji' ? storyGroup.badge.value : 'SVG badge'}
-                                </Badge>
-                              ) : null}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Draft rev: {storyGroup.currentDraftRevisionId}
-                            </p>
-                          </div>
-                      </TableCell>
+                  {filteredStoryGroups.map((storyGroup) => {
+                    const groupLogoAsset = groupLogoAssetById.get(storyGroup.logoAssetId);
+                    const badgeLabel =
+                      storyGroup.badge?.type === 'emoji'
+                        ? storyGroup.badge.value
+                        : storyGroup.badge
+                          ? 'SVG'
+                          : null;
 
-                      <TableCell className="border-b border-border/60 py-4 align-top">
-                          {storyGroup.storyGroupSets.length === 0 ? (
-                            <div className="space-y-2">
-                              <Badge variant="outline">Set bağlantısı yok</Badge>
-                              <p className="text-sm text-muted-foreground">Henüz herhangi bir sette referanslanmıyor.</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <div className="flex flex-wrap gap-2">
-                                {storyGroup.storyGroupSets.map((storyGroupSet) => (
-                                  <Badge key={storyGroupSet.id} variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
-                                    {storyGroupSet.name}
-                                  </Badge>
-                                ))}
+                    return (
+                      <TableRow key={storyGroup.id} className="align-top">
+                        <TableCell className="border-b border-border/60 py-4 align-top">
+                          <div className="flex items-center gap-3">
+                            <StoryGroupLogo
+                              alt={groupLogoAsset?.name ?? storyGroup.name}
+                              badgeLabel={badgeLabel}
+                              bottomLabel={storyGroup.bottomLabel}
+                              inactiveGradientRing
+                              size="md"
+                              src={groupLogoAsset?.url}
+                            />
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold">{storyGroup.name}</p>
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {storyGroup.storyGroupSets.length} set içinde referanslanıyor.
-                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="border-b border-border/60 py-4 align-top">
+                          {storyGroup.storyGroupSets.length === 0 ? (
+                            <Badge variant="outline">Story Bar bağlantısı yok</Badge>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {storyGroup.storyGroupSets.map((storyGroupSet) => (
+                                <Badge key={storyGroupSet.id} variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
+                                  {storyGroupSet.name}
+                                </Badge>
+                              ))}
                             </div>
                           )}
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell className="border-b border-border/60 py-4 align-top">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Archive className="h-4 w-4 text-muted-foreground" />
-                              <StateBadge type="archive" value={storyGroup.archiveState} />
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {storyGroup.archiveState === 'archived' && storyGroup.archivedAt
-                                ? `Archive tarihi: ${formatDate(storyGroup.archivedAt)}`
-                                : storyGroup.archiveState === 'archived'
-                                  ? 'Archive kaydı mevcut.'
-                                  : 'Liste içinde aktif görünür.'}
-                            </p>
+                        <TableCell className="border-b border-border/60 py-4 align-top">
+                          <div className="flex items-center gap-2">
+                            <Archive className="h-4 w-4 text-muted-foreground" />
+                            <StateBadge type="archive" value={storyGroup.archiveState} />
                           </div>
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell className="border-b border-border/60 py-4 align-top">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              {storyGroup.publishState === 'published' ? (
-                                <CheckCircle2 className="h-4 w-4 text-primary" />
-                              ) : (
-                                <CircleSlash className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <StateBadge type="publish" value={storyGroup.publishState} />
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {storyGroup.currentPublishedRevisionId
-                                ? `Live rev: ${storyGroup.currentPublishedRevisionId}`
-                                : 'Henüz published revision yok.'}
-                            </p>
+                        <TableCell className="border-b border-border/60 py-4 align-top">
+                          <div className="flex items-center gap-2">
+                            {storyGroup.publishState === 'published' ? (
+                              <CheckCircle2 className="h-4 w-4 text-primary" />
+                            ) : (
+                              <CircleSlash className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <StateBadge type="publish" value={storyGroup.publishState} />
                           </div>
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell className="border-b border-border/60 py-4 align-top">
-                          <div className="space-y-2">
-                            <p className="text-xl font-semibold">{storyGroup.storyCount}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Bu group altında bağlı story sayısı.
-                            </p>
-                          </div>
-                      </TableCell>
+                        <TableCell className="border-b border-border/60 py-4 align-top">
+                          <p className="text-xl font-semibold">{storyGroup.storyCount}</p>
+                        </TableCell>
 
-                      <TableCell className="border-b border-border/60 py-4 align-top">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                              <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                              {formatDate(storyGroup.updatedAt)}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Oluşturulma: {formatDate(storyGroup.createdAt)}
-                            </p>
+                        <TableCell className="border-b border-border/60 py-4 align-top">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                            {formatDate(storyGroup.updatedAt)}
                           </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+
+                        <TableCell className="border-b border-border/60 py-4 align-top text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button className="ml-auto" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Story Group actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => openEditSheet(storyGroup)}>
+                                <PencilLine className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => openCopySheet(storyGroup)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  handleRowAction(
+                                    storyGroup,
+                                    storyGroup.archiveState === 'archived' ? 'restore' : 'archive',
+                                  )
+                                }
+                              >
+                                <Archive className="mr-2 h-4 w-4" />
+                                {storyGroup.archiveState === 'archived' ? 'Restore' : 'Archive'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  handleRowAction(
+                                    storyGroup,
+                                    storyGroup.publishState === 'published' ? 'unpublish' : 'publish',
+                                  )
+                                }
+                              >
+                                {storyGroup.publishState === 'published' ? (
+                                  <CircleSlash className="mr-2 h-4 w-4" />
+                                ) : (
+                                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                                )}
+                                {storyGroup.publishState === 'published' ? 'Unpublish' : 'Publish'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -537,10 +758,12 @@ export function StoryGroupsWorkspace() {
 
       <StoryGroupSheet
         generalError={submitError}
-        initialValues={emptyStoryGroupFormValues}
-        onOpenChange={handleCreateSheetChange}
+        initialValues={sheetInitialValues}
+        mode={sheetMode}
+        onOpenChange={handleSheetChange}
         onSubmit={handleSubmitStoryGroup}
-        open={isCreateSheetOpen}
+        open={isSheetOpen}
+        storyGroupSetOptions={storyGroupSetOptions}
       />
     </div>
   );

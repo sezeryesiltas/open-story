@@ -3,6 +3,7 @@ node_modules/
 dist/
 coverage/
 .turbo/
+.agents/tmp/
 *.tsbuildinfo
 apps/api/data/
 .env

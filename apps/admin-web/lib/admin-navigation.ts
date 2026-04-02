@@ -58,7 +58,7 @@ export const adminNavSections: AdminNavSection[] = [
     title: 'Content',
     items: [
       {
-        title: 'Story Group Sets',
+        title: 'Story Bars',
         description: 'Targeting, composition ve publish validation akışı.',
         href: '/story-group-sets',
         icon: SquareStack

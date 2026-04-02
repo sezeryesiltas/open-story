@@ -45,12 +45,12 @@ export function StoryGroupSetSheet({
       <SheetContent className="p-0">
         <SheetHeader>
           <SheetTitle>
-            {mode === 'create' ? 'Yeni Story Group Set oluştur' : 'Story Group Set düzenle'}
+            {mode === 'create' ? 'Yeni Story Bar oluştur' : 'Story Bar düzenle'}
           </SheetTitle>
           <SheetDescription>
             {mode === 'create'
               ? 'Placement bağlantısı, targeting kuralları ve count aralığını tek sheet içinde tanımlayın.'
-              : 'Seçili Story Group Set için placement, fallback ve targeting alanlarını güncelleyin.'}
+              : 'Seçili Story Bar için placement, fallback ve targeting alanlarını güncelleyin.'}
           </SheetDescription>
         </SheetHeader>
 

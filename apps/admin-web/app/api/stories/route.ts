@@ -1,27 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { jsonError } from '@/lib/server/api-response';
-import {
-  StoryGroupSetStoreError,
-  createStoryGroupSet,
-  listStoryGroupSets,
-} from '@/lib/server/story-group-set-store';
+import { createStory, listStories, StoryStoreError } from '@/lib/server/story-store';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json(listStoryGroupSets());
+  return NextResponse.json(listStories());
 }
 
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
-    return NextResponse.json(createStoryGroupSet(payload), { status: 201 });
+    return NextResponse.json(createStory(payload), { status: 201 });
   } catch (error) {
-    if (error instanceof StoryGroupSetStoreError) {
+    if (error instanceof StoryStoreError) {
       return jsonError(error.message, error.status, error.code);
     }
 
-    return jsonError('Story Bar oluşturulamadı.', 500, 'validation_error');
+    return jsonError('Story oluşturulamadı.', 500, 'validation_error');
   }
 }

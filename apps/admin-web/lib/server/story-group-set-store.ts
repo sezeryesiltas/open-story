@@ -166,7 +166,7 @@ function normalizeStoryGroupSet(rawRecord: { id: string; [key: string]: unknown 
 
   return {
     id: rawRecord.id,
-    name: parseString(rawRecord.name) ?? 'Untitled Story Group Set',
+    name: parseString(rawRecord.name) ?? 'Untitled Story Bar',
     placementId:
       parseString(rawRecord.placementId) ??
       parseString(rawRecord.placement_id) ??
@@ -192,7 +192,7 @@ function ensurePlacementExists(placementId: string): void {
 
   if (!placementExists) {
     throw new StoryGroupSetStoreError(
-      'Story Group Set kaydı için geçerli bir placement seçilmelidir.',
+      'Story Bar kaydı için geçerli bir placement seçilmelidir.',
       404,
       'not_found',
     );
@@ -301,7 +301,7 @@ function sanitizeStoryGroupSetPayload(
 
   if (!name || name.length < 2) {
     throw new StoryGroupSetStoreError(
-      'Story Group Set adı en az 2 karakter olmalıdır.',
+      'Story Bar adı en az 2 karakter olmalıdır.',
       400,
       'validation_error',
     );
@@ -309,7 +309,7 @@ function sanitizeStoryGroupSetPayload(
 
   if (!placementId) {
     throw new StoryGroupSetStoreError(
-      'Story Group Set kaydı için placement seçilmelidir.',
+      'Story Bar kaydı için placement seçilmelidir.',
       400,
       'validation_error',
     );
@@ -383,7 +383,7 @@ export function updateStoryGroupSet(
 
   if (!existingRecord) {
     throw new StoryGroupSetStoreError(
-      'Story Group Set bulunamadı.',
+      'Story Bar bulunamadı.',
       404,
       'not_found',
     );

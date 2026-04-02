@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { CreatePlacementDto, PlacementDto, UpdatePlacementDto } from '@open-story/contracts';
 import { DbService } from '@open-story/db';
 
+import { attachConnectedSetCounts, PlacementListItem } from '@/lib/server/placement-metrics';
+
 const db = new DbService();
 
 export class PlacementStoreError extends Error {
@@ -16,10 +18,14 @@ export class PlacementStoreError extends Error {
   }
 }
 
-export function listPlacements(): PlacementDto[] {
-  return db
+export function listPlacements(): Array<PlacementListItem<PlacementDto>> {
+  const placements = db
     .list<PlacementDto>('placements')
     .sort((left: PlacementDto, right: PlacementDto) => right.updatedAt.localeCompare(left.updatedAt));
+
+  const storyGroupSets = db.list<{ id: string; [key: string]: unknown }>('storyGroupSets');
+
+  return attachConnectedSetCounts(placements, storyGroupSets);
 }
 
 function findPlacementById(id: string): PlacementDto | undefined {

@@ -88,7 +88,7 @@ function formatDate(value: string) {
 
 function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): string {
   if (storyGroupSet.isFallback) {
-    return 'Fallback set, targeting yok';
+    return 'Fallback Story Bar, targeting yok';
   }
 
   if (storyGroupSet.platformTargets.length === 0) {
@@ -102,7 +102,7 @@ function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): str
 
 function formatSegmentSummary(storyGroupSet: StoryGroupSetApiRecord): string {
   if (storyGroupSet.isFallback) {
-    return 'Normal set eşleşmezse kullanılır.';
+    return 'Normal Story Bar eşleşmezse kullanılır.';
   }
 
   if (storyGroupSet.userSegments.length === 0) {
@@ -264,7 +264,7 @@ export function StoryGroupSetsWorkspace() {
         };
       }
 
-      setSubmitError(error instanceof Error ? error.message : 'Story Group Set kaydedilemedi.');
+      setSubmitError(error instanceof Error ? error.message : 'Story Bar kaydedilemedi.');
       return undefined;
     }
   };
@@ -284,7 +284,7 @@ export function StoryGroupSetsWorkspace() {
           <>
             <Button className="gap-2" disabled={!canCreateStoryGroupSet} onClick={openCreateSheet}>
               <Plus className="h-4 w-4" />
-              Yeni Story Group Set
+              Yeni Story Bar
             </Button>
             <Button asChild variant="outline">
               <Link href="/placements">
@@ -294,25 +294,25 @@ export function StoryGroupSetsWorkspace() {
             </Button>
           </>
         }
-        description="Story Group Sets ekranı placement bağlantısı, fallback davranışı ve targeting kurallarını tek listede görünür kılar. Create ve edit akışları sheet içinde çalışır."
-        eyebrow="Story Group Sets"
-        title="Set targeting ve composition"
+        description="Story Bars ekranı placement bağlantısı, fallback davranışı ve targeting kurallarını tek listede görünür kılar. Create ve edit akışları sheet içinde çalışır."
+        eyebrow="Story Bars"
+        title="Story Bar targeting ve composition"
       />
 
       <section className="space-y-4">
         <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/80 p-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
-            <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story Group Set&apos;ler</h2>
+            <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story Bar&apos;lar</h2>
             <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Her kart placement bağlamını, targeting özetini ve set seviyesindeki group count
-              aralığını gösterir. Fallback set ise platform ve segment hedefleri boş tutulur.
+              Her kart placement bağlamını, targeting özetini ve Story Bar seviyesindeki group count
+              aralığını gösterir. Fallback Story Bar ise platform ve segment hedefleri boş tutulur.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <Badge className="w-fit" variant="secondary">
-              {storyGroupSets.length} set
+              {storyGroupSets.length} Story Bar
             </Badge>
             <Badge className="w-fit" variant="secondary">
               {placements.length} placement
@@ -328,7 +328,7 @@ export function StoryGroupSetsWorkspace() {
               </div>
               <CardTitle className="text-xl">Önce placement oluşturulmalı</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Story Group Set her zaman bir placement altında yaşar. Bu nedenle set tanımı açmadan
+                Story Bar her zaman bir placement altında yaşar. Bu nedenle Story Bar tanımı açmadan
                 önce en az bir placement oluşturun.
               </CardDescription>
             </CardHeader>
@@ -348,7 +348,7 @@ export function StoryGroupSetsWorkspace() {
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Story Group Set listesi yüklenemedi</CardTitle>
+              <CardTitle>Story Bar listesi yüklenemedi</CardTitle>
               <CardDescription>
                 {(workspaceQuery.error as Error | undefined)?.message ??
                   'API yanıtı alınamadı. Admin-web route ve storage erişimini kontrol edin.'}
@@ -366,16 +366,16 @@ export function StoryGroupSetsWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <SquareStack className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz Story Group Set tanımı yok</CardTitle>
+              <CardTitle className="text-xl">Henüz Story Bar tanımı yok</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Placement&apos;a bağlı ilk seti tanımlayın. Create akışı sağdaki sheet içinde açılır ve
-                yeni set için fallback, platform target ve segment kuralları aynı formda tutulur.
+                Placement&apos;a bağlı ilk Story Bar&apos;ı tanımlayın. Create akışı sağdaki sheet içinde açılır ve
+                yeni Story Bar için fallback, platform target ve segment kuralları aynı formda tutulur.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
                 <Plus className="h-4 w-4" />
-                İlk Story Group Set&apos;i oluştur
+                İlk Story Bar&apos;ı oluştur
               </Button>
             </CardContent>
           </Card>
