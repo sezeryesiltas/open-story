@@ -1,0 +1,205 @@
+import assert from 'node:assert/strict';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+
+import { DbService } from '@open-story/db';
+
+import { AdminAccessService } from '../src/admin-auth/admin-access.service.ts';
+import { SimpleJwtService } from '../src/admin-auth/simple-jwt.ts';
+import { AssetsRepository } from '../src/modules/assets/assets.repository.ts';
+import { AssetsService } from '../src/modules/assets/assets.service.ts';
+import { AuthService } from '../src/modules/auth/auth.service.ts';
+import { ApiServiceError } from '../src/common/filters/api-error.ts';
+import { StoryPlatformRepository } from '../src/story-platform/story-platform.repository.ts';
+
+function createHarness() {
+  const tempDir = mkdtempSync(join(tmpdir(), 'open-story-api-assets-'));
+
+  process.env.OPEN_STORY_SQLITE_PATH = join(tempDir, 'open-story.sqlite');
+  process.env.OPEN_STORY_DB_CONFIG_PATH = join(tempDir, 'database-config.json');
+  process.env.OPEN_STORY_ASSET_STORAGE_DIR = join(tempDir, 'asset-storage');
+  process.env.OPEN_STORY_PUBLIC_ASSET_BASE_URL = 'http://localhost:3001/uploads/assets';
+
+  const db = new DbService();
+  const repository = new StoryPlatformRepository(db, {
+    clientId: 'public-client-id',
+    clientName: 'Open Story App',
+    adminEmail: 'admin@openstory.local',
+    adminPassword: 'admin12345',
+  });
+  const jwtService = new SimpleJwtService('test-admin-jwt-secret');
+  const adminAccessService = new AdminAccessService(repository, jwtService);
+
+  return {
+    authService: new AuthService(repository, jwtService, adminAccessService),
+    assetsService: new AssetsService(new AssetsRepository(db), adminAccessService),
+  };
+}
+
+test('asset upload stores square logos and 9:16 media with extracted metadata', async () => {
+  const { authService, assetsService } = createHarness();
+  const loginResponse = await authService.login({
+    email: 'admin@openstory.local',
+    password: 'admin12345',
+  });
+  const authorization = `Bearer ${loginResponse.accessToken}`;
+
+  const logoAsset = await assetsService.upload(
+    {
+      type: 'group_logo',
+      fileName: 'logo.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"></svg>'),
+    },
+    authorization,
+  );
+
+  assert.equal(logoAsset.type, 'group_logo');
+  assert.equal(logoAsset.width, 128);
+  assert.equal(logoAsset.height, 128);
+  assert.equal(logoAsset.source, 'upload');
+
+  const imageAsset = await assetsService.upload(
+    {
+      type: 'story_image',
+      fileName: 'story.png',
+      mimeType: 'image/png',
+      buffer: createPngBuffer(1080, 1920),
+    },
+    authorization,
+  );
+
+  assert.equal(imageAsset.type, 'story_image');
+  assert.equal(imageAsset.width, 1080);
+  assert.equal(imageAsset.height, 1920);
+  assert.equal(imageAsset.durationMs, null);
+
+  const videoAsset = await assetsService.upload(
+    {
+      type: 'story_video',
+      fileName: 'story.mp4',
+      mimeType: 'video/mp4',
+      buffer: createMp4Buffer({ width: 1080, height: 1920, durationMs: 15_000 }),
+    },
+    authorization,
+  );
+
+  assert.equal(videoAsset.type, 'story_video');
+  assert.equal(videoAsset.durationMs, 15_000);
+  assert.equal(videoAsset.width, 1080);
+  assert.equal(videoAsset.height, 1920);
+
+  const listedAssets = await assetsService.list({}, authorization);
+  assert.equal(listedAssets.length, 3);
+});
+
+test('asset upload rejects invalid image ratios and overlong videos', async () => {
+  const { authService, assetsService } = createHarness();
+  const loginResponse = await authService.login({
+    email: 'admin@openstory.local',
+    password: 'admin12345',
+  });
+  const authorization = `Bearer ${loginResponse.accessToken}`;
+
+  await assert.rejects(
+    () =>
+      assetsService.upload(
+        {
+          type: 'group_logo',
+          fileName: 'logo.png',
+          mimeType: 'image/png',
+          buffer: createPngBuffer(128, 256),
+        },
+        authorization,
+      ),
+    (error) =>
+      error instanceof ApiServiceError &&
+      error.statusCode === 400 &&
+      error.message.includes('kare'),
+  );
+
+  await assert.rejects(
+    () =>
+      assetsService.upload(
+        {
+          type: 'story_video',
+          fileName: 'story.mp4',
+          mimeType: 'video/mp4',
+          buffer: createMp4Buffer({ width: 1080, height: 1920, durationMs: 31_000 }),
+        },
+        authorization,
+      ),
+    (error) =>
+      error instanceof ApiServiceError &&
+      error.statusCode === 400 &&
+      error.message.includes('30 saniye'),
+  );
+});
+
+function createPngBuffer(width, height) {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const ihdrData = Buffer.alloc(13);
+  ihdrData.writeUInt32BE(width, 0);
+  ihdrData.writeUInt32BE(height, 4);
+  ihdrData[8] = 8;
+  ihdrData[9] = 6;
+  const ihdr = Buffer.concat([
+    uint32(13),
+    Buffer.from('IHDR'),
+    ihdrData,
+    Buffer.from([0, 0, 0, 0]),
+  ]);
+  const iend = Buffer.concat([
+    uint32(0),
+    Buffer.from('IEND'),
+    Buffer.from([0, 0, 0, 0]),
+  ]);
+
+  return Buffer.concat([signature, ihdr, iend]);
+}
+
+function createMp4Buffer({ width, height, durationMs }) {
+  const ftyp = atom(
+    'ftyp',
+    Buffer.from('isom'),
+    uint32(0),
+    Buffer.from('isom'),
+    Buffer.from('mp41'),
+  );
+
+  const mvhdBody = Buffer.alloc(100);
+  mvhdBody.writeUInt32BE(0, 0);
+  mvhdBody.writeUInt32BE(1000, 12);
+  mvhdBody.writeUInt32BE(durationMs, 16);
+
+  const tkhdBody = Buffer.alloc(84);
+  tkhdBody.writeUInt32BE(7, 0);
+  tkhdBody.writeUInt32BE(1, 12);
+  tkhdBody.writeUInt32BE(durationMs, 20);
+  tkhdBody.writeUInt32BE(width * 65536, 76);
+  tkhdBody.writeUInt32BE(height * 65536, 80);
+
+  const hdlrBody = Buffer.alloc(24);
+  Buffer.from('vide').copy(hdlrBody, 8);
+
+  const moov = atom(
+    'moov',
+    atom('mvhd', mvhdBody),
+    atom('trak', atom('tkhd', tkhdBody), atom('mdia', atom('hdlr', hdlrBody))),
+  );
+
+  return Buffer.concat([ftyp, moov]);
+}
+
+function atom(type, ...payloads) {
+  const payload = Buffer.concat(payloads);
+  return Buffer.concat([uint32(payload.length + 8), Buffer.from(type), payload]);
+}
+
+function uint32(value) {
+  const buffer = Buffer.alloc(4);
+  buffer.writeUInt32BE(value, 0);
+  return buffer;
+}

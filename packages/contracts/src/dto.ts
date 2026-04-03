@@ -178,19 +178,25 @@ export interface StoryDto {
   isArchived: boolean;
 }
 
-export interface CreateAssetDto {
-  type: 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
-  mimeType: string;
-  url: string;
-  width: number;
-  height: number;
-  sizeBytes: number;
-}
+export type AssetTypeDto = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 
 export interface AssetDto {
   id: string;
-  type: string;
+  type: AssetTypeDto;
   url: string;
+  name: string;
+  mimeType: string | null;
+  width: number | null;
+  height: number | null;
+  durationMs: number | null;
+  sizeBytes: number | null;
+  source: 'upload';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListAssetsQueryDto {
+  type?: AssetTypeDto;
 }
 
 export type SdkFeedRequestDto = SdkFeedRequest;
