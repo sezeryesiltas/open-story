@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "echo \"No tests yet for admin-web\"",
-    "check": "tsc --noEmit"
+    "test": "node --test --experimental-strip-types ./lib/server/*.test.mjs",
+    "check": "tsc --noEmit && node --test --experimental-strip-types ./lib/server/*.test.mjs"
   },
   "dependencies": {
     "@open-story/contracts": "workspace:*",

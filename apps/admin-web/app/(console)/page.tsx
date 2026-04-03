@@ -17,7 +17,7 @@ const deliverySlices = [
   },
   {
     title: 'Revision-backed content',
-    description: 'StoryGroupSet, StoryGroup ve Story root + revision modelini ayıran ekranlar.'
+    description: 'Story Bar, Story Group ve Story root + revision modelini ayıran ekranlar.'
   },
   {
     title: 'Preview over feed contract',
@@ -28,7 +28,7 @@ const deliverySlices = [
 const productGuardrails = [
   'Console tek tenant varsayımıyla çalışır; client seçici veya tenant yönetimi eklenmez.',
   'UI fixed kalır; host-controlled theming ya da placement surface abstraction bu çatıda yer almaz.',
-  'StoryGroupSet targeting tek çözümleme katmanıdır; group veya story seviyesinde targeting eklenmez.',
+  'Story Bar targeting tek çözümleme katmanıdır; group veya story seviyesinde targeting eklenmez.',
   'Preview contract doğruluğuna odaklanır; native SDK ile piksel-perfect parity hedeflenmez.'
 ];
 

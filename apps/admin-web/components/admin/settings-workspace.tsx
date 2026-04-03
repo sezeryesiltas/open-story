@@ -331,7 +331,7 @@ export function SettingsWorkspace() {
                   type="button"
                   variant="outline"
                 >
-                  Local sqlite'a dön
+                  Local sqlite&apos;a dön
                 </Button>
               </div>
             </form>

@@ -1,3 +1,4 @@
+import type { StaticTokenRecord } from '@open-story/contracts';
 import { forbidden, unauthorized, type AuthErrorResponse } from '../common/auth-error-response';
 import { verifyStaticTokenHash } from './static-token-hash';
 
@@ -10,13 +11,10 @@ export type SdkRequest = {
   body: FeedRequestBody;
 };
 
-export type StaticToken = {
-  id: string;
-  clientId: string;
-  tokenHash: string;
-  revokedAt: Date | null;
-  active: boolean;
-};
+export type StaticToken = Pick<
+  StaticTokenRecord,
+  'id' | 'clientId' | 'tokenHash' | 'revokedAt' | 'isActive'
+>;
 
 export interface StaticTokenStore {
   findActiveByClientId(clientId: string): Promise<StaticToken[]>;
@@ -51,7 +49,7 @@ export class StaticTokenGuard {
       return { ok: false, error: unauthorized('AUTH_UNAUTHORIZED', 'Invalid static token.') };
     }
 
-    if (!match.active || match.revokedAt) {
+    if (!match.isActive || match.revokedAt) {
       return {
         ok: false,
         error: forbidden('TOKEN_REVOKED', 'Static token is revoked or inactive.'),
