@@ -72,19 +72,41 @@ export interface UpdateDatabaseSettingsDto {
   externalDatabaseUrl?: string | null;
 }
 
+export interface ClientDto {
+  id: string;
+  clientId: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateClientDto {
+  name?: string;
+  isActive?: boolean;
+}
+
 export interface CreateStaticTokenDto {
   label: string;
 }
 
 export interface StaticTokenDto {
   id: string;
+  clientId: string;
   label: string;
-  tokenPreview: string;
+  tokenPrefix: string;
   isActive: boolean;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+export interface CreateStaticTokenResponseDto {
+  token: StaticTokenDto;
+  plainTextToken: string;
 }
 
 export interface RevokeStaticTokenDto {
-  tokenId: string;
+  reason?: string;
 }
 
 export interface CreatePlacementDto {

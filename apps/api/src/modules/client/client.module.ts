@@ -4,11 +4,11 @@ import { DbService } from '@open-story/db';
 import { AdminAccessService } from '../../admin-auth/admin-access.service';
 import { SimpleJwtService } from '../../admin-auth/simple-jwt';
 import { StoryPlatformRepository } from '../../story-platform/story-platform.repository';
-import { ClientTokenController } from './client-token.controller';
-import { ClientTokenService } from './client-token.service';
+import { ClientController } from './client.controller';
+import { ClientService } from './client.service';
 
 @Module({
-  controllers: [ClientTokenController],
+  controllers: [ClientController],
   providers: [
     DbService,
     {
@@ -27,11 +27,11 @@ import { ClientTokenService } from './client-token.service';
       inject: [StoryPlatformRepository, SimpleJwtService],
     },
     {
-      provide: ClientTokenService,
+      provide: ClientService,
       useFactory: (repository: StoryPlatformRepository, adminAccessService: AdminAccessService) =>
-        new ClientTokenService(repository, adminAccessService),
+        new ClientService(repository, adminAccessService),
       inject: [StoryPlatformRepository, AdminAccessService],
     },
   ],
 })
-export class ClientTokenModule {}
+export class ClientModule {}

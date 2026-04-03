@@ -4,12 +4,14 @@ import type {
   AdminSessionRecord,
   AdminUserRecord,
   ClientRecord,
+  StaticTokenRecord,
 } from '@open-story/contracts';
 import { DbService } from '@open-story/db';
 
 import { hashPassword } from '../admin-auth/password.ts';
 import type { AdminSessionStore, AdminUserStore } from '../admin-auth/admin-auth.service.ts';
 import type { AdminSessionReader } from '../admin-auth/admin-session-jwt.guard.ts';
+import type { StaticToken, StaticTokenStore } from '../sdk-auth/static-token.guard.ts';
 
 export type StoryPlatformSeedConfig = {
   clientId: string;
@@ -25,7 +27,7 @@ const DEFAULT_SEED_CONFIG: StoryPlatformSeedConfig = {
   adminPassword: process.env.OPEN_STORY_SEED_ADMIN_PASSWORD?.trim() || 'admin123',
 };
 
-export class StoryPlatformRepository implements AdminUserStore, AdminSessionStore, AdminSessionReader {
+export class StoryPlatformRepository implements AdminUserStore, AdminSessionStore, AdminSessionReader, StaticTokenStore {
   private readonly db: DbService;
   private readonly seedConfig: StoryPlatformSeedConfig;
 
@@ -49,6 +51,23 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
     }
 
     return clients[0];
+  }
+
+  updateSingletonClient(params: { name?: string; isActive?: boolean }): ClientRecord {
+    this.ensureBootstrapState();
+
+    const currentClient = this.getSingletonClient();
+    const updatedClient = this.db.updateById<ClientRecord>('clients', currentClient.id, {
+      name: params.name ?? currentClient.name,
+      isActive: params.isActive ?? currentClient.isActive,
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (!updatedClient) {
+      throw new Error('Singleton client could not be updated.');
+    }
+
+    return updatedClient;
   }
 
   listAdminUsers(): AdminUserRecord[] {
@@ -114,6 +133,71 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
     );
   }
 
+  listStaticTokens(): StaticTokenRecord[] {
+    this.ensureBootstrapState();
+
+    const client = this.getSingletonClient();
+
+    return this.db
+      .list<StaticTokenRecord>('staticTokens')
+      .filter((token) => token.clientId === client.id)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  findStaticTokenById(tokenId: string): StaticTokenRecord | null {
+    this.ensureBootstrapState();
+
+    const client = this.getSingletonClient();
+    const token = this.db.findById<StaticTokenRecord>('staticTokens', tokenId) ?? null;
+    if (!token || token.clientId !== client.id) {
+      return null;
+    }
+
+    return token;
+  }
+
+  createStaticToken(params: {
+    label: string;
+    tokenHash: string;
+    tokenPrefix: string;
+  }): StaticTokenRecord {
+    this.ensureBootstrapState();
+
+    const client = this.getSingletonClient();
+    const now = new Date().toISOString();
+    const record: StaticTokenRecord = {
+      id: randomUUID(),
+      clientId: client.id,
+      label: params.label,
+      tokenHash: params.tokenHash,
+      tokenPrefix: params.tokenPrefix,
+      isActive: true,
+      revokedAt: null,
+      expiresAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    return this.db.insert<StaticTokenRecord>('staticTokens', record);
+  }
+
+  revokeStaticToken(tokenId: string, revokedAt = new Date()): StaticTokenRecord | null {
+    this.ensureBootstrapState();
+
+    const token = this.findStaticTokenById(tokenId);
+    if (!token) {
+      return null;
+    }
+
+    return (
+      this.db.updateById<StaticTokenRecord>('staticTokens', tokenId, {
+        isActive: false,
+        revokedAt: revokedAt.toISOString(),
+        updatedAt: revokedAt.toISOString(),
+      }) ?? null
+    );
+  }
+
   async create(session: {
     id: string;
     userId: string;
@@ -159,6 +243,26 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
     }
 
     return new Date(session.expiresAt).getTime() > now.getTime();
+  }
+
+  async findByClientId(clientId: string): Promise<StaticToken[]> {
+    this.ensureBootstrapState();
+
+    const client = this.getSingletonClient();
+    if (client.clientId !== clientId) {
+      return [];
+    }
+
+    return this.db
+      .list<StaticTokenRecord>('staticTokens')
+      .filter((token) => token.clientId === client.id)
+      .map((token) => ({
+        id: token.id,
+        clientId: client.clientId,
+        tokenHash: token.tokenHash,
+        revokedAt: token.revokedAt,
+        isActive: token.isActive,
+      }));
   }
 
   private ensureBootstrapState(): void {

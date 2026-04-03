@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdminUserModule } from './modules/admin-user/admin-user.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ClientModule } from './modules/client/client.module';
 import { ClientTokenModule } from './modules/client-token/client-token.module';
 import { PlacementModule } from './modules/placement/placement.module';
 import { StoryGroupSetModule } from './modules/story-group-set/story-group-set.module';
@@ -14,6 +15,7 @@ import { SettingsModule } from './modules/settings/settings.module';
   imports: [
     AdminUserModule,
     AuthModule,
+    ClientModule,
     ClientTokenModule,
     PlacementModule,
     StoryGroupSetModule,

@@ -16,8 +16,14 @@ export const staticTokenSchema = z
 
 export const createStaticTokenDtoSchema = z
   .object({
-    client_id: z.string().trim().min(1).max(128),
     label: z.string().trim().min(1).max(128),
+  })
+  .strict();
+
+export const createStaticTokenResponseSchema = z
+  .object({
+    token: staticTokenSchema,
+    plain_text_token: z.string().trim().min(1),
   })
   .strict();
 
@@ -29,4 +35,5 @@ export const revokeStaticTokenDtoSchema = z
 
 export type StaticToken = z.infer<typeof staticTokenSchema>;
 export type CreateStaticTokenDto = z.infer<typeof createStaticTokenDtoSchema>;
+export type CreateStaticTokenResponse = z.infer<typeof createStaticTokenResponseSchema>;
 export type RevokeStaticTokenDto = z.infer<typeof revokeStaticTokenDtoSchema>;
