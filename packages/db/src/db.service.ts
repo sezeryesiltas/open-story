@@ -1,16 +1,12 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, isAbsolute, normalize, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { storyPlatformTableNames, type StoryPlatformTableName } from '../../contracts/src/persistence.ts';
 
-declare const require: (specifier: string) => unknown;
+const require = createRequire(import.meta.url);
 
-export type TableName =
-  | 'placements'
-  | 'staticTokens'
-  | 'storyGroupSets'
-  | 'storyGroups'
-  | 'stories'
-  | 'assets';
+export type TableName = StoryPlatformTableName;
 
 type DbRecord = {
   id: string;
@@ -46,14 +42,7 @@ export interface DatabaseSettingsSnapshot {
   tableCounts: Record<string, number>;
 }
 
-const TABLE_NAMES: TableName[] = [
-  'placements',
-  'staticTokens',
-  'storyGroupSets',
-  'storyGroups',
-  'stories',
-  'assets',
-];
+const TABLE_NAMES: TableName[] = [...storyPlatformTableNames];
 
 const SQLITE_FILENAME = 'open-story.sqlite';
 const CONFIG_FILENAME = 'database-config.json';

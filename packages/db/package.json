@@ -2,6 +2,7 @@
   "name": "@open-story/db",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -10,7 +11,7 @@
   "scripts": {
     "build": "echo \"db package scaffold pending\"",
     "lint": "echo \"db lint scaffold pending\"",
-    "test": "echo \"db test scaffold pending\"",
-    "check": "echo \"db check scaffold pending\""
+    "test": "node --test --experimental-strip-types src/**/*.test.mjs",
+    "check": "node --test --experimental-strip-types src/**/*.test.mjs"
   }
 }

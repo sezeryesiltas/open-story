@@ -11,6 +11,6 @@ export class SdkFeedService {
       throw new ForbiddenException('Missing or invalid static token');
     }
 
-    return this.repository.getByPlacementKey(payload.placement_key);
+    return this.repository.buildSnapshot(payload);
   }
 }

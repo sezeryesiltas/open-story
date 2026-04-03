@@ -1,3 +1,10 @@
+import type {
+  SdkFeedGroup,
+  SdkFeedRequest,
+  SdkFeedResponse,
+  SdkFeedStory,
+} from './sdk/feed';
+
 export type Platform = 'ios' | 'android';
 
 export interface AuthLoginRequestDto {
@@ -122,39 +129,7 @@ export interface AssetDto {
   url: string;
 }
 
-export interface SdkFeedRequestDto {
-  client_id: string;
-  placement_key: string;
-  platform: Platform;
-  app_version: string;
-  user_segments: string[];
-}
-
-export interface SdkStoryItemDto {
-  story_id: string;
-  story_revision_id: string;
-  media_type: 'image' | 'video';
-  media_url: string;
-  poster_url?: string;
-  image_duration_ms?: number;
-  cta?: {
-    label: string;
-    type: 'url' | 'deeplink';
-    value: string;
-  };
-}
-
-export interface SdkStoryGroupItemDto {
-  group_id: string;
-  group_revision_id: string;
-  title: string;
-  logo_url: string;
-  stories: SdkStoryItemDto[];
-}
-
-export interface SdkFeedResponseDto {
-  placement_key: string;
-  set_id?: string;
-  set_revision_id?: string;
-  groups: SdkStoryGroupItemDto[];
-}
+export type SdkFeedRequestDto = SdkFeedRequest;
+export type SdkStoryItemDto = SdkFeedStory;
+export type SdkStoryGroupItemDto = SdkFeedGroup;
+export type SdkFeedResponseDto = SdkFeedResponse;

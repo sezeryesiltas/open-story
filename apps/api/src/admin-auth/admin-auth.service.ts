@@ -1,12 +1,8 @@
 import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import type { AdminUserRecord } from '@open-story/contracts';
 import { unauthorized, type AuthErrorResponse } from '../common/auth-error-response';
 
-export type AdminUser = {
-  id: string;
-  email: string;
-  passwordHash: string;
-  active: boolean;
-};
+export type AdminUser = Pick<AdminUserRecord, 'id' | 'email' | 'passwordHash' | 'isActive'>;
 
 export type AdminSession = {
   id: string;
@@ -49,7 +45,7 @@ export class AdminAuthService {
   async signIn(email: string, password: string): Promise<AdminSignInResult> {
     const user = await this.userStore.findByEmail(email.toLowerCase());
 
-    if (!user || !user.active) {
+    if (!user || !user.isActive) {
       return { ok: false, error: unauthorized('AUTH_UNAUTHORIZED', 'Invalid email or password.') };
     }
 
