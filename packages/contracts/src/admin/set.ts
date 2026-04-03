@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { appVersionSchema, platformSchema, userSegmentSchema } from '../common/context';
-import { revisionIdSchema, rootIdSchema } from '../common/revision';
+import { appVersionSchema, platformSchema, userSegmentSchema } from '../common/context.ts';
+import { revisionIdSchema, rootIdSchema } from '../common/revision.ts';
 
 const setTargetRuleSchema = z
   .object({

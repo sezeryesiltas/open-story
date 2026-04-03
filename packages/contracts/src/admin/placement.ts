@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { rootIdSchema } from '../common/revision';
+import { rootIdSchema } from '../common/revision.ts';
 
 export const placementSchema = z
   .object({

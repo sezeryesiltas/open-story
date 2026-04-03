@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { revisionIdSchema, rootIdSchema } from '../common/revision';
+import { revisionIdSchema, rootIdSchema } from '../common/revision.ts';
 
 const badgeSchema = z
   .object({

@@ -3,7 +3,7 @@ import type {
   SdkFeedRequest,
   SdkFeedResponse,
   SdkFeedStory,
-} from './sdk/feed';
+} from './sdk/feed.ts';
 
 export type Platform = 'ios' | 'android';
 
@@ -12,9 +12,51 @@ export interface AuthLoginRequestDto {
   password: string;
 }
 
+export interface AuthUserDto {
+  id: string;
+  email: string;
+  mustChangePassword: boolean;
+  isActive: boolean;
+}
+
+export interface AuthSessionDto {
+  id: string;
+  expiresAt: string;
+}
+
 export interface AuthLoginResponseDto {
   accessToken: string;
   expiresIn: number;
+  user: AuthUserDto;
+  session: AuthSessionDto;
+}
+
+export interface AuthSessionResponseDto {
+  user: AuthUserDto;
+  session: AuthSessionDto;
+}
+
+export interface AuthChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface AdminUserDto {
+  id: string;
+  email: string;
+  mustChangePassword: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAdminUserDto {
+  email: string;
+  temporaryPassword: string;
+}
+
+export interface ResetAdminUserPasswordDto {
+  temporaryPassword: string;
 }
 
 export interface DatabaseSettingsDto {

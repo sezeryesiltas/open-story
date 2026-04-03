@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AdminUserModule } from './modules/admin-user/admin-user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClientTokenModule } from './modules/client-token/client-token.module';
 import { PlacementModule } from './modules/placement/placement.module';
@@ -11,6 +12,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
+    AdminUserModule,
     AuthModule,
     ClientTokenModule,
     PlacementModule,

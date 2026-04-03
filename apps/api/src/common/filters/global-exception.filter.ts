@@ -10,7 +10,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
-import { ApiErrorResponse } from './api-error';
+import { ApiErrorResponse, ApiServiceError } from './api-error';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -38,6 +38,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof ConflictException) {
       return this.send(response, HttpStatus.CONFLICT, {
         error: { code: 'conflict', message: exception.message },
+      });
+    }
+
+    if (exception instanceof ApiServiceError) {
+      return this.send(response, exception.statusCode, {
+        error: {
+          code: exception.code,
+          message: exception.message,
+          details: exception.details,
+        },
       });
     }
 

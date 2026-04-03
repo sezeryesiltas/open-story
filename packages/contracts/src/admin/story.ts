@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { ctaSchema } from '../common/cta';
-import { revisionIdSchema, rootIdSchema } from '../common/revision';
+import { ctaSchema } from '../common/cta.ts';
+import { revisionIdSchema, rootIdSchema } from '../common/revision.ts';
 
 export const storySchema = z
   .object({

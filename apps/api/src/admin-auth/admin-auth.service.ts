@@ -1,6 +1,7 @@
-import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { AdminUserRecord } from '@open-story/contracts';
-import { unauthorized, type AuthErrorResponse } from '../common/auth-error-response';
+import { unauthorized, type AuthErrorResponse } from '../common/auth-error-response.ts';
+import { verifyPassword } from './password.ts';
 
 export type AdminUser = Pick<AdminUserRecord, 'id' | 'email' | 'passwordHash' | 'isActive'>;
 
@@ -35,12 +36,22 @@ export type AdminSignInResult =
     };
 
 export class AdminAuthService {
+  private readonly userStore: AdminUserStore;
+  private readonly sessionStore: AdminSessionStore;
+  private readonly jwtSigner: JwtSigner;
+  private readonly sessionTtlSeconds: number;
+
   constructor(
-    private readonly userStore: AdminUserStore,
-    private readonly sessionStore: AdminSessionStore,
-    private readonly jwtSigner: JwtSigner,
-    private readonly sessionTtlSeconds = 60 * 60 * 12,
-  ) {}
+    userStore: AdminUserStore,
+    sessionStore: AdminSessionStore,
+    jwtSigner: JwtSigner,
+    sessionTtlSeconds = 60 * 60 * 12,
+  ) {
+    this.userStore = userStore;
+    this.sessionStore = sessionStore;
+    this.jwtSigner = jwtSigner;
+    this.sessionTtlSeconds = sessionTtlSeconds;
+  }
 
   async signIn(email: string, password: string): Promise<AdminSignInResult> {
     const user = await this.userStore.findByEmail(email.toLowerCase());
@@ -78,25 +89,3 @@ export class AdminAuthService {
     return { ok: true, session, accessToken };
   }
 }
-
-export const hashPassword = (password: string, salt: string): string => {
-  const derived = scryptSync(password, salt, 64).toString('hex');
-  return `scrypt:${salt}:${derived}`;
-};
-
-export const verifyPassword = (password: string, hashedPassword: string): boolean => {
-  const [algo, salt, expected] = hashedPassword.split(':');
-  if (algo !== 'scrypt' || !salt || !expected) {
-    return false;
-  }
-
-  const actual = scryptSync(password, salt, 64).toString('hex');
-  const expectedBuffer = Buffer.from(expected, 'hex');
-  const actualBuffer = Buffer.from(actual, 'hex');
-
-  if (expectedBuffer.length !== actualBuffer.length) {
-    return false;
-  }
-
-  return timingSafeEqual(expectedBuffer, actualBuffer);
-};

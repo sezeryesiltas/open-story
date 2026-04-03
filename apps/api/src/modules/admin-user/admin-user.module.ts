@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DbService } from '@open-story/db';
+
 import { AdminAccessService } from '../../admin-auth/admin-access.service';
 import { SimpleJwtService } from '../../admin-auth/simple-jwt';
 import { StoryPlatformRepository } from '../../story-platform/story-platform.repository';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
+import { AdminUserController } from './admin-user.controller';
+import { AdminUserService } from './admin-user.service';
 
 @Module({
-  controllers: [AuthController],
+  controllers: [AdminUserController],
   providers: [
     DbService,
     {
@@ -26,14 +27,11 @@ import { AuthService } from './auth.service';
       inject: [StoryPlatformRepository, SimpleJwtService],
     },
     {
-      provide: AuthService,
-      useFactory: (
-        repository: StoryPlatformRepository,
-        jwtService: SimpleJwtService,
-        adminAccessService: AdminAccessService,
-      ) => new AuthService(repository, jwtService, adminAccessService),
-      inject: [StoryPlatformRepository, SimpleJwtService, AdminAccessService],
+      provide: AdminUserService,
+      useFactory: (repository: StoryPlatformRepository, adminAccessService: AdminAccessService) =>
+        new AdminUserService(repository, adminAccessService),
+      inject: [StoryPlatformRepository, AdminAccessService],
     },
   ],
 })
-export class AuthModule {}
+export class AdminUserModule {}

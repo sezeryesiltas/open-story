@@ -2,11 +2,15 @@
   "name": "@open-story/api",
   "private": true,
   "version": "0.1.0",
+  "dependencies": {
+    "@open-story/contracts": "workspace:*",
+    "@open-story/db": "workspace:*"
+  },
   "scripts": {
     "dev": "echo \"api app scaffold pending\"",
     "build": "echo \"api build scaffold pending\"",
     "lint": "echo \"api lint scaffold pending\"",
-    "test": "node --test test/**/*.test.js",
-    "check": "node --test test/**/*.test.js"
+    "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node test/**/*.test.js test/**/*.test.mjs",
+    "check": "node --test --experimental-strip-types --experimental-specifier-resolution=node test/**/*.test.js test/**/*.test.mjs"
   }
 }

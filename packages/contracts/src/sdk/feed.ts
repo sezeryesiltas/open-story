@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { ctaSchema } from '../common/cta';
-import { appVersionSchema, platformSchema, userSegmentsSchema } from '../common/context';
-import { revisionIdSchema, rootIdSchema } from '../common/revision';
+import { ctaSchema } from '../common/cta.ts';
+import { appVersionSchema, platformSchema, userSegmentsSchema } from '../common/context.ts';
+import { revisionIdSchema, rootIdSchema } from '../common/revision.ts';
 
 export const sdkFeedRequestSchema = z
   .object({
