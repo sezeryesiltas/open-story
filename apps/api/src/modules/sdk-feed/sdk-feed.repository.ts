@@ -1,4 +1,4 @@
-import { SdkFeedRequestDto, SdkFeedResponseDto } from '@open-story/contracts';
+import type { SdkFeedRequestDto, SdkFeedResponseDto } from '@open-story/contracts';
 
 import { PublishResolutionService } from '../../publish/publish-resolution.service.ts';
 
