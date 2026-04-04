@@ -1,8 +1,14 @@
-import { Injectable } from '@nestjs/common';
 import { SdkFeedRequestDto, SdkFeedResponseDto } from '@open-story/contracts';
 
-@Injectable()
+import { PublishResolutionService } from '../../publish/publish-resolution.service.ts';
+
 export class SdkFeedRepository {
+  private readonly publishResolutionService: PublishResolutionService;
+
+  constructor(publishResolutionService: PublishResolutionService) {
+    this.publishResolutionService = publishResolutionService;
+  }
+
   buildSnapshot(payload: SdkFeedRequestDto): SdkFeedResponseDto {
     return {
       client_id: payload.client_id,
@@ -12,7 +18,7 @@ export class SdkFeedRepository {
         app_version: payload.app_version,
         user_segments: payload.user_segments ?? [],
       },
-      resolved_set: null,
+      resolved_set: this.publishResolutionService.resolveFeed(payload),
       generated_at: new Date().toISOString(),
     };
   }
