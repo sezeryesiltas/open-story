@@ -13,7 +13,7 @@ import {
 } from '@open-story/ui/components/dialog';
 import { Input } from '@open-story/ui/components/input';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { Clapperboard, ImagePlus, Link2, RefreshCcw, Upload, X } from 'lucide-react';
+import { Clapperboard, ImagePlus, RefreshCcw, Upload, X } from 'lucide-react';
 import { ChangeEvent, useMemo, useState } from 'react';
 
 import { ApiRequestError, apiRequest } from '@/lib/api';
@@ -32,7 +32,7 @@ type AssetApiRecord = {
   updatedAt: string;
 };
 
-type PickerMode = 'existing' | 'url' | 'upload';
+type PickerMode = 'existing' | 'upload' | 'url';
 type StoryAssetType = 'story_image' | 'story_video' | 'story_poster';
 
 const ASSET_TYPE_CONFIG: Record<
@@ -44,7 +44,6 @@ const ASSET_TYPE_CONFIG: Record<
     emptyDescription: string;
     dialogTitle: string;
     dialogDescription: string;
-    urlPlaceholder: string;
     existingDescription: string;
     uploadDescription: string;
     accepts: string;
@@ -52,40 +51,37 @@ const ASSET_TYPE_CONFIG: Record<
   }
 > = {
   story_image: {
-    title: 'Story image asset',
-    buttonLabel: 'Story image seç',
-    emptyLabel: 'Henüz story image seçilmedi',
-    emptyDescription: '9:16 oranlı JPG, PNG veya WEBP görsel seçin; URL ile ekleyin veya yükleyin.',
-    dialogTitle: 'Story image asset picker',
-    dialogDescription: 'Story image assetlerini listeleyin veya 9:16 oranlı yeni bir görsel ekleyin.',
-    urlPlaceholder: 'https://cdn.example.com/story-hero.webp',
-    existingDescription: 'Yalnızca `story_image` assetleri listelenir.',
-    uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 story image yükleyin.',
+    title: 'Story görseli',
+    buttonLabel: 'Story görseli seç',
+    emptyLabel: 'Henüz story görseli seçilmedi',
+    emptyDescription: '9:16 oranlı JPG, PNG veya WEBP görsel seçin ya da yükleyin.',
+    dialogTitle: 'Story görseli seç',
+    dialogDescription: 'Mevcut görselleri seçin veya yeni bir görsel yükleyin.',
+    existingDescription: 'Yalnızca uygun story görselleri listelenir.',
+    uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 görsel yükleyin.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
   },
   story_video: {
-    title: 'Story video asset',
-    buttonLabel: 'Story video seç',
-    emptyLabel: 'Henüz story video seçilmedi',
+    title: 'Story videosu',
+    buttonLabel: 'Story videosu seç',
+    emptyLabel: 'Henüz story videosu seçilmedi',
     emptyDescription: '9:16 oranlı MP4 video seçin. Maksimum süre 30 saniye, maksimum boyut 50 MB olmalıdır.',
-    dialogTitle: 'Story video asset picker',
-    dialogDescription: 'Story video assetlerini yönetin. V1’de yalnızca MP4 video kabul edilir.',
-    urlPlaceholder: 'https://cdn.example.com/story-video.mp4',
-    existingDescription: 'Yalnızca `story_video` assetleri listelenir.',
+    dialogTitle: 'Story videosu seç',
+    dialogDescription: 'Mevcut videoları seçin veya yeni bir video yükleyin.',
+    existingDescription: 'Yalnızca uygun story videoları listelenir.',
     uploadDescription: 'MP4 formatında, 9:16 oranlı ve 30 saniyeyi aşmayan video yükleyin.',
     accepts: 'video/mp4',
     previewKind: 'video',
   },
   story_poster: {
-    title: 'Story poster asset',
+    title: 'Poster',
     buttonLabel: 'Poster seç',
-    emptyLabel: 'Henüz poster asset seçilmedi',
+    emptyLabel: 'Henüz poster seçilmedi',
     emptyDescription: 'Video story için 9:16 poster zorunludur. JPG, PNG veya WEBP poster seçin.',
-    dialogTitle: 'Story poster asset picker',
-    dialogDescription: 'Video poster assetlerini seçin veya yeni bir 9:16 poster oluşturun.',
-    urlPlaceholder: 'https://cdn.example.com/story-poster.jpg',
-    existingDescription: 'Yalnızca `story_poster` assetleri listelenir.',
+    dialogTitle: 'Poster seç',
+    dialogDescription: 'Mevcut posterleri seçin veya yeni bir poster yükleyin.',
+    existingDescription: 'Yalnızca uygun posterler listelenir.',
     uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 video poster yükleyin.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
@@ -104,46 +100,8 @@ function formatFileSize(sizeBytes: number | null): string {
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function inferMimeTypeFromUrl(url: string): string | null {
-  const normalizedUrl = url.toLowerCase();
-
-  if (normalizedUrl.endsWith('.png')) {
-    return 'image/png';
-  }
-
-  if (normalizedUrl.endsWith('.jpg') || normalizedUrl.endsWith('.jpeg')) {
-    return 'image/jpeg';
-  }
-
-  if (normalizedUrl.endsWith('.webp')) {
-    return 'image/webp';
-  }
-
-  if (normalizedUrl.endsWith('.mp4')) {
-    return 'video/mp4';
-  }
-
-  return null;
-}
-
 function isAspectRatioMatch(width: number, height: number, targetWidth: number, targetHeight: number): boolean {
   return Math.abs(width / height - targetWidth / targetHeight) <= 0.03;
-}
-
-function readImageMetaFromUrl(url: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const image = new window.Image();
-
-    image.onload = () => {
-      resolve({
-        width: image.naturalWidth,
-        height: image.naturalHeight,
-      });
-    };
-
-    image.onerror = () => reject(new Error('Görsel metadata okunamadı.'));
-    image.src = url;
-  });
 }
 
 function readImageMetaFromFile(file: File): Promise<{ width: number; height: number; objectUrl: string }> {
@@ -296,10 +254,10 @@ export function StoryAssetPicker({
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<PickerMode>('existing');
-  const [urlValue, setUrlValue] = useState('');
-  const [urlError, setUrlError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [urlValue, setUrlValue] = useState('');
   const config = ASSET_TYPE_CONFIG[assetType];
 
   const assetsQuery = useQuery({
@@ -311,32 +269,6 @@ export function StoryAssetPicker({
     () => assetsQuery.data?.find((asset) => asset.id === value) ?? null,
     [assetsQuery.data, value],
   );
-
-  const createUrlAssetMutation = useMutation({
-    mutationFn: (payload: {
-      url: string;
-      mimeType: string | null;
-      width: number | null;
-      height: number | null;
-    }) =>
-      apiRequest<AssetApiRecord>('/api/assets', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: assetType,
-          url: payload.url,
-          mimeType: payload.mimeType,
-          width: payload.width,
-          height: payload.height,
-        }),
-      }),
-    onSuccess: async (asset) => {
-      await queryClient.invalidateQueries({ queryKey: ['assets', assetType] });
-      onChange(asset);
-      setOpen(false);
-      setUrlValue('');
-      setUrlError(null);
-    },
-  });
 
   const uploadAssetMutation = useMutation({
     mutationFn: async (payload: { file: File; width: number | null; height: number | null }) => {
@@ -379,47 +311,23 @@ export function StoryAssetPicker({
     },
   });
 
-  const handleCreateFromUrl = async () => {
-    setUrlError(null);
-
-    try {
-      const normalizedUrl = urlValue.trim();
-
-      if (!normalizedUrl) {
-        setUrlError('Asset URL zorunludur.');
-        return;
-      }
-
-      const mimeType = inferMimeTypeFromUrl(normalizedUrl);
-      let width: number | null = null;
-      let height: number | null = null;
-
-      if (config.previewKind === 'image') {
-        const imageMeta = await readImageMetaFromUrl(normalizedUrl);
-        validateImageLikeAsset(imageMeta.width, imageMeta.height);
-        width = imageMeta.width;
-        height = imageMeta.height;
-      } else {
-        const videoMeta = await readVideoMetaFromSource(normalizedUrl);
-        validateVideoMetadata(videoMeta.width, videoMeta.height, videoMeta.durationMs);
-        width = videoMeta.width;
-        height = videoMeta.height;
-
-        if (mimeType !== 'video/mp4') {
-          throw new Error('Video URL `.mp4` uzantılı olmalıdır.');
-        }
-      }
-
-      await createUrlAssetMutation.mutateAsync({
-        url: normalizedUrl,
-        mimeType,
-        width,
-        height,
-      });
-    } catch (error) {
-      setUrlError(error instanceof Error ? error.message : 'URL ile asset eklenemedi.');
-    }
-  };
+  const importAssetFromUrlMutation = useMutation({
+    mutationFn: async (url: string) =>
+      apiRequest<AssetApiRecord>('/api/assets', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: assetType,
+          url,
+        }),
+      }),
+    onSuccess: async (asset) => {
+      await queryClient.invalidateQueries({ queryKey: ['assets', assetType] });
+      onChange(asset);
+      setOpen(false);
+      setUrlValue('');
+      setUrlError(null);
+    },
+  });
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
@@ -473,6 +381,21 @@ export function StoryAssetPicker({
       setUploadError(error instanceof Error ? error.message : 'Dosya yüklenemedi.');
     } finally {
       event.target.value = '';
+    }
+  };
+
+  const handleUrlImport = async () => {
+    setUrlError(null);
+
+    if (!urlValue.trim()) {
+      setUrlError('Asset URL zorunludur.');
+      return;
+    }
+
+    try {
+      await importAssetFromUrlMutation.mutateAsync(urlValue.trim());
+    } catch (error) {
+      setUrlError(error instanceof Error ? error.message : 'Asset URL ile içe alınamadı.');
     }
   };
 
@@ -535,11 +458,11 @@ export function StoryAssetPicker({
           <Button onClick={() => setMode('existing')} type="button" variant={mode === 'existing' ? 'default' : 'outline'}>
             Mevcut assetler
           </Button>
-          <Button onClick={() => setMode('url')} type="button" variant={mode === 'url' ? 'default' : 'outline'}>
-            URL ile ekle
-          </Button>
           <Button onClick={() => setMode('upload')} type="button" variant={mode === 'upload' ? 'default' : 'outline'}>
             Bilgisayardan yükle
+          </Button>
+          <Button onClick={() => setMode('url')} type="button" variant={mode === 'url' ? 'default' : 'outline'}>
+            URL ile içe al
           </Button>
         </div>
 
@@ -571,7 +494,7 @@ export function StoryAssetPicker({
               </div>
             ) : (assetsQuery.data?.length ?? 0) === 0 ? (
               <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
-                Bu tip için henüz kayıtlı asset yok. URL veya upload sekmesinden yeni asset oluşturun.
+                Bu tip için henüz kayıtlı asset yok. Upload sekmesinden yeni asset oluşturun.
               </div>
             ) : (
               <div className="grid max-h-[420px] gap-3 overflow-y-auto md:grid-cols-2">
@@ -588,45 +511,6 @@ export function StoryAssetPicker({
                 ))}
               </div>
             )}
-          </div>
-        ) : null}
-
-        {mode === 'url' ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor={`${assetType}-asset-url`}>
-                Asset URL
-              </label>
-              <Input
-                id={`${assetType}-asset-url`}
-                onChange={(event) => setUrlValue(event.target.value)}
-                placeholder={config.urlPlaceholder}
-                value={urlValue}
-              />
-              <p className="text-xs leading-5 text-muted-foreground">
-                {config.previewKind === 'video'
-                  ? 'Public MP4 URL girin. Video için 9:16 oran ve 30 saniye sınırı doğrulanır.'
-                  : 'Public görsel URL girin. Story asset oranı 9:16 olarak doğrulanır.'}
-              </p>
-            </div>
-
-            {urlError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {urlError}
-              </div>
-            ) : null}
-
-            <div className="flex justify-end">
-              <Button
-                className="gap-2"
-                disabled={createUrlAssetMutation.isPending}
-                onClick={handleCreateFromUrl}
-                type="button"
-              >
-                <Link2 className="h-4 w-4" />
-                {createUrlAssetMutation.isPending ? 'Ekleniyor...' : 'URL ile asset oluştur'}
-              </Button>
-            </div>
           </div>
         ) : null}
 
@@ -659,6 +543,50 @@ export function StoryAssetPicker({
 
             {uploadAssetMutation.isPending ? (
               <div className="text-sm text-muted-foreground">Dosya yükleniyor...</div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {mode === 'url' ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border/60 border-dashed bg-muted/20 p-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                  <p className="font-medium">{config.title} URL ile içe al</p>
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Bir dosya bağlantısı girin. Dosya eklenip seçim listesine kaydedilir.
+                </p>
+                <Input
+                  onChange={(event) => setUrlValue(event.target.value)}
+                  placeholder={
+                    assetType === 'story_video'
+                      ? 'https://cdn.example.com/story.mp4'
+                      : 'https://cdn.example.com/story.png'
+                  }
+                  type="url"
+                  value={urlValue}
+                />
+                <Button
+                  className="w-full"
+                  onClick={() => void handleUrlImport()}
+                  type="button"
+                  variant="outline"
+                >
+                  URL ile içe al
+                </Button>
+              </div>
+            </div>
+
+            {urlError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {urlError}
+              </div>
+            ) : null}
+
+            {importAssetFromUrlMutation.isPending ? (
+              <div className="text-sm text-muted-foreground">URL&apos;den içe aktarılıyor...</div>
             ) : null}
           </div>
         ) : null}

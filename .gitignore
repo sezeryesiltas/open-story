@@ -3,7 +3,10 @@ node_modules/
 dist/
 coverage/
 .turbo/
+# Runtime artifacts stay local. Project skills under `.agents/skills` are source-controlled.
 .agents/tmp/
+!.agents/skills/
+!.agents/skills/**
 *.tsbuildinfo
 apps/api/data/
 .env

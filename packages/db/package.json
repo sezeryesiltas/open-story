@@ -11,7 +11,7 @@
   "scripts": {
     "build": "echo \"db package scaffold pending\"",
     "lint": "echo \"db lint scaffold pending\"",
-    "test": "node --test --experimental-strip-types src/**/*.test.mjs",
-    "check": "node --test --experimental-strip-types src/**/*.test.mjs"
+    "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/**/*.test.mjs",
+    "check": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/**/*.test.mjs"
   }
 }

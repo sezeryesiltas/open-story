@@ -1,4 +1,4 @@
-import type { AuthErrorResponse } from './auth-error-response';
+import type { AuthErrorResponse } from './auth-error-response.ts';
 
 export type HttpResponse = {
   statusCode: number;

@@ -29,14 +29,6 @@ const formSchema = z
   .object({
     name: z.string().trim().min(2, 'Story Bar adı en az 2 karakter olmalıdır.'),
     placementId: z.string().trim().min(1, 'Bir placement seçin.'),
-    minStoryGroupCount: z.coerce
-      .number({ invalid_type_error: 'Min group sayısı sayı olmalıdır.' })
-      .int('Min group sayısı tam sayı olmalıdır.')
-      .min(0, 'Min group sayısı negatif olamaz.'),
-    maxStoryGroupCount: z.coerce
-      .number({ invalid_type_error: 'Max group sayısı sayı olmalıdır.' })
-      .int('Max group sayısı tam sayı olmalıdır.')
-      .min(0, 'Max group sayısı negatif olamaz.'),
     isFallback: z.boolean().default(false),
     iosEnabled: z.boolean().default(false),
     iosMinAppVersion: z.string().trim().optional(),
@@ -45,14 +37,6 @@ const formSchema = z
     userSegmentsText: z.string().optional(),
   })
   .superRefine((values, context) => {
-    if (values.minStoryGroupCount > values.maxStoryGroupCount) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['maxStoryGroupCount'],
-        message: 'Max group sayısı, min değerden küçük olamaz.',
-      });
-    }
-
     if (values.isFallback) {
       return;
     }
@@ -108,8 +92,6 @@ export type StoryGroupSetFormValues = z.infer<typeof formSchema>;
 export type StoryGroupSetSubmitValues = {
   name: string;
   placementId: string;
-  minStoryGroupCount: number;
-  maxStoryGroupCount: number;
   isFallback: boolean;
   platformTargets: Array<{
     platform: 'ios' | 'android';
@@ -159,8 +141,6 @@ function toSubmitValues(values: StoryGroupSetFormValues): StoryGroupSetSubmitVal
   return {
     name: values.name.trim(),
     placementId: values.placementId,
-    minStoryGroupCount: values.minStoryGroupCount,
-    maxStoryGroupCount: values.maxStoryGroupCount,
     isFallback: values.isFallback,
     platformTargets,
     userSegments: values.isFallback ? [] : parseUserSegments(values.userSegmentsText),
@@ -243,8 +223,7 @@ export function StoryGroupSetForm({
             {mode === 'create' ? 'Yeni Story Bar' : 'Story Bar düzenleme'}
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Targeting yalnızca Story Bar seviyesinde yaşar. Fallback Story Bar işaretlenirse
-            platform ve segment hedefleri bu kayıtta tutulmaz.
+            Story Bar adı, placement ve gösterim koşullarını burada düzenleyebilirsiniz.
           </p>
         </div>
 
@@ -286,31 +265,9 @@ export function StoryGroupSetForm({
             <p className="text-sm text-destructive">{errors.placementId.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Story Bar her zaman tek bir placement altında çözülür.
+              Story Bar için bir placement seçin.
             </p>
           )}
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="minStoryGroupCount">Min story group count</Label>
-            <Input id="minStoryGroupCount" min={0} step={1} type="number" {...register('minStoryGroupCount')} />
-            {errors.minStoryGroupCount ? (
-              <p className="text-sm text-destructive">{errors.minStoryGroupCount.message}</p>
-            ) : null}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="maxStoryGroupCount">Max story group count</Label>
-            <Input id="maxStoryGroupCount" min={0} step={1} type="number" {...register('maxStoryGroupCount')} />
-            {errors.maxStoryGroupCount ? (
-              <p className="text-sm text-destructive">{errors.maxStoryGroupCount.message}</p>
-            ) : (
-              <p className="text-xs leading-5 text-muted-foreground">
-                Publish öncesi composition bu aralık içinde kalmalıdır.
-              </p>
-            )}
-          </div>
         </div>
 
         <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/30 p-4">
@@ -322,7 +279,7 @@ export function StoryGroupSetForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Fallback Story Bar</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Bu Story Bar yalnızca hiçbir normal targeting eşleşmediğinde kullanılmalıdır.
+              Eşleşme bulunamadığında bu Story Bar kullanılır.
             </p>
           </div>
         </label>
@@ -331,8 +288,7 @@ export function StoryGroupSetForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Platform targets</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Fallback Story Bar için platform hedefleri devre dışıdır. Normal Story Bar'larda
-              platform başına tek min app version girin.
+              İsterseniz platform ve minimum uygulama sürümü seçebilirsiniz.
             </p>
           </div>
 
@@ -416,7 +372,7 @@ export function StoryGroupSetForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="userSegmentsText">User segments</Label>
+          <Label htmlFor="userSegmentsText">Kullanıcı segmentleri</Label>
           <Textarea
             disabled={isFallback}
             id="userSegmentsText"
@@ -427,7 +383,7 @@ export function StoryGroupSetForm({
             <p className="text-sm text-destructive">{errors.userSegmentsText.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Virgül veya satır sonu ile ayırın. Segment yoksa Story Bar segmentless/default davranır.
+              Virgül veya satır sonu ile ayırın.
             </p>
           )}
         </div>

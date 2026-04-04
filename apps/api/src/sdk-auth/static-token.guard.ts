@@ -1,6 +1,6 @@
 import type { StaticTokenRecord } from '@open-story/contracts';
-import { forbidden, unauthorized, type AuthErrorResponse } from '../common/auth-error-response';
-import { verifyStaticTokenHash } from './static-token-hash';
+import { forbidden, unauthorized, type AuthErrorResponse } from '../common/auth-error-response.ts';
+import { verifyStaticTokenHash } from './static-token-hash.ts';
 
 export type FeedRequestBody = {
   client_id?: string;
@@ -17,7 +17,7 @@ export type StaticToken = Pick<
 >;
 
 export interface StaticTokenStore {
-  findActiveByClientId(clientId: string): Promise<StaticToken[]>;
+  findByClientId(clientId: string): Promise<StaticToken[]>;
 }
 
 export type StaticTokenGuardResult =
@@ -25,7 +25,11 @@ export type StaticTokenGuardResult =
   | { ok: false; error: AuthErrorResponse };
 
 export class StaticTokenGuard {
-  constructor(private readonly tokenStore: StaticTokenStore) {}
+  private readonly tokenStore: StaticTokenStore;
+
+  constructor(tokenStore: StaticTokenStore) {
+    this.tokenStore = tokenStore;
+  }
 
   async validateRequest(req: SdkRequest): Promise<StaticTokenGuardResult> {
     const token = extractBearerToken(req.headers.authorization);
@@ -42,7 +46,7 @@ export class StaticTokenGuard {
       };
     }
 
-    const candidates = await this.tokenStore.findActiveByClientId(clientId);
+    const candidates = await this.tokenStore.findByClientId(clientId);
     const match = candidates.find((candidate) => verifyStaticTokenHash(token, candidate.tokenHash));
 
     if (!match) {

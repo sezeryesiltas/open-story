@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { jsonError } from '@/lib/server/api-response';
-import { PlacementStoreError, updatePlacement } from '@/lib/server/placement-store';
+import { updatePlacement } from '@/lib/server/admin-bff';
+import { BackendApiError, getAdminAuthTokenFromRequest } from '@/lib/server/backend-api';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +13,10 @@ export async function PUT(
   try {
     const payload = await request.json();
     const { placementId } = await context.params;
-    return NextResponse.json(updatePlacement(placementId, payload));
+    return NextResponse.json(await updatePlacement(placementId, payload, getAdminAuthTokenFromRequest(request)));
   } catch (error) {
-    if (error instanceof PlacementStoreError) {
-      return jsonError(error.message, error.status, error.code);
+    if (error instanceof BackendApiError) {
+      return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
     return jsonError('Placement güncellenemedi.', 500, 'validation_error');

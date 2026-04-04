@@ -1,4 +1,4 @@
-import { forbidden, unauthorized, type AuthErrorResponse } from '../common/auth-error-response';
+import { forbidden, unauthorized, type AuthErrorResponse } from '../common/auth-error-response.ts';
 
 export type AdminRequest = {
   headers: Record<string, string | undefined>;
@@ -24,10 +24,16 @@ export type AdminGuardResult =
   | { ok: false; error: AuthErrorResponse };
 
 export class AdminSessionJwtGuard {
+  private readonly jwtVerifier: JwtVerifier;
+  private readonly sessionReader: AdminSessionReader;
+
   constructor(
-    private readonly jwtVerifier: JwtVerifier,
-    private readonly sessionReader: AdminSessionReader,
-  ) {}
+    jwtVerifier: JwtVerifier,
+    sessionReader: AdminSessionReader,
+  ) {
+    this.jwtVerifier = jwtVerifier;
+    this.sessionReader = sessionReader;
+  }
 
   async validateRequest(req: AdminRequest, now = new Date()): Promise<AdminGuardResult> {
     const token = extractBearerToken(req.headers.authorization);

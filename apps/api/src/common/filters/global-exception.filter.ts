@@ -10,7 +10,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
-import { ApiErrorResponse } from './api-error';
+import { ApiErrorResponse, ApiServiceError } from './api-error.ts';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -41,6 +41,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       });
     }
 
+    if (exception instanceof ApiServiceError) {
+      return this.send(response, exception.statusCode, {
+        error: {
+          code: exception.code,
+          message: exception.message,
+          details: exception.details,
+        },
+      });
+    }
+
     if (exception instanceof HttpException) {
       return this.send(response, HttpStatus.BAD_REQUEST, {
         error: {
@@ -50,6 +60,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         },
       });
     }
+
+    console.error('[GlobalExceptionFilter] Unhandled exception', exception);
 
     return this.send(response, HttpStatus.INTERNAL_SERVER_ERROR, {
       error: { code: 'validation_error', message: 'Unexpected error' },

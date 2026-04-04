@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DbService } from '@open-story/db';
 
 import { jsonError } from '@/lib/server/api-response';
-
-const db = new DbService();
+import { BackendApiError, backendApiRequestFromRoute } from '@/lib/server/backend-api';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    return NextResponse.json(db.getDatabaseSettings());
+    return NextResponse.json(await backendApiRequestFromRoute(request, '/v1/settings/database'));
   } catch (error) {
+    if (error instanceof BackendApiError) {
+      return jsonError(error.message, error.status, error.code ?? 'validation_error');
+    }
+
     return jsonError(
       error instanceof Error ? error.message : 'Database ayarları okunamadı.',
       500,
@@ -22,8 +24,17 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const payload = (await request.json()) as { externalDatabaseUrl?: string | null };
-    return NextResponse.json(db.updateDatabaseSettings(payload.externalDatabaseUrl));
+    return NextResponse.json(
+      await backendApiRequestFromRoute(request, '/v1/settings/database', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    );
   } catch (error) {
+    if (error instanceof BackendApiError) {
+      return jsonError(error.message, error.status, error.code ?? 'validation_error');
+    }
+
     return jsonError(
       error instanceof Error ? error.message : 'Database ayarları güncellenemedi.',
       400,

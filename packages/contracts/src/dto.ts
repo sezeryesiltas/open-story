@@ -3,7 +3,27 @@ import type {
   SdkFeedRequest,
   SdkFeedResponse,
   SdkFeedStory,
-} from './sdk/feed';
+} from './sdk/feed.ts';
+import type {
+  ArchiveStoryDto as AdminArchiveStoryDto,
+  CreateStoryDto as AdminCreateStoryDto,
+  PublishStoryDto as AdminPublishStoryDto,
+  Story as AdminStory,
+  UpdateStoryDto as AdminUpdateStoryDto,
+} from './admin/story.ts';
+import type {
+  ArchiveStoryGroupDto as AdminArchiveStoryGroupDto,
+  CreateStoryGroupDto as AdminCreateStoryGroupDto,
+  PublishStoryGroupDto as AdminPublishStoryGroupDto,
+  StoryGroup as AdminStoryGroup,
+  UpdateStoryGroupDto as AdminUpdateStoryGroupDto,
+} from './admin/group.ts';
+import type {
+  CreateStoryGroupSetDto as AdminCreateStoryGroupSetDto,
+  PublishStoryGroupSetDto as AdminPublishStoryGroupSetDto,
+  StoryGroupSet as AdminStoryGroupSet,
+  UpdateStoryGroupSetDto as AdminUpdateStoryGroupSetDto,
+} from './admin/set.ts';
 
 export type Platform = 'ios' | 'android';
 
@@ -12,9 +32,51 @@ export interface AuthLoginRequestDto {
   password: string;
 }
 
+export interface AuthUserDto {
+  id: string;
+  email: string;
+  mustChangePassword: boolean;
+  isActive: boolean;
+}
+
+export interface AuthSessionDto {
+  id: string;
+  expiresAt: string;
+}
+
 export interface AuthLoginResponseDto {
   accessToken: string;
   expiresIn: number;
+  user: AuthUserDto;
+  session: AuthSessionDto;
+}
+
+export interface AuthSessionResponseDto {
+  user: AuthUserDto;
+  session: AuthSessionDto;
+}
+
+export interface AuthChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface AdminUserDto {
+  id: string;
+  email: string;
+  mustChangePassword: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAdminUserDto {
+  email: string;
+  temporaryPassword: string;
+}
+
+export interface ResetAdminUserPasswordDto {
+  temporaryPassword: string;
 }
 
 export interface DatabaseSettingsDto {
@@ -30,19 +92,41 @@ export interface UpdateDatabaseSettingsDto {
   externalDatabaseUrl?: string | null;
 }
 
+export interface ClientDto {
+  id: string;
+  clientId: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateClientDto {
+  name?: string;
+  isActive?: boolean;
+}
+
 export interface CreateStaticTokenDto {
   label: string;
 }
 
 export interface StaticTokenDto {
   id: string;
+  clientId: string;
   label: string;
-  tokenPreview: string;
+  tokenPrefix: string;
   isActive: boolean;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+export interface CreateStaticTokenResponseDto {
+  token: StaticTokenDto;
+  plainTextToken: string;
 }
 
 export interface RevokeStaticTokenDto {
-  tokenId: string;
+  reason?: string;
 }
 
 export interface CreatePlacementDto {
@@ -66,66 +150,46 @@ export interface PlacementDto {
   updatedAt: string;
 }
 
-export interface CreateStoryGroupSetDto {
-  placementId: string;
-  name: string;
-  isFallback: boolean;
-  platforms: Array<{ platform: Platform; minAppVersion: string }>;
-  segments: string[];
-}
+export type CreateStoryGroupSetDto = AdminCreateStoryGroupSetDto;
+export type UpdateStoryGroupSetDto = AdminUpdateStoryGroupSetDto;
+export type PublishStoryGroupSetDto = AdminPublishStoryGroupSetDto;
+export type StoryGroupSetDto = AdminStoryGroupSet;
 
-export interface StoryGroupSetDto {
-  id: string;
-  name: string;
-  placementId: string;
-  isFallback: boolean;
-}
+export type CreateStoryGroupDto = AdminCreateStoryGroupDto;
+export type UpdateStoryGroupDto = AdminUpdateStoryGroupDto;
+export type PublishStoryGroupDto = AdminPublishStoryGroupDto;
+export type ArchiveStoryGroupDto = AdminArchiveStoryGroupDto;
+export type StoryGroupDto = AdminStoryGroup;
 
-export interface CreateStoryGroupDto {
-  title: string;
-  logoAssetId: string;
-  badgeType?: 'emoji' | 'svg';
-  badgeValue?: string;
-}
+export type CreateStoryDto = AdminCreateStoryDto;
+export type UpdateStoryDto = AdminUpdateStoryDto;
+export type PublishStoryDto = AdminPublishStoryDto;
+export type ArchiveStoryDto = AdminArchiveStoryDto;
+export type StoryDto = AdminStory;
 
-export interface StoryGroupDto {
-  id: string;
-  title: string;
-  isArchived: boolean;
-}
-
-export interface CreateStoryDto {
-  storyGroupId: string;
-  mediaAssetId: string;
-  mediaType: 'image' | 'video';
-  posterAssetId?: string;
-  imageDurationMs?: number;
-  cta?: {
-    label: string;
-    type: 'url' | 'deeplink';
-    value: string;
-  };
-}
-
-export interface StoryDto {
-  id: string;
-  storyGroupId: string;
-  mediaType: 'image' | 'video';
-  isArchived: boolean;
-}
-
-export interface CreateAssetDto {
-  type: 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
-  mimeType: string;
-  url: string;
-  width: number;
-  height: number;
-  sizeBytes: number;
-}
+export type AssetTypeDto = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 
 export interface AssetDto {
   id: string;
-  type: string;
+  type: AssetTypeDto;
+  url: string;
+  name: string;
+  mimeType: string | null;
+  width: number | null;
+  height: number | null;
+  durationMs: number | null;
+  sizeBytes: number | null;
+  source: 'upload' | 'url';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListAssetsQueryDto {
+  type?: AssetTypeDto;
+}
+
+export interface CreateAssetFromUrlDto {
+  type: AssetTypeDto;
   url: string;
 }
 

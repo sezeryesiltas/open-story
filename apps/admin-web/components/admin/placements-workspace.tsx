@@ -184,7 +184,7 @@ export function PlacementsWorkspace() {
       if (error instanceof ApiRequestError && error.status === 409) {
         return {
           fieldErrors: {
-            placementKey: 'Bu placement_key zaten kullanımda.',
+            placementKey: 'Bu placement anahtarı zaten kullanımda.',
           },
         };
       }
@@ -211,9 +211,9 @@ export function PlacementsWorkspace() {
             </Button>
           </>
         }
-        description="Placement ekranı story bar yüzeylerinin sabit giriş noktalarını yönetir. Create ve edit aksiyonları artık doğrudan backend API üzerinden kalıcı sqlite storage'a yazılır."
+        description="Gösterim alanlarını burada oluşturabilir ve düzenleyebilirsiniz."
         eyebrow="Placements"
-        title="Placement yönetim ekranı"
+        title="Placement yönetimi"
       />
 
       <section className="space-y-4">
@@ -222,8 +222,7 @@ export function PlacementsWorkspace() {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
             <h2 className="text-xl font-semibold tracking-tight">Tanımlı placement&apos;lar</h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Her kart aynı surface için operasyonel adı, `placement_key` bilgisini ve güncel
-              düzenleme aksiyonunu taşır.
+              Her kart placement adını, anahtarını ve son güncelleme bilgisini gösterir.
             </p>
           </div>
 
@@ -240,7 +239,7 @@ export function PlacementsWorkspace() {
               <CardTitle>Placement listesi yüklenemedi</CardTitle>
               <CardDescription>
                 {(placementsQuery.error as Error | undefined)?.message ??
-                  'API yanıtı alınamadı. Backend servisinin çalıştığını kontrol edin.'}
+                  'Placement listesi şu anda alınamıyor.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -257,8 +256,7 @@ export function PlacementsWorkspace() {
               </div>
               <CardTitle className="text-xl">Henüz placement tanımı yok</CardTitle>
               <CardDescription className="max-w-xl leading-6">
-                Story bar feed çözümlemesi placement üzerinden başladığı için ilk adım olarak en az
-                bir placement oluşturun. Create akışı sağdaki sheet içinde açılır.
+                İçeriğin gösterileceği ilk alanı oluşturmak için yeni bir placement ekleyin.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -307,7 +305,7 @@ export function PlacementsWorkspace() {
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Bağlı Story Bar</p>
                     <p className="mt-3 text-2xl font-semibold">{placement.connectedSetCount}</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Placement üstünde aktif olarak düzenlenen Story Bar sayısı.
+                      Bu placement altında bulunan Story Bar sayısı.
                     </p>
                   </div>
 

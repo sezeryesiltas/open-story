@@ -1,0 +1,4 @@
+interface:
+  display_name: "Restart API Service"
+  short_description: "Restarts the open-story API dev server on port 3001."
+  default_prompt: "Use $restart-api-service to stop the process on port 3001 and restart the open-story API development server."

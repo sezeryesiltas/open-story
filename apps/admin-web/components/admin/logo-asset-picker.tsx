@@ -13,7 +13,7 @@ import {
 } from '@open-story/ui/components/dialog';
 import { Input } from '@open-story/ui/components/input';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { ImagePlus, Link2, RefreshCcw, Upload, X } from 'lucide-react';
+import { ImagePlus, RefreshCcw, Upload, X } from 'lucide-react';
 import { ChangeEvent, useMemo, useState } from 'react';
 
 import { ApiRequestError, apiRequest } from '@/lib/api';
@@ -32,7 +32,7 @@ type AssetApiRecord = {
   updatedAt: string;
 };
 
-type PickerMode = 'existing' | 'url' | 'upload';
+type PickerMode = 'existing' | 'upload' | 'url';
 
 function formatFileSize(sizeBytes: number | null): string {
   if (!sizeBytes || sizeBytes <= 0) {
@@ -44,42 +44,6 @@ function formatFileSize(sizeBytes: number | null): string {
   }
 
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function inferMimeTypeFromUrl(url: string): string | null {
-  const normalizedUrl = url.toLowerCase();
-
-  if (normalizedUrl.endsWith('.png')) {
-    return 'image/png';
-  }
-
-  if (normalizedUrl.endsWith('.jpg') || normalizedUrl.endsWith('.jpeg')) {
-    return 'image/jpeg';
-  }
-
-  if (normalizedUrl.endsWith('.webp')) {
-    return 'image/webp';
-  }
-
-  if (normalizedUrl.endsWith('.svg')) {
-    return 'image/svg+xml';
-  }
-
-  return null;
-}
-
-function readImageMetaFromUrl(url: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const image = new window.Image();
-    image.onload = () => {
-      resolve({
-        width: image.naturalWidth,
-        height: image.naturalHeight,
-      });
-    };
-    image.onerror = () => reject(new Error('URL üzerinden asset önizlemesi alınamadı.'));
-    image.src = url;
-  });
 }
 
 function readImageMetaFromFile(file: File): Promise<{ width: number; height: number; objectUrl: string }> {
@@ -155,10 +119,10 @@ export function LogoAssetPicker({
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<PickerMode>('existing');
-  const [urlValue, setUrlValue] = useState('');
-  const [urlError, setUrlError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [urlValue, setUrlValue] = useState('');
 
   const assetsQuery = useQuery({
     queryKey: ['assets', 'group_logo'],
@@ -169,32 +133,6 @@ export function LogoAssetPicker({
     () => assetsQuery.data?.find((asset) => asset.id === value) ?? null,
     [assetsQuery.data, value],
   );
-
-  const createUrlAssetMutation = useMutation({
-    mutationFn: (payload: {
-      url: string;
-      width: number;
-      height: number;
-      mimeType: string | null;
-    }) =>
-      apiRequest<AssetApiRecord>('/api/assets', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: 'group_logo',
-          url: payload.url,
-          width: payload.width,
-          height: payload.height,
-          mimeType: payload.mimeType,
-        }),
-      }),
-    onSuccess: async (asset) => {
-      await queryClient.invalidateQueries({ queryKey: ['assets', 'group_logo'] });
-      onChange(asset);
-      setOpen(false);
-      setUrlValue('');
-      setUrlError(null);
-    },
-  });
 
   const uploadAssetMutation = useMutation({
     mutationFn: async (payload: { file: File; width: number; height: number }) => {
@@ -231,32 +169,23 @@ export function LogoAssetPicker({
     },
   });
 
-  const handleCreateFromUrl = async () => {
-    setUrlError(null);
-
-    try {
-      const normalizedUrl = urlValue.trim();
-      if (!normalizedUrl) {
-        setUrlError('Asset URL zorunludur.');
-        return;
-      }
-
-      const { width, height } = await readImageMetaFromUrl(normalizedUrl);
-      if (width !== height) {
-        setUrlError('Group logo kare olmalıdır.');
-        return;
-      }
-
-      await createUrlAssetMutation.mutateAsync({
-        url: normalizedUrl,
-        width,
-        height,
-        mimeType: inferMimeTypeFromUrl(normalizedUrl),
-      });
-    } catch (error) {
-      setUrlError(error instanceof Error ? error.message : 'URL ile asset eklenemedi.');
-    }
-  };
+  const importAssetFromUrlMutation = useMutation({
+    mutationFn: async (url: string) =>
+      apiRequest<AssetApiRecord>('/api/assets', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'group_logo',
+          url,
+        }),
+      }),
+    onSuccess: async (asset) => {
+      await queryClient.invalidateQueries({ queryKey: ['assets', 'group_logo'] });
+      onChange(asset);
+      setOpen(false);
+      setUrlValue('');
+      setUrlError(null);
+    },
+  });
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
@@ -288,6 +217,21 @@ export function LogoAssetPicker({
       setUploadError(error instanceof Error ? error.message : 'Dosya yüklenemedi.');
     } finally {
       event.target.value = '';
+    }
+  };
+
+  const handleUrlImport = async () => {
+    setUrlError(null);
+
+    if (!urlValue.trim()) {
+      setUrlError('Asset URL zorunludur.');
+      return;
+    }
+
+    try {
+      await importAssetFromUrlMutation.mutateAsync(urlValue.trim());
+    } catch (error) {
+      setUrlError(error instanceof Error ? error.message : 'Asset URL ile içe alınamadı.');
     }
   };
 
@@ -328,7 +272,7 @@ export function LogoAssetPicker({
             <div className="space-y-2">
               <p className="font-medium">Henüz logo asset seçilmedi</p>
               <p className="text-xs leading-5 text-muted-foreground">
-                Mevcut asset seçebilir, URL ile yeni bir asset ekleyebilir veya bilgisayarınızdan yükleyebilirsiniz.
+                Mevcut asset seçebilir veya bilgisayarınızdan yeni bir asset yükleyebilirsiniz.
               </p>
             </div>
           )}
@@ -344,9 +288,9 @@ export function LogoAssetPicker({
 
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Logo asset picker</DialogTitle>
+          <DialogTitle>Logo seç</DialogTitle>
           <DialogDescription>
-            Mevcut group logo assetlerinden seçin veya URL ile / upload ile yeni bir asset oluşturun.
+            Mevcut logolardan seçin veya yeni bir logo yükleyin.
           </DialogDescription>
         </DialogHeader>
 
@@ -354,18 +298,18 @@ export function LogoAssetPicker({
           <Button onClick={() => setMode('existing')} type="button" variant={mode === 'existing' ? 'default' : 'outline'}>
             Mevcut assetler
           </Button>
-          <Button onClick={() => setMode('url')} type="button" variant={mode === 'url' ? 'default' : 'outline'}>
-            URL ile ekle
-          </Button>
           <Button onClick={() => setMode('upload')} type="button" variant={mode === 'upload' ? 'default' : 'outline'}>
             Bilgisayardan yükle
+          </Button>
+          <Button onClick={() => setMode('url')} type="button" variant={mode === 'url' ? 'default' : 'outline'}>
+            URL ile içe al
           </Button>
         </div>
 
         {mode === 'existing' ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Yalnızca `group_logo` assetleri listelenir.</p>
+              <p className="text-sm text-muted-foreground">Yalnızca grup logoları listelenir.</p>
               <Button
                 className="gap-2"
                 onClick={() => assetsQuery.refetch()}
@@ -390,7 +334,7 @@ export function LogoAssetPicker({
               </div>
             ) : (assetsQuery.data?.length ?? 0) === 0 ? (
               <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
-                Henüz kayıtlı group logo asseti yok. URL veya upload sekmesinden yeni asset oluşturun.
+                Henüz kayıtlı group logo asseti yok. Upload sekmesinden yeni asset oluşturun.
               </div>
             ) : (
               <div className="grid max-h-[420px] gap-3 overflow-y-auto md:grid-cols-2">
@@ -407,43 +351,6 @@ export function LogoAssetPicker({
                 ))}
               </div>
             )}
-          </div>
-        ) : null}
-
-        {mode === 'url' ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="logoAssetUrl">
-                Asset URL
-              </label>
-              <Input
-                id="logoAssetUrl"
-                onChange={(event) => setUrlValue(event.target.value)}
-                placeholder="https://cdn.example.com/logo-square.png"
-                value={urlValue}
-              />
-              <p className="text-xs leading-5 text-muted-foreground">
-                Kare bir görsel URL&apos;si girin. Önizleme boyutu okunur ve ardından asset kaydı oluşturulur.
-              </p>
-            </div>
-
-            {urlError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {urlError}
-              </div>
-            ) : null}
-
-            <div className="flex justify-end">
-              <Button
-                className="gap-2"
-                disabled={createUrlAssetMutation.isPending}
-                onClick={handleCreateFromUrl}
-                type="button"
-              >
-                <Link2 className="h-4 w-4" />
-                {createUrlAssetMutation.isPending ? 'Ekleniyor...' : 'URL ile asset oluştur'}
-              </Button>
-            </div>
           </div>
         ) : null}
 
@@ -478,6 +385,46 @@ export function LogoAssetPicker({
 
             {uploadAssetMutation.isPending ? (
               <div className="text-sm text-muted-foreground">Dosya yükleniyor...</div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {mode === 'url' ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border/60 border-dashed bg-muted/20 p-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                  <p className="font-medium">Logo URL ile içe al</p>
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Bir görsel bağlantısı girin. Görsel eklenip seçim listesine kaydedilir.
+                </p>
+                <Input
+                  onChange={(event) => setUrlValue(event.target.value)}
+                  placeholder="https://cdn.example.com/logo.png"
+                  type="url"
+                  value={urlValue}
+                />
+                <Button
+                  className="w-full"
+                  onClick={() => void handleUrlImport()}
+                  type="button"
+                  variant="outline"
+                >
+                  URL ile içe al
+                </Button>
+              </div>
+            </div>
+
+            {urlError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {urlError}
+              </div>
+            ) : null}
+
+            {importAssetFromUrlMutation.isPending ? (
+              <div className="text-sm text-muted-foreground">URL&apos;den içe aktarılıyor...</div>
             ) : null}
           </div>
         ) : null}

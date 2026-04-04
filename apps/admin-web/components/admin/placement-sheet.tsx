@@ -32,8 +32,8 @@ export function PlacementSheet({
           <SheetTitle>{mode === 'create' ? 'Yeni placement oluştur' : 'Placement düzenle'}</SheetTitle>
           <SheetDescription>
             {mode === 'create'
-              ? 'Story bar yüzeyini temsil eden yeni bir placement tanımı ekleyin.'
-              : 'Seçili placement için ad, key ve operasyonel açıklamayı güncelleyin.'}
+              ? 'Yeni bir placement ekleyin.'
+              : 'Seçili placement bilgilerini güncelleyin.'}
           </SheetDescription>
         </SheetHeader>
 

@@ -29,5 +29,6 @@ pnpm --filter @open-story/admin-web check
 
 ## Runtime notes
 
-- Admin API çağrıları için varsayılan adres `http://localhost:3000` kullanılır.
-- Gerekirse `NEXT_PUBLIC_API_BASE_URL` ile farklı backend adresi verilebilir.
+- Browser tarafı her zaman local `app/api/*` BFF route’larına gider.
+- BFF tarafı backend için varsayılan olarak `http://localhost:3001` adresini kullanır.
+- Gerekirse backend adresi `OPEN_STORY_API_BASE_URL` ile override edilir.

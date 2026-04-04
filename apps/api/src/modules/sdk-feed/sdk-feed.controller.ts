@@ -1,16 +1,17 @@
-import { Body, Controller, Headers, Post } from '@nestjs/common';
-import { SdkFeedRequestDto, SdkFeedResponseDto } from '@open-story/contracts';
-import { SdkFeedService } from './sdk-feed.service';
+import { Body, Controller, Headers, Inject, Post } from '@nestjs/common';
+import type { SdkFeedRequestDto, SdkFeedResponseDto } from '@open-story/contracts';
+import { SdkFeedService } from './sdk-feed.service.ts';
 
 @Controller('v1/sdk')
 export class SdkFeedController {
-  constructor(private readonly service: SdkFeedService) {}
+  @Inject(SdkFeedService)
+  private readonly service!: SdkFeedService;
 
   @Post('feed')
-  feed(
+  async feed(
     @Body() payload: SdkFeedRequestDto,
     @Headers('authorization') authorization?: string,
-  ): SdkFeedResponseDto {
+  ): Promise<SdkFeedResponseDto> {
     return this.service.resolve(payload, authorization);
   }
 }

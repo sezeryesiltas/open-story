@@ -14,7 +14,7 @@ const formSchema = z.object({
   placementKey: z
     .string()
     .trim()
-    .min(3, 'placement_key en az 3 karakter olmalıdır.')
+    .min(3, 'Placement anahtarı en az 3 karakter olmalıdır.')
     .regex(/^[a-z0-9_]+$/, 'Sadece küçük harf, sayı ve alt çizgi kullanılabilir.'),
   description: z
     .string()
@@ -82,8 +82,7 @@ export function PlacementForm({
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
           <p className="text-sm font-medium">{mode === 'create' ? 'Yeni placement tanımı' : 'Placement düzenleme'}</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Placement render sırasında `placement_key` ile çözülür. Bu alan tekil kalmalı ve SDK init
-            aşamasına taşınmamalıdır.
+            Placement adı ve anahtarını burada düzenleyebilirsiniz.
           </p>
         </div>
 
@@ -100,10 +99,10 @@ export function PlacementForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="placementKey">Placement key</Label>
+          <Label htmlFor="placementKey">Placement anahtarı</Label>
           <Input id="placementKey" placeholder="home_top_story_bar" {...register('placementKey')} />
           <p className="text-xs leading-5 text-muted-foreground">
-            Küçük harf, sayı ve alt çizgi kullanın. Bu anahtar feed çözümlemesinin public girişidir.
+            Küçük harf, sayı ve alt çizgi kullanın.
           </p>
           {errors.placementKey ? (
             <p className="text-sm text-destructive">{errors.placementKey.message}</p>
@@ -121,7 +120,7 @@ export function PlacementForm({
             <p className="text-sm text-destructive">{errors.description.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Editoryal ekibin placement bağlamını hızla anlaması için kısa ve operasyonel kalın.
+              İsterseniz kısa bir açıklama ekleyebilirsiniz.
             </p>
           )}
         </div>

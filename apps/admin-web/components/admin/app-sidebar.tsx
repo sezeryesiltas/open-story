@@ -16,9 +16,10 @@ import {
 } from '@open-story/ui/components/sidebar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutPanelTop, ShieldCheck } from 'lucide-react';
+import { LayoutPanelTop, LogOut, ShieldCheck } from 'lucide-react';
 
 import { adminNavSections } from '@/lib/admin-navigation';
+import { useAdminLogout } from '@/lib/use-admin-logout';
 
 function isActive(pathname: string, href: string) {
   if (href === '/') {
@@ -26,6 +27,19 @@ function isActive(pathname: string, href: string) {
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function AdminSidebarLogoutItem() {
+  const { isSubmitting, logout } = useAdminLogout();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton disabled={isSubmitting} onClick={logout} tooltip="Logout" type="button">
+        <LogOut />
+        <span>Logout</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 }
 
 export function AppSidebar() {
@@ -58,6 +72,10 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item) => {
+                  if (item.href === '/login') {
+                    return <AdminSidebarLogoutItem key={item.href} />;
+                  }
+
                   const Icon = item.icon;
 
                   return (
@@ -82,16 +100,14 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" tooltip="V1 scope">
+            <SidebarMenuButton asChild size="lg" tooltip="Önizleme">
               <Link href="/preview">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
                   <ShieldCheck className="size-4" />
                 </div>
                 <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">V1 scope</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">
-                    Single tenant, fixed UI
-                  </span>
+                  <span className="truncate font-medium">Önizleme</span>
+                  <span className="truncate text-xs text-sidebar-foreground/70">İçeriği kontrol et</span>
                 </div>
               </Link>
             </SidebarMenuButton>

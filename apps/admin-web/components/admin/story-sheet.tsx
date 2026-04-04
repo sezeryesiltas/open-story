@@ -49,8 +49,8 @@ export function StorySheet({
           <SheetTitle>{mode === 'edit' ? 'Story düzenle' : 'Yeni Story oluştur'}</SheetTitle>
           <SheetDescription>
             {mode === 'edit'
-              ? 'Media, CTA ve group içi sıra alanlarını draft düzeyinde güncelleyin. Move ve reorder işlemleri parent group için republish etkisi yaratır.'
-              : 'Yeni bir story root kaydı oluşturun. Story tek bir group altında yaşar; media-first modelde image veya video seçilir.'}
+              ? 'Seçili Story bilgilerini güncelleyin.'
+              : 'Yeni bir Story ekleyin.'}
           </SheetDescription>
         </SheetHeader>
 

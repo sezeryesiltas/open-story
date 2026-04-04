@@ -52,10 +52,10 @@ export function StoryGroupSheet({
           </SheetTitle>
           <SheetDescription>
             {mode === 'edit'
-              ? 'Seçili Story Group için name, bottom label, logo ve badge alanlarını güncelleyin.'
+              ? 'Seçili Story Group bilgilerini güncelleyin.'
               : mode === 'copy'
-                ? 'Seçili Story Group verilerini kopyalayarak yeni bir root kayıt oluşturun.'
-                : 'Story bar giriş noktası için yeni bir group root kaydı tanımlayın. İlk sürümde create akışı bottom label, logo asset, badge ve boş story listesi ile başlar.'}
+                ? 'Seçili Story Group bilgilerini kopyalayın.'
+                : 'Yeni bir Story Group ekleyin.'}
           </SheetDescription>
         </SheetHeader>
 

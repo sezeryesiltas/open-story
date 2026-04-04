@@ -37,8 +37,6 @@ type StoryGroupSetApiRecord = {
   id: string;
   name: string;
   placementId: string;
-  minStoryGroupCount: number;
-  maxStoryGroupCount: number;
   isFallback: boolean;
   platformTargets: Array<{
     platform: 'ios' | 'android';
@@ -58,8 +56,6 @@ type WorkspaceData = {
 const emptyStoryGroupSetFormValues: StoryGroupSetFormValues = {
   name: '',
   placementId: '',
-  minStoryGroupCount: 0,
-  maxStoryGroupCount: 0,
   isFallback: false,
   iosEnabled: false,
   iosMinAppVersion: '',
@@ -88,11 +84,11 @@ function formatDate(value: string) {
 
 function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): string {
   if (storyGroupSet.isFallback) {
-    return 'Fallback Story Bar, targeting yok';
+    return 'Yedek Story Bar';
   }
 
   if (storyGroupSet.platformTargets.length === 0) {
-    return 'Platform kısıtı tanımlanmadı';
+    return 'Tüm platformlar';
   }
 
   return storyGroupSet.platformTargets
@@ -102,11 +98,11 @@ function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): str
 
 function formatSegmentSummary(storyGroupSet: StoryGroupSetApiRecord): string {
   if (storyGroupSet.isFallback) {
-    return 'Normal Story Bar eşleşmezse kullanılır.';
+    return 'Eşleşme olmadığında kullanılır.';
   }
 
   if (storyGroupSet.userSegments.length === 0) {
-    return 'Segmentsiz default match.';
+    return 'Tüm kullanıcılar';
   }
 
   return storyGroupSet.userSegments.join(', ');
@@ -123,8 +119,6 @@ function toFormValues(storyGroupSet: StoryGroupSetApiRecord | null): StoryGroupS
   return {
     name: storyGroupSet.name,
     placementId: storyGroupSet.placementId,
-    minStoryGroupCount: storyGroupSet.minStoryGroupCount,
-    maxStoryGroupCount: storyGroupSet.maxStoryGroupCount,
     isFallback: storyGroupSet.isFallback,
     iosEnabled: Boolean(iosTarget),
     iosMinAppVersion: iosTarget?.minAppVersion ?? '',
@@ -294,9 +288,9 @@ export function StoryGroupSetsWorkspace() {
             </Button>
           </>
         }
-        description="Story Bars ekranı placement bağlantısı, fallback davranışı ve targeting kurallarını tek listede görünür kılar. Create ve edit akışları sheet içinde çalışır."
+        description="Story bar listelerini burada oluşturabilir ve düzenleyebilirsiniz."
         eyebrow="Story Bars"
-        title="Story Bar targeting ve composition"
+        title="Story Bar listesi"
       />
 
       <section className="space-y-4">
@@ -305,8 +299,7 @@ export function StoryGroupSetsWorkspace() {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
             <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story Bar&apos;lar</h2>
             <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Her kart placement bağlamını, targeting özetini ve Story Bar seviyesindeki group count
-              aralığını gösterir. Fallback Story Bar ise platform ve segment hedefleri boş tutulur.
+              Her kart Story Bar adını, bağlı placement&apos;ı ve seçili koşulları gösterir.
             </p>
           </div>
 
@@ -328,8 +321,7 @@ export function StoryGroupSetsWorkspace() {
               </div>
               <CardTitle className="text-xl">Önce placement oluşturulmalı</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Story Bar her zaman bir placement altında yaşar. Bu nedenle Story Bar tanımı açmadan
-                önce en az bir placement oluşturun.
+                Story Bar eklemek için önce bir placement oluşturun.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -351,7 +343,7 @@ export function StoryGroupSetsWorkspace() {
               <CardTitle>Story Bar listesi yüklenemedi</CardTitle>
               <CardDescription>
                 {(workspaceQuery.error as Error | undefined)?.message ??
-                  'API yanıtı alınamadı. Admin-web route ve storage erişimini kontrol edin.'}
+                  'Story Bar listesi şu anda alınamıyor.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -368,8 +360,7 @@ export function StoryGroupSetsWorkspace() {
               </div>
               <CardTitle className="text-xl">Henüz Story Bar tanımı yok</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Placement&apos;a bağlı ilk Story Bar&apos;ı tanımlayın. Create akışı sağdaki sheet içinde açılır ve
-                yeni Story Bar için fallback, platform target ve segment kuralları aynı formda tutulur.
+                İlk Story Bar&apos;ı ekleyerek içeriğin hangi alanda gösterileceğini belirleyin.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -398,9 +389,7 @@ export function StoryGroupSetsWorkspace() {
                         <div className="space-y-2">
                           <CardTitle className="text-xl">{storyGroupSet.name}</CardTitle>
                           <CardDescription className="leading-6">
-                            {placement
-                              ? `${placement.name} altında çözülür.`
-                              : 'Bağlı placement kaydı bulunamadı.'}
+                            {placement ? `Placement: ${placement.name}` : 'Bağlı placement bulunamadı.'}
                           </CardDescription>
                         </div>
                       </div>
@@ -429,7 +418,7 @@ export function StoryGroupSetsWorkspace() {
                   <CardContent className="grid gap-3 border-t border-border/60 pt-6 text-sm sm:grid-cols-2">
                     <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        Platform targeting
+                        Platform
                       </p>
                       <p className="mt-3 text-base font-semibold">{formatPlatformTargetSummary(storyGroupSet)}</p>
                       <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -439,7 +428,7 @@ export function StoryGroupSetsWorkspace() {
 
                     <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        User segments
+                        Kitle
                       </p>
                       <p className="mt-3 text-base font-semibold">{formatSegmentSummary(storyGroupSet)}</p>
                       <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -449,13 +438,10 @@ export function StoryGroupSetsWorkspace() {
 
                     <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        Group composition
+                        Bağlı Group
                       </p>
                       <p className="mt-3 text-2xl font-semibold">{storyGroupSet.groupIds.length}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        Bağlı group sayısı. İzinli aralık: {storyGroupSet.minStoryGroupCount} -{' '}
-                        {storyGroupSet.maxStoryGroupCount}
-                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">Bu Story Bar&apos;da yer alan group sayısı.</p>
                     </div>
 
                     <div className="rounded-lg border border-border/60 bg-muted/30 p-4">

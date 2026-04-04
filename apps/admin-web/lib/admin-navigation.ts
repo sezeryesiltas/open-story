@@ -30,25 +30,25 @@ export const adminNavSections: AdminNavSection[] = [
     items: [
       {
         title: 'Ana Sayfa',
-        description: 'V1 kapsamı, ekran haritası ve sonraki teslimatlar.',
+        description: 'Hızlı erişim ve genel görünüm.',
         href: '/',
         icon: Home
       },
       {
         title: 'Placements',
-        description: 'Placement listeleme, oluşturma ve düzenleme yüzeyi.',
+        description: 'Gösterim alanlarını yönetin.',
         href: '/placements',
         icon: Layers3
       },
       {
         title: 'Client & Tokens',
-        description: 'Tek client görünümü ve static token operasyonları.',
+        description: 'Uygulama erişimini yönetin.',
         href: '/client',
         icon: KeyRound
       },
       {
         title: 'Settings',
-        description: 'Varsayılan sqlite ve harici DB hedefi ayarları.',
+        description: 'Bağlantı ayarlarını yönetin.',
         href: '/settings',
         icon: Database
       }
@@ -59,25 +59,25 @@ export const adminNavSections: AdminNavSection[] = [
     items: [
       {
         title: 'Story Bars',
-        description: 'Targeting, composition ve publish validation akışı.',
+        description: 'Story bar listelerini yönetin.',
         href: '/story-group-sets',
         icon: SquareStack
       },
       {
         title: 'Story Groups',
-        description: 'Paylaşımlı group yönetimi, archive ve publish yaşam döngüsü.',
+        description: 'Story gruplarını düzenleyin.',
         href: '/story-groups',
         icon: SquareStack
       },
       {
         title: 'Stories',
-        description: 'Media, CTA ve revision tabanlı story düzenleme alanı.',
+        description: 'Story içeriklerini yönetin.',
         href: '/stories',
         icon: Clapperboard
       },
       {
         title: 'Preview',
-        description: 'Feed contract üzerinden temel editorial doğrulama.',
+        description: 'İçeriği önizleyin.',
         href: '/preview',
         icon: Eye
       }
@@ -88,19 +88,19 @@ export const adminNavSections: AdminNavSection[] = [
     items: [
       {
         title: 'Users',
-        description: 'Admin kullanıcı oluşturma, reset ve first-login zorlaması.',
+        description: 'Yönetici hesaplarını yönetin.',
         href: '/users',
         icon: Users
       },
       {
         title: 'Login',
-        description: 'Email + password ile giriş akışı.',
+        description: 'Panele giriş yapın.',
         href: '/login',
         icon: LogIn
       },
       {
         title: 'Change Password',
-        description: 'İlk girişte zorunlu parola yenileme ekranı.',
+        description: 'Şifrenizi güncelleyin.',
         href: '/change-password',
         icon: ShieldCheck
       }

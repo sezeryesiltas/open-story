@@ -1,12 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import type { AssetRecord } from '@open-story/contracts';
 import { DbService } from '@open-story/db';
-import { AssetDto } from '@open-story/contracts';
 
-@Injectable()
 export class AssetsRepository {
-  constructor(private readonly db: DbService) {}
+  private readonly db: DbService;
 
-  create(row: AssetDto): AssetDto {
-    return this.db.insert<AssetDto>('assets', row);
+  constructor(db: DbService) {
+    this.db = db;
+  }
+
+  list(): AssetRecord[] {
+    return this.db
+      .list<AssetRecord>('assets')
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  create(row: AssetRecord): AssetRecord {
+    return this.db.insert<AssetRecord>('assets', row);
   }
 }
