@@ -4,6 +4,26 @@ import type {
   SdkFeedResponse,
   SdkFeedStory,
 } from './sdk/feed.ts';
+import type {
+  ArchiveStoryDto as AdminArchiveStoryDto,
+  CreateStoryDto as AdminCreateStoryDto,
+  PublishStoryDto as AdminPublishStoryDto,
+  Story as AdminStory,
+  UpdateStoryDto as AdminUpdateStoryDto,
+} from './admin/story.ts';
+import type {
+  ArchiveStoryGroupDto as AdminArchiveStoryGroupDto,
+  CreateStoryGroupDto as AdminCreateStoryGroupDto,
+  PublishStoryGroupDto as AdminPublishStoryGroupDto,
+  StoryGroup as AdminStoryGroup,
+  UpdateStoryGroupDto as AdminUpdateStoryGroupDto,
+} from './admin/group.ts';
+import type {
+  CreateStoryGroupSetDto as AdminCreateStoryGroupSetDto,
+  PublishStoryGroupSetDto as AdminPublishStoryGroupSetDto,
+  StoryGroupSet as AdminStoryGroupSet,
+  UpdateStoryGroupSetDto as AdminUpdateStoryGroupSetDto,
+} from './admin/set.ts';
 
 export type Platform = 'ios' | 'android';
 
@@ -130,53 +150,22 @@ export interface PlacementDto {
   updatedAt: string;
 }
 
-export interface CreateStoryGroupSetDto {
-  placementId: string;
-  name: string;
-  isFallback: boolean;
-  platforms: Array<{ platform: Platform; minAppVersion: string }>;
-  segments: string[];
-}
+export type CreateStoryGroupSetDto = AdminCreateStoryGroupSetDto;
+export type UpdateStoryGroupSetDto = AdminUpdateStoryGroupSetDto;
+export type PublishStoryGroupSetDto = AdminPublishStoryGroupSetDto;
+export type StoryGroupSetDto = AdminStoryGroupSet;
 
-export interface StoryGroupSetDto {
-  id: string;
-  name: string;
-  placementId: string;
-  isFallback: boolean;
-}
+export type CreateStoryGroupDto = AdminCreateStoryGroupDto;
+export type UpdateStoryGroupDto = AdminUpdateStoryGroupDto;
+export type PublishStoryGroupDto = AdminPublishStoryGroupDto;
+export type ArchiveStoryGroupDto = AdminArchiveStoryGroupDto;
+export type StoryGroupDto = AdminStoryGroup;
 
-export interface CreateStoryGroupDto {
-  title: string;
-  logoAssetId: string;
-  badgeType?: 'emoji' | 'svg';
-  badgeValue?: string;
-}
-
-export interface StoryGroupDto {
-  id: string;
-  title: string;
-  isArchived: boolean;
-}
-
-export interface CreateStoryDto {
-  storyGroupId: string;
-  mediaAssetId: string;
-  mediaType: 'image' | 'video';
-  posterAssetId?: string;
-  imageDurationMs?: number;
-  cta?: {
-    label: string;
-    type: 'url' | 'deeplink';
-    value: string;
-  };
-}
-
-export interface StoryDto {
-  id: string;
-  storyGroupId: string;
-  mediaType: 'image' | 'video';
-  isArchived: boolean;
-}
+export type CreateStoryDto = AdminCreateStoryDto;
+export type UpdateStoryDto = AdminUpdateStoryDto;
+export type PublishStoryDto = AdminPublishStoryDto;
+export type ArchiveStoryDto = AdminArchiveStoryDto;
+export type StoryDto = AdminStory;
 
 export type AssetTypeDto = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 

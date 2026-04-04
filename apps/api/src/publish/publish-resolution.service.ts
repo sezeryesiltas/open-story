@@ -54,6 +54,7 @@ export class PublishResolutionService {
       storyRoot.currentDraftRevisionId,
       new Date().toISOString(),
     );
+    this.repository.updateStoryRevisionStatus(storyRoot.currentDraftRevisionId, 'published');
 
     if (!publishedStory) {
       throw ApiServiceError.notFound('Story not found.');
@@ -76,6 +77,7 @@ export class PublishResolutionService {
       groupRoot.currentDraftRevisionId,
       new Date().toISOString(),
     );
+    this.repository.updateGroupRevisionStatus(groupRoot.currentDraftRevisionId, 'published');
 
     if (!publishedGroup) {
       throw ApiServiceError.notFound('Story group not found.');
@@ -119,6 +121,7 @@ export class PublishResolutionService {
       setRoot.currentDraftRevisionId,
       new Date().toISOString(),
     );
+    this.repository.updateSetRevisionStatus(setRoot.currentDraftRevisionId, 'published');
 
     if (!publishedSet) {
       throw ApiServiceError.notFound('Story group set not found.');
