@@ -100,16 +100,14 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" tooltip="V1 scope">
+            <SidebarMenuButton asChild size="lg" tooltip="Önizleme">
               <Link href="/preview">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
                   <ShieldCheck className="size-4" />
                 </div>
                 <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">V1 scope</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">
-                    Single tenant, fixed UI
-                  </span>
+                  <span className="truncate font-medium">Önizleme</span>
+                  <span className="truncate text-xs text-sidebar-foreground/70">İçeriği kontrol et</span>
                 </div>
               </Link>
             </SidebarMenuButton>

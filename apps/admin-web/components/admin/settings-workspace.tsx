@@ -51,7 +51,7 @@ type SettingsFormValues = z.infer<typeof formSchema>;
 
 function formatDate(value: string | null): string {
   if (!value) {
-    return 'Henüz kopyalama yapılmadı';
+    return 'Henüz taşınmadı';
   }
 
   return new Intl.DateTimeFormat('tr-TR', {
@@ -136,8 +136,8 @@ export function SettingsWorkspace() {
       setNotice({
         tone: 'success',
         message: data.isUsingExternalDatabase
-          ? 'Harici sqlite hedefi aktif edildi. Mevcut veri yeni dosyaya taşındı ve uygulama o dosya üzerinden çalışıyor.'
-          : 'Harici hedef kaldırıldı. Uygulama varsayılan sqlite veritabanına geri alındı.',
+          ? 'Harici veritabanı etkinleştirildi. Mevcut veriler yeni konuma taşındı.'
+          : 'Varsayılan veritabanına geri dönüldü.',
       });
     },
     onError: (error) => {
@@ -172,9 +172,9 @@ export function SettingsWorkspace() {
     return (
       <div className="space-y-6">
         <PageHeader
-          description="Varsayılan sqlite depolaması burada yönetilir. Harici bir sqlite URL/path tanımlandığında aktif veri dosyası taşınır ve API yeni hedef üzerinden çalışır."
+          description="Veri bağlantısı ayarlarını buradan yönetebilirsiniz."
           eyebrow="Settings"
-          title="Database ayarları"
+          title="Veritabanı ayarları"
         />
         <LoadingCards />
       </div>
@@ -191,17 +191,17 @@ export function SettingsWorkspace() {
               Tekrar dene
             </Button>
           }
-          description="Varsayılan sqlite depolaması burada yönetilir. Harici bir sqlite URL/path tanımlandığında aktif veri dosyası taşınır ve API yeni hedef üzerinden çalışır."
+          description="Veri bağlantısı ayarlarını buradan yönetebilirsiniz."
           eyebrow="Settings"
-          title="Database ayarları"
+          title="Veritabanı ayarları"
         />
 
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Database ayarları okunamadı</CardTitle>
+            <CardTitle>Veritabanı ayarları okunamadı</CardTitle>
             <CardDescription>
               {(settingsQuery.error as Error | undefined)?.message ??
-                'API yanıtı alınamadı. `OPEN_STORY_API_BASE_URL` ve backend servis durumunu kontrol edin.'}
+                'Ayarlar şu anda alınamıyor.'}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -212,9 +212,9 @@ export function SettingsWorkspace() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Varsayılan sqlite depolaması burada yönetilir. Harici bir sqlite URL/path tanımlandığında aktif veri dosyası taşınır ve API yeni hedef üzerinden çalışır."
+        description="Veri bağlantısı ayarlarını buradan yönetebilirsiniz."
         eyebrow="Settings"
-        title="Database ayarları"
+        title="Veritabanı ayarları"
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
@@ -222,13 +222,13 @@ export function SettingsWorkspace() {
           <CardHeader className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-2">
-                <CardTitle>Aktif storage</CardTitle>
+                <CardTitle>Aktif veritabanı</CardTitle>
                 <CardDescription>
-                  Uygulama her zaman bir sqlite dosyasına bağlı kalır. Harici hedef tanımlıysa orası aktif olur.
+                  Şu anda kullanılan veritabanını görüntüleyin.
                 </CardDescription>
               </div>
               <Badge className="w-fit" variant={settings.isUsingExternalDatabase ? 'default' : 'secondary'}>
-                {settings.isUsingExternalDatabase ? 'External sqlite aktif' : 'Local sqlite aktif'}
+                {settings.isUsingExternalDatabase ? 'Harici veritabanı aktif' : 'Yerel veritabanı aktif'}
               </Badge>
             </div>
           </CardHeader>
@@ -250,7 +250,7 @@ export function SettingsWorkspace() {
               <div className="rounded-xl border border-border/60 bg-muted/30 p-5">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Database className="h-4 w-4" />
-                  Varsayılan sqlite
+                  Varsayılan veritabanı
                 </div>
                 <p className="mt-3 break-all text-sm leading-6 text-muted-foreground">
                   {settings.defaultSqliteUrl}
@@ -291,9 +291,9 @@ export function SettingsWorkspace() {
 
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Harici database tanımı</CardTitle>
+            <CardTitle>Harici veritabanı</CardTitle>
             <CardDescription>
-              Desteklenen formatlar yalnızca sqlite dosya hedefleridir. Kaydettiğinizde mevcut aktif dosya yeni hedefe kopyalanır.
+              İsterseniz farklı bir veritabanı konumu tanımlayabilirsiniz.
             </CardDescription>
           </CardHeader>
 
@@ -317,8 +317,7 @@ export function SettingsWorkspace() {
               </div>
 
               <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
-                Alanı boş bırakırsanız uygulama varsayılan local sqlite dosyasını kullanır. Harici hedefi
-                kaldırırken de aktif veriyi local sqlite dosyasına geri taşır.
+                Alanı boş bırakırsanız varsayılan veritabanı kullanılır.
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -331,7 +330,7 @@ export function SettingsWorkspace() {
                   type="button"
                   variant="outline"
                 >
-                  Local sqlite&apos;a dön
+                  Yerel veritabanına dön
                 </Button>
               </div>
             </form>

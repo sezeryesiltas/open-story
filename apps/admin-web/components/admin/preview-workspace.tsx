@@ -53,23 +53,23 @@ function buildPreviewQueryPath(placementId: string | null, setId: string | null)
 
 function formatTargetingSummary(storyGroupSet: PreviewSetSummary) {
   if (storyGroupSet.isFallback) {
-    return 'Fallback Story Bar';
+    return 'Yedek Story Bar';
   }
 
   if (storyGroupSet.platformTargets.length === 0 && storyGroupSet.userSegments.length === 0) {
-    return 'Targeting tanımlanmadı';
+    return 'Tüm kullanıcılar';
   }
 
   const platformSummary =
     storyGroupSet.platformTargets.length > 0
       ? storyGroupSet.platformTargets
-          .map((target) => `${target.platform.toUpperCase()} >= ${target.minAppVersion}`)
+          .map((target) => `${target.platform.toUpperCase()} ${target.minAppVersion}+`)
           .join(' • ')
       : 'Platform kısıtı yok';
   const segmentSummary =
     storyGroupSet.userSegments.length > 0
       ? storyGroupSet.userSegments.join(', ')
-      : 'segmentless';
+      : 'Tüm kullanıcılar';
 
   return `${platformSummary} • ${segmentSummary}`;
 }
@@ -77,35 +77,26 @@ function formatTargetingSummary(storyGroupSet: PreviewSetSummary) {
 function formatIssueReason(reason: PreviewVisibilityReason) {
   switch (reason) {
     case 'missing_group':
-      return 'Story Bar referansı mevcut ama group kaydı bulunamadı.';
+      return 'Bağlı grup bulunamadı.';
     case 'group_unpublished':
-      return 'Group published olmadığı için feed dışında kaldı.';
+      return 'Bu grup henüz yayında değil.';
     case 'group_archived':
-      return 'Group archived olduğu için feed dışında kaldı.';
+      return 'Bu grup arşivde olduğu için gösterilmiyor.';
     case 'missing_group_logo':
-      return 'Group logo asset kaydı bulunamadı.';
+      return 'Grup logosu bulunamadı.';
     case 'empty_group':
-      return 'Group içindeki visible story sayısı sıfır olduğu için çıkarıldı.';
+      return 'Bu grup içinde gösterilebilecek story bulunmuyor.';
     case 'missing_story':
-      return 'Group içindeki story referansı bulunamadı.';
+      return 'Bağlı story kaydı bulunamadı.';
     case 'story_unpublished':
-      return 'Story published olmadığı için feed dışında kaldı.';
+      return 'Bu story henüz yayında değil.';
     case 'story_archived':
-      return 'Story archived olduğu için feed dışında kaldı.';
+      return 'Bu story arşivde olduğu için gösterilmiyor.';
     case 'missing_media_asset':
-      return 'Story media asset kaydı bulunamadı.';
+      return 'Story medyası bulunamadı.';
     case 'missing_poster_asset':
-      return 'Video story poster asset olmadan render edilemez.';
+      return 'Video için poster görseli eksik.';
   }
-}
-
-function formatGeneratedAt(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
 }
 
 function PreviewLoadingState() {
@@ -387,9 +378,9 @@ export function PreviewWorkspace() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        description="Preview, native SDK parity hedeflemez. Ama placement bazında group/story sırası, CTA varlığı, image/video ayrımı ve visible feed davranışı bu yüzeyde güvenilir şekilde görünmelidir."
+        description="İçeriğin ekranda nasıl görüneceğini buradan kontrol edin."
         eyebrow="Preview"
-        title="Basic editorial preview"
+        title="İçerik önizleme"
       />
 
       {previewQuery.isPending ? <PreviewLoadingState /> : null}
@@ -398,7 +389,7 @@ export function PreviewWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Preview yüklenemedi</CardTitle>
-            <CardDescription>Preview payload okunurken beklenmeyen bir hata oluştu.</CardDescription>
+            <CardDescription>Önizleme şu anda yüklenemiyor.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Button onClick={() => previewQuery.refetch()}>Tekrar dene</Button>
@@ -410,9 +401,9 @@ export function PreviewWorkspace() {
         <div className="flex flex-col gap-6">
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Viewer approximation</CardTitle>
+              <CardTitle>Önizleme</CardTitle>
               <CardDescription>
-                Fixed UI parity yerine group-story ilerleyişi, medya tipi ve CTA varlığı görünür kılınır.
+                Placement ve Story Bar seçerek görünümü kontrol edin.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
@@ -500,24 +491,14 @@ export function PreviewWorkspace() {
                       <div className="mx-auto flex w-full max-w-[390px] flex-col gap-3">
                         <div className="flex flex-wrap gap-2">
                           <StatusPill
-                            label="Visible"
+                            label="Görünür"
                             value={`${data.stats?.visibleGroupCount ?? 0} group / ${data.stats?.visibleStoryCount ?? 0} story`}
                           />
                           <StatusPill
-                            label="Media"
+                            label="Medya"
                             value={`${data.stats?.imageCount ?? 0} image / ${data.stats?.videoCount ?? 0} video`}
                           />
                           <StatusPill label="CTA" value={`${data.stats?.ctaCount ?? 0} story`} />
-                          {selectedStoryGroupSet ? (
-                            <StatusPill
-                              label="Story Bar"
-                              value={
-                                selectedStoryGroupSet.usesPublishedRevision
-                                  ? 'published revision'
-                                  : 'draft revision fallback'
-                              }
-                            />
-                          ) : null}
                         </div>
 
                         {selectedStoryGroupSet ? (
@@ -543,16 +524,16 @@ export function PreviewWorkspace() {
                           Story {activeStoryIndex + 1}/{activeGroup.stories.length}
                         </Badge>
                         <Badge variant="outline">{activeStory.media_type}</Badge>
-                        {activeStory.cta ? <Badge>CTA enabled</Badge> : <Badge variant="outline">No CTA</Badge>}
+                        {activeStory.cta ? <Badge>CTA var</Badge> : <Badge variant="outline">CTA yok</Badge>}
                       </div>
 
                       <div className="mx-auto flex w-full max-w-[390px] flex-wrap justify-center gap-3">
                         <Button disabled={!canGoBackward} onClick={goToPreviousStory} variant="outline">
                           <ArrowLeft />
-                          Previous
+                          Önceki
                         </Button>
                         <Button disabled={!canGoForward} onClick={goToNextStory}>
-                          Next
+                          Sonraki
                           <ArrowRight />
                         </Button>
                       </div>
@@ -560,7 +541,7 @@ export function PreviewWorkspace() {
                       <div className="rounded-xl border border-border/60 bg-background/70 p-4">
                         <div className="flex items-center gap-2">
                           <MousePointerClick className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">CTA payload visibility</span>
+                          <span className="font-medium">CTA bilgileri</span>
                         </div>
                         {activeStory.cta ? (
                           <div className="mt-4 flex flex-col gap-2 text-sm leading-6 text-muted-foreground">
@@ -603,7 +584,7 @@ export function PreviewWorkspace() {
                 </>
               ) : (
                 <div className="rounded-xl border border-dashed border-border/60 bg-background/60 p-6 text-sm leading-6 text-muted-foreground">
-                  Preview viewer yalnızca visible group ve story kayıtlarını gösterir. Seçili Story Bar&apos;da böyle bir kayıt yoksa bu alan boş kalır.
+                  Seçili Story Bar için gösterilebilecek içerik bulunmuyor.
                 </div>
               )}
             </CardContent>
@@ -611,16 +592,10 @@ export function PreviewWorkspace() {
 
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Quick diagnostics</CardTitle>
-              <CardDescription>Gerekli olduğunda bakılacak minimal teknik özet.</CardDescription>
+              <CardTitle>Uyarılar</CardTitle>
+              <CardDescription>Önizleme sırasında dikkat edilmesi gereken noktalar.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-wrap gap-2">
-                <StatusPill label="generated" value={data.feedResponse ? formatGeneratedAt(data.feedResponse.generated_at) : '-'} />
-                <StatusPill label="issues" value={String(data.issues.length)} />
-                <StatusPill label="hidden" value={`${data.stats?.hiddenGroupCount ?? 0} group / ${data.stats?.hiddenStoryCount ?? 0} story`} />
-              </div>
-
               {issuePreview.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {issuePreview.map((issue) => (
@@ -639,7 +614,7 @@ export function PreviewWorkspace() {
               ) : (
                 <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/70 p-4 text-sm leading-6 text-muted-foreground">
                   <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                  <p>Seçili preview Story Bar&apos;ı visible feed açısından ek bir audit sorunu üretmiyor.</p>
+                  <p>Seçili içerik için ek bir uyarı bulunmuyor.</p>
                 </div>
               )}
             </CardContent>
@@ -650,8 +625,8 @@ export function PreviewWorkspace() {
       {!previewQuery.isPending && !previewQuery.isError && data && data.placements.length === 0 ? (
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Preview prerequisites</CardTitle>
-            <CardDescription>Preview başlamadan önce içerik zincirinin en az temel kayıtları hazır olmalı.</CardDescription>
+            <CardTitle>Önizleme için içerik ekleyin</CardTitle>
+            <CardDescription>Önizlemeyi kullanmak için önce placement ve içerik oluşturun.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Button asChild variant="outline">

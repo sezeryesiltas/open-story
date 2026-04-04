@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     default: 'Open Story Admin',
     template: '%s | Open Story Admin'
   },
-  description: 'Open Story v1 admin console'
+  description: 'Open Story yönetim paneli'
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

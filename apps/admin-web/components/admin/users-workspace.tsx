@@ -135,9 +135,9 @@ export function UsersWorkspace() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Seed admin sonrası tüm kullanıcılar başka bir admin tarafından oluşturulur. Yeni hesap ve reset akışları temporary password ile yönetilir."
+        description="Yönetici hesaplarını buradan ekleyebilir ve şifrelerini sıfırlayabilirsiniz."
         eyebrow="Users"
-        title="Admin user management"
+        title="Kullanıcı yönetimi"
       />
 
       {notice ? (
@@ -151,7 +151,7 @@ export function UsersWorkspace() {
           <CardHeader>
             <CardTitle>Yeni admin oluştur</CardTitle>
             <CardDescription>
-              Oluşturulan kullanıcı ilk girişte parola değiştirmek zorundadır.
+              Yeni kullanıcı ilk girişte şifresini yeniler.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -194,11 +194,11 @@ export function UsersWorkspace() {
               <CardTitle>Kullanıcı özeti</CardTitle>
               <Badge variant="secondary">{activeUserCount} active</Badge>
             </div>
-            <CardDescription>Single-role v1 modelinde tüm kullanıcılar admin erişimine sahiptir.</CardDescription>
+            <CardDescription>Toplam aktif yönetici sayısı.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>Seed admin bu tabloda normal kullanıcılarla aynı model üzerinden görünür.</p>
-            <p>`must_change_password` alanı ilk login ve reset sonrası güvenlik bariyeridir.</p>
+            <p>Bu alanda tüm yönetici hesaplarını görebilirsiniz.</p>
+            <p>Şifresini yenilemesi gereken kullanıcılar tabloda işaretlenir.</p>
           </CardContent>
         </Card>
       </div>
@@ -227,7 +227,7 @@ export function UsersWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Admin user listesi</CardTitle>
-            <CardDescription>Password reset operasyonu başka bir admin tarafından yürütülür.</CardDescription>
+            <CardDescription>Şifresini sıfırlamak istediğiniz kullanıcıyı listeden seçin.</CardDescription>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (
@@ -257,7 +257,7 @@ export function UsersWorkspace() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={user.mustChangePassword ? 'secondary' : 'outline'}>
-                          {user.mustChangePassword ? 'Change required' : 'Ready'}
+                          {user.mustChangePassword ? 'Şifre yenile' : 'Hazır'}
                         </Badge>
                       </TableCell>
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
@@ -288,9 +288,9 @@ export function UsersWorkspace() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Temporary password reset</DialogTitle>
+            <DialogTitle>Geçici şifre belirle</DialogTitle>
             <DialogDescription>
-              Kullanıcı bir sonraki girişte bu temporary password ile login olur ve ardından şifre değiştirir.
+              Kullanıcı bir sonraki girişte bu şifreyi kullanır ve ardından yeni şifre belirler.
             </DialogDescription>
           </DialogHeader>
 

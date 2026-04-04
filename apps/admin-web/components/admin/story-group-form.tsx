@@ -139,8 +139,7 @@ export function StoryGroupForm({
             {mode === 'edit' ? 'Story Group düzenleme' : mode === 'copy' ? 'Story Group kopyası' : 'Yeni Story Group'}
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Group root kaydı oluşturulur. Logo asset zorunludur; badge tamamen opsiyoneldir ve varsa
-            yalnızca `emoji` veya `svg` olabilir.
+            Story Group adı, logo ve isteğe bağlı etiketleri burada belirleyebilirsiniz.
           </p>
         </div>
 
@@ -206,7 +205,7 @@ export function StoryGroupForm({
             <p className="text-sm text-destructive">{errors.storyGroupSetIds.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Group hangi Story Bar&apos;larda referanslanacaksa burada seçin. Bu seçim Story Bar composition etkisidir.
+              Bu grubu göstermek istediğiniz Story Bar&apos;ları seçin.
             </p>
           )}
         </div>
@@ -245,7 +244,7 @@ export function StoryGroupForm({
             <p className="text-sm text-destructive">{errors.badgeValue.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Badge tipi `none` ise bu alan gönderilmez.
+              İsterseniz emoji veya SVG ekleyebilirsiniz.
             </p>
           )}
         </div>

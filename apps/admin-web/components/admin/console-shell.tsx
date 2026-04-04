@@ -32,14 +32,14 @@ export function ConsoleShell({
               <Separator className="mr-2 data-[orientation=vertical]:h-4" orientation="vertical" />
               <div className="flex min-w-0 flex-col">
                 <span className="text-sm font-medium">Open Story Admin</span>
-                <span className="text-xs text-muted-foreground">Placement-managed story operations</span>
+                <span className="text-xs text-muted-foreground">Yönetim paneli</span>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
                 <div className="text-sm font-medium">{currentUserEmail}</div>
-                <div className="text-xs text-muted-foreground">Admin session aktif</div>
+                <div className="text-xs text-muted-foreground">Oturum açık</div>
               </div>
               <AdminLogoutButton />
             </div>

@@ -173,14 +173,14 @@ function StateBadge({
   if (type === 'archive') {
     return (
       <Badge variant={value === 'archived' ? 'secondary' : 'outline'}>
-        {value === 'archived' ? 'Archived' : 'Active'}
+        {value === 'archived' ? 'Arşivde' : 'Aktif'}
       </Badge>
     );
   }
 
   return (
     <Badge variant={value === 'published' ? 'default' : 'outline'}>
-      {value === 'published' ? 'Published' : 'Unpublished'}
+      {value === 'published' ? 'Yayında' : 'Yayında değil'}
     </Badge>
   );
 }
@@ -470,9 +470,9 @@ export function StoryGroupsWorkspace() {
             </Button>
           </>
         }
-        description="Story Groups ekranı paylaşımlı group root kayıtlarını tablo üzerinden izler. Liste, Story Bar referanslarını ve archive / publish durumlarını aynı yüzeyde filtrelemeye odaklanır."
+        description="Story gruplarını ve durumlarını burada yönetebilirsiniz."
         eyebrow="Story Groups"
-        title="Group listesi ve lifecycle filtreleri"
+        title="Story Group listesi"
       />
 
       <section className="space-y-4">
@@ -481,16 +481,15 @@ export function StoryGroupsWorkspace() {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
             <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story Group&apos;lar</h2>
             <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Story Group sayısı arttığında kart düzeni yerine tablo kullanılır. Her satır group&apos;un
-              hangi setlerde referanslandığını ve canlıya çıkıp çıkmadığını tek bakışta gösterir.
+              Story Group&apos;lar bu tabloda bağlantıları ve durumlarıyla birlikte listelenir.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{storyGroups.length} group</Badge>
-            <Badge variant="secondary">{publishedCount} published</Badge>
-            <Badge variant="secondary">{archiveCount} archived</Badge>
-            <Badge variant="secondary">{sharedReferenceCount} shared ref</Badge>
+            <Badge variant="secondary">{publishedCount} yayında</Badge>
+            <Badge variant="secondary">{archiveCount} arşivde</Badge>
+            <Badge variant="secondary">{sharedReferenceCount} çoklu kullanım</Badge>
           </div>
         </div>
 
@@ -508,7 +507,7 @@ export function StoryGroupsWorkspace() {
               <CardTitle>Story Group listesi yüklenemedi</CardTitle>
               <CardDescription>
                 {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                  'Admin-web route veya local storage erişimini kontrol edin.'}
+                  'Story Group listesi şu anda alınamıyor.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -525,8 +524,7 @@ export function StoryGroupsWorkspace() {
               </div>
               <CardTitle className="text-xl">Henüz Story Group kaydı yok</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Bu ekran liste ve lifecycle görünümü için hazır. Group kayıtları geldikçe Story Bar referansı,
-                archive durumu ve publish durumu tabloya yansıyacak.
+                İlk Story Group&apos;u oluşturduğunuzda burada listelenir.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -543,8 +541,7 @@ export function StoryGroupsWorkspace() {
             <CardHeader>
               <CardTitle>Filtrelerle eşleşen Story Group bulunamadı</CardTitle>
               <CardDescription>
-                Seçili Story Bar veya durum filtreleri altında sonuç kalmadı. Filtreleri temizleyip
-                tekrar deneyin.
+                Seçili filtrelerle eşleşen kayıt bulunamadı.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -560,7 +557,7 @@ export function StoryGroupsWorkspace() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                     <ListFilter className="h-4 w-4" />
-                    Filters
+                    Filtreler
                   </div>
                   <CardTitle>Story Group tablosu</CardTitle>
                 </div>

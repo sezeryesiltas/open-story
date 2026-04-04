@@ -237,8 +237,7 @@ export function StoryForm({
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
           <p className="text-sm font-medium">{mode === 'edit' ? 'Story düzenleme' : 'Yeni Story oluştur'}</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Story yalnızca tek bir group altında yaşar. İçerik değişiklikleri story publish ile canlıya çıkar;
-            move ve reorder ise group composition değişikliği sayılır.
+            Story adı, grubu, medyası ve CTA bilgileri burada düzenlenir.
           </p>
         </div>
 
@@ -281,14 +280,11 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.groupId.message}</p>
             ) : selectedGroup ? (
               <p className="text-xs leading-5 text-muted-foreground">
-                {selectedGroup.storyCount} story içeriyor. {selectedGroup.archiveState === 'archived' ? 'Group archived durumda.' : 'Group aktif durumda.'}{' '}
-                {selectedGroup.publishState === 'published'
-                  ? 'Bu group publish edilmiş; content publish anında canlıya yansır.'
-                  : 'Group henüz unpublished durumda.'}
+                {selectedGroup.storyCount} story içeriyor. {selectedGroup.archiveState === 'archived' ? 'Bu group arşivde.' : 'Bu group aktif.'}
               </p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                Story mutlaka bir group altında oluşturulur; unassigned story modeli yoktur.
+                Story için bir Story Group seçin.
               </p>
             )}
           </div>
@@ -319,7 +315,7 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.position.message}</p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                `1` en baş anlamına gelir. Reorder ve move işlemleri group republish gerektiren composition değişikliğidir.
+                `1` en üst sırayı gösterir.
               </p>
             )}
           </div>
@@ -364,8 +360,8 @@ export function StoryForm({
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
               {selectedMediaType === 'video'
-                ? 'Yalnızca MP4, 9:16 oranlı ve 30 saniyeyi aşmayan video seçin.'
-                : 'Yalnızca 9:16 oranlı `story_image` asseti seçin.'}
+                ? 'Uygun ölçüde bir video seçin.'
+                : 'Uygun ölçüde bir görsel seçin.'}
             </p>
           )}
         </div>
@@ -384,7 +380,7 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.posterAssetId.message}</p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                Video story için poster zorunludur. Poster de 9:16 oranlı olmalıdır.
+                Video için bir poster görseli seçin.
               </p>
             )}
           </div>
@@ -402,7 +398,7 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.imageDurationSeconds.message}</p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                Boş bırakılırsa SDK varsayılanı olan 5 saniye kullanılır.
+                Boş bırakırsanız 5 saniye kullanılır.
               </p>
             )}
           </div>
@@ -413,7 +409,7 @@ export function StoryForm({
             <div>
               <p className="text-sm font-medium">CTA</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                CTA tamamen opsiyoneldir; aktifse label, target type ve target value birlikte zorunludur.
+                CTA eklemek için tüm alanları doldurun.
               </p>
             </div>
             <Controller
@@ -466,7 +462,7 @@ export function StoryForm({
                 <p className="text-sm text-destructive">{errors.ctaValue.message}</p>
               ) : (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  SDK navigasyon yapmaz; CTA sadece host app callback payload&apos;ına taşınır.
+                  Geçerli bir bağlantı veya deeplink girin.
                 </p>
               )}
             </div>
@@ -484,7 +480,7 @@ export function StoryForm({
               ? 'Kaydediliyor...'
               : 'Oluşturuluyor...'
             : mode === 'edit'
-              ? 'Draft değişikliklerini kaydet'
+              ? 'Değişiklikleri kaydet'
               : 'Story oluştur'}
         </Button>
       </div>

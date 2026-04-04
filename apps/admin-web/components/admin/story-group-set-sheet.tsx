@@ -49,8 +49,8 @@ export function StoryGroupSetSheet({
           </SheetTitle>
           <SheetDescription>
             {mode === 'create'
-              ? 'Placement bağlantısı, targeting kuralları ve count aralığını tek sheet içinde tanımlayın.'
-              : 'Seçili Story Bar için placement, fallback ve targeting alanlarını güncelleyin.'}
+              ? 'Yeni bir Story Bar ekleyin.'
+              : 'Seçili Story Bar bilgilerini güncelleyin.'}
           </SheetDescription>
         </SheetHeader>
 

@@ -88,10 +88,7 @@ export default function ChangePasswordPage() {
     <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.03)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_32px_80px_-44px_rgba(0,0,0,1)]">
       <CardHeader>
         <CardTitle>Change Password</CardTitle>
-        <CardDescription>
-          İlk girişte zorunlu parola yenileme ve admin reset sonrası temporary password değiştirme
-          ekranı.
-        </CardDescription>
+        <CardDescription>Devam etmek için şifrenizi yenileyin.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -132,8 +129,7 @@ export default function ChangePasswordPage() {
         </form>
 
         <div className="rounded-3xl border border-white/10 bg-black/20 p-5 text-sm leading-6 text-slate-400">
-          Self-service email reset yoktur. Temporary password üretimi ve reset akışı yalnızca başka
-          bir admin tarafından tetiklenir.
+          Geçici şifreyle giriş yapan kullanıcıların önce yeni bir şifre belirlemesi gerekir.
         </div>
       </CardContent>
     </Card>

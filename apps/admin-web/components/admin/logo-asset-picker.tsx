@@ -288,9 +288,9 @@ export function LogoAssetPicker({
 
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Logo asset picker</DialogTitle>
+          <DialogTitle>Logo seç</DialogTitle>
           <DialogDescription>
-            Mevcut group logo assetlerinden seçin veya bilgisayarınızdan yeni bir asset yükleyin.
+            Mevcut logolardan seçin veya yeni bir logo yükleyin.
           </DialogDescription>
         </DialogHeader>
 
@@ -309,7 +309,7 @@ export function LogoAssetPicker({
         {mode === 'existing' ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Yalnızca `group_logo` assetleri listelenir.</p>
+              <p className="text-sm text-muted-foreground">Yalnızca grup logoları listelenir.</p>
               <Button
                 className="gap-2"
                 onClick={() => assetsQuery.refetch()}
@@ -395,10 +395,10 @@ export function LogoAssetPicker({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <ImagePlus className="h-4 w-4 text-muted-foreground" />
-                  <p className="font-medium">Logo asset URL ile içe al</p>
+                  <p className="font-medium">Logo URL ile içe al</p>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Uzak görsel URL&apos;sini girin. Backend dosyayı doğrular, metadata&apos;yı çıkarır ve asset kaydını oluşturur.
+                  Bir görsel bağlantısı girin. Görsel eklenip seçim listesine kaydedilir.
                 </p>
                 <Input
                   onChange={(event) => setUrlValue(event.target.value)}
@@ -424,7 +424,7 @@ export function LogoAssetPicker({
             ) : null}
 
             {importAssetFromUrlMutation.isPending ? (
-              <div className="text-sm text-muted-foreground">Asset URL&apos;den içe alınıyor...</div>
+              <div className="text-sm text-muted-foreground">URL&apos;den içe aktarılıyor...</div>
             ) : null}
           </div>
         ) : null}

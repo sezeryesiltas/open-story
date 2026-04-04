@@ -187,9 +187,9 @@ export function ClientWorkspace() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Single-tenant v1 modelinde tek client kaydı ve onun static token’ları yönetilir. Feed auth davranışı doğrudan bu yüzeyden etkilenir."
+        description="Uygulama erişim bilgilerini burada yönetebilirsiniz."
         eyebrow="Client & Tokens"
-        title="Client ve static token yönetimi"
+        title="Client ve token yönetimi"
       />
 
       {workspaceQuery.isLoading ? <LoadingState /> : null}
@@ -216,10 +216,10 @@ export function ClientWorkspace() {
         <>
           {revealedToken ? (
             <Card className="border-primary/30 bg-primary/5">
-              <CardHeader>
-                <CardTitle>Yeni static token</CardTitle>
-                <CardDescription>
-                  Bu plain text değer sadece oluşturulduğu anda gösterilir. Güvenli bir yere kaydedin.
+            <CardHeader>
+              <CardTitle>Yeni static token</CardTitle>
+              <CardDescription>
+                  Bu değer yalnızca şimdi gösterilir. Gerekirse kopyalayın.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
@@ -249,7 +249,7 @@ export function ClientWorkspace() {
                   </Badge>
                 </div>
                 <CardDescription>
-                  `client_id` sabittir. İsim ve aktiflik durumu admin yüzeyinden güncellenebilir.
+                  Client adı ve durumunu buradan güncelleyebilirsiniz.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -267,7 +267,7 @@ export function ClientWorkspace() {
                   <div className="space-y-1">
                     <p className="text-sm font-medium">Client aktif</p>
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Inactive client için SDK feed istekleri `403` döner ve cache render edilmez.
+                      Kapalıysa uygulama erişimi durdurulur.
                     </p>
                   </div>
                   <Switch checked={isActive} onCheckedChange={setIsActive} />
@@ -290,14 +290,14 @@ export function ClientWorkspace() {
 
             <Card className="border-border/60 bg-card/80">
               <CardHeader>
-                <CardTitle>Yeni static token</CardTitle>
+                <CardTitle>Yeni token</CardTitle>
                 <CardDescription>
-                  Token düz metin değeri sadece oluşturma anında döner. Revoke edilen token tekrar kullanılamaz.
+                  Yeni bir erişim tokenı oluşturun.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tokenLabel">Token label</Label>
+                  <Label htmlFor="tokenLabel">Token adı</Label>
                   <Input
                     id="tokenLabel"
                     onChange={(event) => setTokenLabel(event.target.value)}
@@ -323,12 +323,12 @@ export function ClientWorkspace() {
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Token listesi</CardTitle>
-              <CardDescription>Prefix ve revoke durumu görünür tutulur; plain text token tekrar okunamaz.</CardDescription>
+              <CardDescription>Oluşturulan token&apos;ları buradan takip edebilirsiniz.</CardDescription>
             </CardHeader>
             <CardContent>
               {(workspaceQuery.data.tokens ?? []).length === 0 ? (
                 <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
-                  Henüz static token yok. İlk token’ı yukarıdaki formdan oluşturabilirsiniz.
+                  Henüz token yok. İlk token&apos;ı yukarıdaki formdan oluşturabilirsiniz.
                 </div>
               ) : (
                 <Table>

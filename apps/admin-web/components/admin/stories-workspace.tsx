@@ -131,14 +131,14 @@ function formatDate(value: string) {
 
 function formatDurationLabel(story: StoryApiRecord): string {
   if (story.mediaType === 'video') {
-    return 'Video duration';
+    return 'Video süresi';
   }
 
   if (!story.imageDurationMs) {
-    return 'Default 5s';
+    return 'Varsayılan 5 sn';
   }
 
-  return `${Math.round(story.imageDurationMs / 1000)}s override`;
+  return `${Math.round(story.imageDurationMs / 1000)} sn`;
 }
 
 function FilterSelect({
@@ -202,14 +202,14 @@ function StateBadge({
   if (type === 'archive') {
     return (
       <Badge variant={value === 'archived' ? 'secondary' : 'outline'}>
-        {value === 'archived' ? 'Archived' : 'Active'}
+        {value === 'archived' ? 'Arşivde' : 'Aktif'}
       </Badge>
     );
   }
 
   return (
     <Badge variant={value === 'published' ? 'default' : 'outline'}>
-      {value === 'published' ? 'Published' : 'Unpublished'}
+      {value === 'published' ? 'Yayında' : 'Yayında değil'}
     </Badge>
   );
 }
@@ -588,9 +588,9 @@ export function StoriesWorkspace() {
             </Button>
           </>
         }
-        description="Stories ekranı media-first içerik üretimini, CTA tanımını ve story revision publish davranışını aynı yüzeyde toplar. Story tek parent group altında yaşar; move ve reorder group composition değişikliği sayılır."
+        description="Story içeriklerini burada oluşturabilir ve düzenleyebilirsiniz."
         eyebrow="Stories"
-        title="Story listesi, media yönetimi ve lifecycle aksiyonları"
+        title="Story listesi"
       />
 
       <section className="space-y-4">
@@ -599,15 +599,14 @@ export function StoriesWorkspace() {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
             <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story kayıtları</h2>
             <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Liste, story&apos;leri group ilişkisi, manual order pozisyonu, CTA durumu ve publish/archive
-              yaşam döngüsü ile birlikte gösterir. Video ve image story kuralları tek satırda okunabilir.
+              Story&apos;ler bu tabloda grup, medya ve durum bilgileriyle birlikte listelenir.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{stories.length} story</Badge>
-            <Badge variant="secondary">{publishedCount} published</Badge>
-            <Badge variant="secondary">{archivedCount} archived</Badge>
+            <Badge variant="secondary">{publishedCount} yayında</Badge>
+            <Badge variant="secondary">{archivedCount} arşivde</Badge>
             <Badge variant="secondary">{videoCount} video</Badge>
             <Badge variant="secondary">{ctaCount} CTA</Badge>
           </div>
@@ -627,7 +626,7 @@ export function StoriesWorkspace() {
               <CardTitle>Story listesi yüklenemedi</CardTitle>
               <CardDescription>
                 {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                  'Admin-web route veya local storage erişimini kontrol edin.'}
+                  'Story listesi şu anda alınamıyor.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -644,8 +643,7 @@ export function StoriesWorkspace() {
               </div>
               <CardTitle className="text-xl">Önce bir Story Group oluşturun</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Story tek başına yaşayamaz; her story tam olarak bir group altında yaratılır. Bu yüzden Stories
-                ekranı group kaydı olmadan create akışını açmaz.
+                Story eklemek için önce bir Story Group seçilebilir durumda olmalıdır.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -665,8 +663,7 @@ export function StoriesWorkspace() {
               </div>
               <CardTitle className="text-xl">Henüz Story kaydı yok</CardTitle>
               <CardDescription className="max-w-2xl leading-6">
-                Bu ekran artık gerçek workspace olarak hazır. Story oluşturduğunuzda media türü, CTA durumu,
-                group içi sıra ve lifecycle aksiyonları tabloya yansıyacak.
+                İlk Story&apos;yi oluşturduğunuzda burada listelenir.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -681,7 +678,7 @@ export function StoriesWorkspace() {
             <CardHeader>
               <CardTitle>Filtrelerle eşleşen Story bulunamadı</CardTitle>
               <CardDescription>
-                Seçili group, media veya lifecycle filtreleri altında görünür satır kalmadı. Filtreleri temizleyip tekrar deneyin.
+                Seçili filtrelerle eşleşen kayıt bulunamadı.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -697,7 +694,7 @@ export function StoriesWorkspace() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                     <ListFilter className="h-4 w-4" />
-                    Filters
+                    Filtreler
                   </div>
                   <CardTitle>Story tablosu</CardTitle>
                 </div>
@@ -794,13 +791,12 @@ export function StoriesWorkspace() {
                             <div className="space-y-2">
                               <div className="space-y-1">
                                 <p className="font-semibold">{story.name}</p>
-                                <p className="text-xs text-muted-foreground">{story.id}</p>
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 <Badge variant="secondary">{story.mediaType === 'video' ? 'Video' : 'Image'}</Badge>
                                 <Badge variant="outline">{formatDurationLabel(story)}</Badge>
                                 {story.mediaType === 'video' && !story.posterAssetId ? (
-                                  <Badge variant="destructive">Poster missing</Badge>
+                                  <Badge variant="destructive">Poster eksik</Badge>
                                 ) : null}
                               </div>
                             </div>
@@ -811,12 +807,7 @@ export function StoriesWorkspace() {
                           <div className="space-y-2">
                             <p className="font-medium">{story.groupName}</p>
                             <div className="flex flex-wrap gap-2">
-                              <Badge variant="outline">Position {story.position ?? 'N/A'}</Badge>
-                              {story.currentPublishedRevisionId ? (
-                                <Badge variant="secondary">Live revision var</Badge>
-                              ) : (
-                                <Badge variant="outline">Live revision yok</Badge>
-                              )}
+                              <Badge variant="outline">Sıra {story.position ?? '-'}</Badge>
                             </div>
                           </div>
                         </TableCell>

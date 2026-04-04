@@ -223,8 +223,7 @@ export function StoryGroupSetForm({
             {mode === 'create' ? 'Yeni Story Bar' : 'Story Bar düzenleme'}
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Targeting yalnızca Story Bar seviyesinde yaşar. Group composition ayrı içerik akışlarıyla
-            yönetilir; bu form sadece placement ve targeting kurallarını düzenler.
+            Story Bar adı, placement ve gösterim koşullarını burada düzenleyebilirsiniz.
           </p>
         </div>
 
@@ -266,7 +265,7 @@ export function StoryGroupSetForm({
             <p className="text-sm text-destructive">{errors.placementId.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Story Bar her zaman tek bir placement altında çözülür.
+              Story Bar için bir placement seçin.
             </p>
           )}
         </div>
@@ -280,7 +279,7 @@ export function StoryGroupSetForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Fallback Story Bar</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Bu Story Bar yalnızca hiçbir normal targeting eşleşmediğinde kullanılmalıdır.
+              Eşleşme bulunamadığında bu Story Bar kullanılır.
             </p>
           </div>
         </label>
@@ -289,8 +288,7 @@ export function StoryGroupSetForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Platform targets</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Fallback Story Bar için platform hedefleri devre dışıdır. Normal Story Bar'larda
-              platform başına tek min app version girin.
+              İsterseniz platform ve minimum uygulama sürümü seçebilirsiniz.
             </p>
           </div>
 
@@ -374,7 +372,7 @@ export function StoryGroupSetForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="userSegmentsText">User segments</Label>
+          <Label htmlFor="userSegmentsText">Kullanıcı segmentleri</Label>
           <Textarea
             disabled={isFallback}
             id="userSegmentsText"
@@ -385,7 +383,7 @@ export function StoryGroupSetForm({
             <p className="text-sm text-destructive">{errors.userSegmentsText.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Virgül veya satır sonu ile ayırın. Segment yoksa Story Bar segmentless/default davranır.
+              Virgül veya satır sonu ile ayırın.
             </p>
           )}
         </div>

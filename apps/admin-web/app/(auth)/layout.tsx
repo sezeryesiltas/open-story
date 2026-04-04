@@ -3,10 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/compone
 import { ReactNode } from 'react';
 
 const authRules = [
-  'Email + password auth',
-  'Single role only',
-  'Admin-created users with temporary password',
-  'First login requires password change'
+  'E-posta ve şifre ile giriş yapın',
+  'Geçici şifre verilen kullanıcılar ilk girişte şifrelerini yeniler',
+  'Yeni kullanıcılar yönetici tarafından eklenir'
 ];
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -24,15 +23,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               className="mt-4 w-fit rounded-full border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-300 hover:bg-white/[0.06]"
               variant="secondary"
             >
-              Open Story v1
+              Open Story Admin
             </Badge>
-            <CardTitle className="text-3xl">Admin auth foundation</CardTitle>
+            <CardTitle className="text-3xl">Hesap erişimi</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-6 text-slate-400">
             <p>
-              Auth ekranları artık gerçek backend session akışına bağlıdır. Login sonrası console
-              session cookie ile korunur; `must_change_password` olan kullanıcılar doğrudan parola
-              yenileme akışına yönlendirilir.
+              Yönetim paneline giriş yapmak veya şifrenizi yenilemek için bu alanı kullanın.
             </p>
 
             <ul className="space-y-3">

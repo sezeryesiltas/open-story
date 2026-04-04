@@ -51,37 +51,37 @@ const ASSET_TYPE_CONFIG: Record<
   }
 > = {
   story_image: {
-    title: 'Story image asset',
-    buttonLabel: 'Story image seç',
-    emptyLabel: 'Henüz story image seçilmedi',
+    title: 'Story görseli',
+    buttonLabel: 'Story görseli seç',
+    emptyLabel: 'Henüz story görseli seçilmedi',
     emptyDescription: '9:16 oranlı JPG, PNG veya WEBP görsel seçin ya da yükleyin.',
-    dialogTitle: 'Story image asset picker',
-    dialogDescription: 'Story image assetlerini listeleyin veya 9:16 oranlı yeni bir görsel yükleyin.',
-    existingDescription: 'Yalnızca `story_image` assetleri listelenir.',
-    uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 story image yükleyin.',
+    dialogTitle: 'Story görseli seç',
+    dialogDescription: 'Mevcut görselleri seçin veya yeni bir görsel yükleyin.',
+    existingDescription: 'Yalnızca uygun story görselleri listelenir.',
+    uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 görsel yükleyin.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
   },
   story_video: {
-    title: 'Story video asset',
-    buttonLabel: 'Story video seç',
-    emptyLabel: 'Henüz story video seçilmedi',
+    title: 'Story videosu',
+    buttonLabel: 'Story videosu seç',
+    emptyLabel: 'Henüz story videosu seçilmedi',
     emptyDescription: '9:16 oranlı MP4 video seçin. Maksimum süre 30 saniye, maksimum boyut 50 MB olmalıdır.',
-    dialogTitle: 'Story video asset picker',
-    dialogDescription: 'Story video assetlerini yönetin. V1’de yalnızca MP4 video kabul edilir.',
-    existingDescription: 'Yalnızca `story_video` assetleri listelenir.',
+    dialogTitle: 'Story videosu seç',
+    dialogDescription: 'Mevcut videoları seçin veya yeni bir video yükleyin.',
+    existingDescription: 'Yalnızca uygun story videoları listelenir.',
     uploadDescription: 'MP4 formatında, 9:16 oranlı ve 30 saniyeyi aşmayan video yükleyin.',
     accepts: 'video/mp4',
     previewKind: 'video',
   },
   story_poster: {
-    title: 'Story poster asset',
+    title: 'Poster',
     buttonLabel: 'Poster seç',
-    emptyLabel: 'Henüz poster asset seçilmedi',
+    emptyLabel: 'Henüz poster seçilmedi',
     emptyDescription: 'Video story için 9:16 poster zorunludur. JPG, PNG veya WEBP poster seçin.',
-    dialogTitle: 'Story poster asset picker',
-    dialogDescription: 'Video poster assetlerini seçin veya yeni bir 9:16 poster yükleyin.',
-    existingDescription: 'Yalnızca `story_poster` assetleri listelenir.',
+    dialogTitle: 'Poster seç',
+    dialogDescription: 'Mevcut posterleri seçin veya yeni bir poster yükleyin.',
+    existingDescription: 'Yalnızca uygun posterler listelenir.',
     uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 video poster yükleyin.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
@@ -556,7 +556,7 @@ export function StoryAssetPicker({
                   <p className="font-medium">{config.title} URL ile içe al</p>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Uzak asset URL&apos;sini girin. Backend dosyayı doğrular, metadata&apos;yı çıkarır ve asset kaydını oluşturur.
+                  Bir dosya bağlantısı girin. Dosya eklenip seçim listesine kaydedilir.
                 </p>
                 <Input
                   onChange={(event) => setUrlValue(event.target.value)}
@@ -586,7 +586,7 @@ export function StoryAssetPicker({
             ) : null}
 
             {importAssetFromUrlMutation.isPending ? (
-              <div className="text-sm text-muted-foreground">Asset URL&apos;den içe alınıyor...</div>
+              <div className="text-sm text-muted-foreground">URL&apos;den içe aktarılıyor...</div>
             ) : null}
           </div>
         ) : null}
