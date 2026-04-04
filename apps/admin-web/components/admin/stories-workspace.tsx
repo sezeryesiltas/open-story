@@ -33,7 +33,6 @@ import {
   MoreHorizontal,
   PencilLine,
   Plus,
-  Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -410,21 +409,11 @@ export function StoriesWorkspace() {
       action,
     }: {
       storyId: string;
-      action: 'archive' | 'restore' | 'publish' | 'unpublish';
+      action: 'archive' | 'restore' | 'publish';
     }) =>
       apiRequest<StoryApiRecord>(`/api/stories/${storyId}`, {
         method: 'PATCH',
         body: JSON.stringify({ action }),
-      }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['stories-workspace'] });
-    },
-  });
-
-  const deleteStoryMutation = useMutation({
-    mutationFn: (storyId: string) =>
-      apiRequest<void>(`/api/stories/${storyId}`, {
-        method: 'DELETE',
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['stories-workspace'] });
@@ -568,16 +557,11 @@ export function StoriesWorkspace() {
 
   const handleRowAction = async (
     story: StoryApiRecord,
-    action: 'archive' | 'restore' | 'publish' | 'unpublish' | 'delete',
+    action: 'archive' | 'restore' | 'publish',
   ) => {
     setActionError(null);
 
     try {
-      if (action === 'delete') {
-        await deleteStoryMutation.mutateAsync(story.id);
-        return;
-      }
-
       await patchStoryMutation.mutateAsync({
         storyId: story.id,
         action,
@@ -902,27 +886,13 @@ export function StoriesWorkspace() {
                                 {story.archiveState === 'archived' ? 'Restore' : 'Archive'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                disabled={story.publishState === 'published'}
                                 onSelect={() =>
-                                  handleRowAction(
-                                    story,
-                                    story.publishState === 'published' ? 'unpublish' : 'publish',
-                                  )
+                                  handleRowAction(story, 'publish')
                                 }
                               >
-                                {story.publishState === 'published' ? (
-                                  <CircleSlash className="mr-2 h-4 w-4" />
-                                ) : (
-                                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                                )}
-                                {story.publishState === 'published' ? 'Unpublish' : 'Publish'}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                disabled={!story.canDelete}
-                                onSelect={() => handleRowAction(story, 'delete')}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                {story.publishState === 'published' ? 'Already published' : 'Publish'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

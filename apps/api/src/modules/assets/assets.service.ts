@@ -1,8 +1,12 @@
-import type { AssetDto, ListAssetsQueryDto } from '@open-story/contracts';
+import type { AssetDto, CreateAssetFromUrlDto, ListAssetsQueryDto } from '@open-story/contracts';
 
 import { AdminAccessService } from '../../admin-auth/admin-access.service.ts';
 import { AssetsRepository } from './assets.repository.ts';
-import { createAssetRecordFromUpload, type AssetType, type AssetUploadInput } from './asset-upload.ts';
+import {
+  createAssetRecordFromUpload,
+  createAssetRecordFromUrlImport,
+  type AssetUploadInput,
+} from './asset-upload.ts';
 
 export class AssetsService {
   private readonly repository: AssetsRepository;
@@ -35,6 +39,17 @@ export class AssetsService {
 
     return toAssetDto(this.repository.create(record));
   }
+
+  async importFromUrl(input: CreateAssetFromUrlDto, authorization?: string): Promise<AssetDto> {
+    const { user } = await this.adminAccessService.requireAdminAccess(authorization);
+
+    const record = await createAssetRecordFromUrlImport({
+      ...input,
+      createdByAdminUserId: user.id,
+    });
+
+    return toAssetDto(this.repository.create(record));
+  }
 }
 
 function toAssetDto(record: import('@open-story/contracts').AssetRecord): AssetDto {
@@ -48,7 +63,7 @@ function toAssetDto(record: import('@open-story/contracts').AssetRecord): AssetD
     height: record.height,
     durationMs: record.durationMs,
     sizeBytes: record.sizeBytes,
-    source: 'upload',
+    source: record.source,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };

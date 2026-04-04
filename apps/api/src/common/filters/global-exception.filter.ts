@@ -10,7 +10,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
-import { ApiErrorResponse, ApiServiceError } from './api-error';
+import { ApiErrorResponse, ApiServiceError } from './api-error.ts';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -60,6 +60,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         },
       });
     }
+
+    console.error('[GlobalExceptionFilter] Unhandled exception', exception);
 
     return this.send(response, HttpStatus.INTERNAL_SERVER_ERROR, {
       error: { code: 'validation_error', message: 'Unexpected error' },

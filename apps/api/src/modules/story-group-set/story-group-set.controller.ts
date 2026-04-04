@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Param, Patch, Post } from '@nestjs/common';
 import type {
   CreateStoryGroupSetDto,
   PublishStoryGroupSetDto,
@@ -6,11 +6,12 @@ import type {
   UpdateStoryGroupSetDto,
 } from '@open-story/contracts';
 
-import { StoryGroupSetService } from './story-group-set.service';
+import { StoryGroupSetService } from './story-group-set.service.ts';
 
 @Controller('v1/story-group-sets')
 export class StoryGroupSetController {
-  constructor(private readonly service: StoryGroupSetService) {}
+  @Inject(StoryGroupSetService)
+  private readonly service!: StoryGroupSetService;
 
   @Get()
   async list(@Headers('authorization') authorization?: string): Promise<StoryGroupSetDto[]> {

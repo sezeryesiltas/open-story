@@ -16,9 +16,10 @@ import {
 } from '@open-story/ui/components/sidebar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutPanelTop, ShieldCheck } from 'lucide-react';
+import { LayoutPanelTop, LogOut, ShieldCheck } from 'lucide-react';
 
 import { adminNavSections } from '@/lib/admin-navigation';
+import { useAdminLogout } from '@/lib/use-admin-logout';
 
 function isActive(pathname: string, href: string) {
   if (href === '/') {
@@ -26,6 +27,19 @@ function isActive(pathname: string, href: string) {
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function AdminSidebarLogoutItem() {
+  const { isSubmitting, logout } = useAdminLogout();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton disabled={isSubmitting} onClick={logout} tooltip="Logout" type="button">
+        <LogOut />
+        <span>Logout</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 }
 
 export function AppSidebar() {
@@ -58,6 +72,10 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item) => {
+                  if (item.href === '/login') {
+                    return <AdminSidebarLogoutItem key={item.href} />;
+                  }
+
                   const Icon = item.icon;
 
                   return (

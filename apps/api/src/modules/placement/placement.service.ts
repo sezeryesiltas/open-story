@@ -1,11 +1,15 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePlacementDto, PlacementDto, UpdatePlacementDto } from '@open-story/contracts';
 import { randomUUID } from 'node:crypto';
-import { PlacementRepository } from './placement.repository';
+import { PlacementRepository } from './placement.repository.ts';
 
 @Injectable()
 export class PlacementService {
-  constructor(private readonly repository: PlacementRepository) {}
+  private readonly repository: PlacementRepository;
+
+  constructor(@Inject(PlacementRepository) repository: PlacementRepository) {
+    this.repository = repository;
+  }
 
   list(): PlacementDto[] {
     return this.repository

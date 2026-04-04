@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Param, Patch, Post } from '@nestjs/common';
 import type {
   ArchiveStoryDto,
   CreateStoryDto,
@@ -7,11 +7,12 @@ import type {
   UpdateStoryDto,
 } from '@open-story/contracts';
 
-import { StoryService } from './story.service';
+import { StoryService } from './story.service.ts';
 
 @Controller('v1/stories')
 export class StoryController {
-  constructor(private readonly service: StoryService) {}
+  @Inject(StoryService)
+  private readonly service!: StoryService;
 
   @Get()
   async list(@Headers('authorization') authorization?: string): Promise<StoryDto[]> {

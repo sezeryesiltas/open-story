@@ -8,6 +8,8 @@ export const storySchema = z
     id: rootIdSchema,
     current_draft_revision_id: revisionIdSchema,
     current_published_revision_id: revisionIdSchema.nullable(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
     group_id: rootIdSchema,
     name: z.string().trim().min(1).max(256),
     media_type: z.enum(['image', 'video']),

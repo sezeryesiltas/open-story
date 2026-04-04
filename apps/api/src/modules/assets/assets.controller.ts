@@ -1,24 +1,30 @@
-import { BadRequestException, Controller, Get, Headers, Post, Query, Req } from '@nestjs/common';
-import type { AssetDto, AssetTypeDto } from '@open-story/contracts';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Inject,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { AssetDto, AssetTypeDto, CreateAssetFromUrlDto } from '@open-story/contracts';
 
 import { AssetsService } from './assets.service.ts';
 
-type MultipartUploadPart = {
-  filename?: string;
+type MultipartUploadFile = {
+  originalname?: string;
   mimetype?: string;
-  toBuffer?: () => Promise<Buffer>;
-};
-
-type MultipartUploadRequest = {
-  body?: {
-    type?: unknown;
-  };
-  file?: () => Promise<MultipartUploadPart | undefined>;
+  buffer?: Buffer;
 };
 
 @Controller('v1/assets')
 export class AssetsController {
-  constructor(private readonly service: AssetsService) {}
+  @Inject(AssetsService)
+  private readonly service!: AssetsService;
 
   @Get()
   async list(
@@ -29,23 +35,40 @@ export class AssetsController {
   }
 
   @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
   async upload(
-    @Req() request?: MultipartUploadRequest,
+    @UploadedFile() uploadedFile?: MultipartUploadFile,
+    @Body('type') typeValue?: string,
     @Headers('authorization') authorization?: string,
   ): Promise<AssetDto> {
-    const uploadedFile = request?.file ? await request.file() : undefined;
-    const typeValue = request?.body?.type;
-
-    if (!uploadedFile?.filename || !uploadedFile.toBuffer || typeof typeValue !== 'string') {
+    if (!uploadedFile?.originalname || !uploadedFile.buffer || typeof typeValue !== 'string') {
       throw new BadRequestException('Multipart upload body `type` ve `file` alanlarını içermelidir.');
     }
 
     return this.service.upload(
       {
         type: typeValue as AssetTypeDto,
-        fileName: uploadedFile.filename,
+        fileName: uploadedFile.originalname,
         mimeType: uploadedFile.mimetype ?? null,
-        buffer: await uploadedFile.toBuffer(),
+        buffer: uploadedFile.buffer,
+      },
+      authorization,
+    );
+  }
+
+  @Post('import')
+  async importFromUrl(
+    @Body() body?: Partial<CreateAssetFromUrlDto>,
+    @Headers('authorization') authorization?: string,
+  ): Promise<AssetDto> {
+    if (typeof body?.type !== 'string' || typeof body?.url !== 'string') {
+      throw new BadRequestException('JSON body `type` ve `url` alanlarını içermelidir.');
+    }
+
+    return this.service.importFromUrl(
+      {
+        type: body.type as AssetTypeDto,
+        url: body.url,
       },
       authorization,
     );

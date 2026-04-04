@@ -30,8 +30,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-6 text-slate-400">
             <p>
-              Bu auth ekranları shell’in giriş yüzeyini sabitler. Gerçek backend entegrasyonu ve
-              session yönetimi sonraki iterasyonda bağlanacak.
+              Auth ekranları artık gerçek backend session akışına bağlıdır. Login sonrası console
+              session cookie ile korunur; `must_change_password` olan kullanıcılar doğrudan parola
+              yenileme akışına yönlendirilir.
             </p>
 
             <ul className="space-y-3">

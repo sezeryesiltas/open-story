@@ -297,7 +297,7 @@ export function StoryGroupsWorkspace() {
       action,
     }: {
       storyGroupId: string;
-      action: 'archive' | 'restore' | 'publish' | 'unpublish';
+      action: 'archive' | 'restore' | 'publish';
     }) =>
       apiRequest<StoryGroupApiRecord>(`/api/story-groups/${storyGroupId}`, {
         method: 'PATCH',
@@ -439,7 +439,7 @@ export function StoryGroupsWorkspace() {
 
   const handleRowAction = async (
     storyGroup: StoryGroupApiRecord,
-    action: 'archive' | 'restore' | 'publish' | 'unpublish',
+    action: 'archive' | 'restore' | 'publish',
   ) => {
     setActionError(null);
 
@@ -645,7 +645,7 @@ export function StoryGroupsWorkspace() {
                               badgeLabel={badgeLabel}
                               bottomLabel={storyGroup.bottomLabel}
                               inactiveGradientRing
-                              size="md"
+                              size="lg"
                               src={groupLogoAsset?.url}
                             />
                             <div className="space-y-1">
@@ -729,19 +729,13 @@ export function StoryGroupsWorkspace() {
                                 {storyGroup.archiveState === 'archived' ? 'Restore' : 'Archive'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                disabled={storyGroup.publishState === 'published'}
                                 onSelect={() =>
-                                  handleRowAction(
-                                    storyGroup,
-                                    storyGroup.publishState === 'published' ? 'unpublish' : 'publish',
-                                  )
+                                  handleRowAction(storyGroup, 'publish')
                                 }
                               >
-                                {storyGroup.publishState === 'published' ? (
-                                  <CircleSlash className="mr-2 h-4 w-4" />
-                                ) : (
-                                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                                )}
-                                {storyGroup.publishState === 'published' ? 'Unpublish' : 'Publish'}
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                {storyGroup.publishState === 'published' ? 'Already published' : 'Publish'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

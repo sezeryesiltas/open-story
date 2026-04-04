@@ -157,9 +157,9 @@ function formatBadgeValue(group: SdkFeedGroup) {
 function StoryMedia({ story }: { story: SdkFeedStory }) {
   if (story.media_type === 'video') {
     return (
-      <div className="relative overflow-hidden bg-black">
+      <div className="relative aspect-[1/2] w-full overflow-hidden bg-black">
         <video
-          className="aspect-[9/16] h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
           autoPlay
           loop
           muted
@@ -172,9 +172,9 @@ function StoryMedia({ story }: { story: SdkFeedStory }) {
   }
 
   return (
-    <div className="relative overflow-hidden bg-black">
+    <div className="relative aspect-[1/2] w-full overflow-hidden bg-black">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt={story.title} className="aspect-[9/16] h-full w-full object-cover" src={story.asset.url} />
+      <img alt={story.title} className="absolute inset-0 h-full w-full object-contain object-top" src={story.asset.url} />
     </div>
   );
 }
@@ -253,7 +253,7 @@ function ViewerStage({
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/75 via-black/10 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent via-black/35 to-black" />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-4 p-4">
         <div className="flex items-center gap-1.5">

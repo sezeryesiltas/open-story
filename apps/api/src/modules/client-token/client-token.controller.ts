@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Param, Post } from '@nestjs/common';
 import type {
   CreateStaticTokenDto,
   CreateStaticTokenResponseDto,
@@ -6,11 +6,12 @@ import type {
   StaticTokenDto,
 } from '@open-story/contracts';
 
-import { ClientTokenService } from './client-token.service';
+import { ClientTokenService } from './client-token.service.ts';
 
 @Controller('v1/client-tokens')
 export class ClientTokenController {
-  constructor(private readonly service: ClientTokenService) {}
+  @Inject(ClientTokenService)
+  private readonly service!: ClientTokenService;
 
   @Get()
   async list(@Headers('authorization') authorization?: string): Promise<StaticTokenDto[]> {

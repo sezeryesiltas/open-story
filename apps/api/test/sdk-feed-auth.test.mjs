@@ -286,6 +286,7 @@ function seedAsset(db, asset) {
   db.insert('assets', {
     id: asset.id,
     kind: asset.kind,
+    source: asset.source ?? 'upload',
     mediaType: asset.mediaType,
     storageKey: `uploads/${asset.id}`,
     publicUrl: asset.publicUrl,

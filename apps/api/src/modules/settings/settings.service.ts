@@ -1,10 +1,14 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { DatabaseSettingsDto, UpdateDatabaseSettingsDto } from '@open-story/contracts';
 import { DbService } from '@open-story/db';
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly db: DbService) {}
+  private readonly db: DbService;
+
+  constructor(@Inject(DbService) db: DbService) {
+    this.db = db;
+  }
 
   getDatabaseSettings(): DatabaseSettingsDto {
     return this.db.getDatabaseSettings();

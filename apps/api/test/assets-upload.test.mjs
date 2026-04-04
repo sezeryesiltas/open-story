@@ -138,6 +138,42 @@ test('asset upload rejects invalid image ratios and overlong videos', async () =
   );
 });
 
+test('asset URL import validates remote image and preserves url source', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(createPngBuffer(1080, 1920), {
+      status: 200,
+      headers: {
+        'content-type': 'image/png',
+      },
+    });
+
+  try {
+    const { authService, assetsService } = createHarness();
+    const loginResponse = await authService.login({
+      email: 'admin@openstory.local',
+      password: 'admin12345',
+    });
+    const authorization = `Bearer ${loginResponse.accessToken}`;
+
+    const importedAsset = await assetsService.importFromUrl(
+      {
+        type: 'story_image',
+        url: 'https://cdn.example.com/story.png',
+      },
+      authorization,
+    );
+
+    assert.equal(importedAsset.type, 'story_image');
+    assert.equal(importedAsset.url, 'https://cdn.example.com/story.png');
+    assert.equal(importedAsset.source, 'url');
+    assert.equal(importedAsset.width, 1080);
+    assert.equal(importedAsset.height, 1920);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 function createPngBuffer(width, height) {
   const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const ihdrData = Buffer.alloc(13);

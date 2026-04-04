@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Param, Post } from '@nestjs/common';
 import type { AdminUserDto, CreateAdminUserDto, ResetAdminUserPasswordDto } from '@open-story/contracts';
 
-import { AdminUserService } from './admin-user.service';
+import { AdminUserService } from './admin-user.service.ts';
 
 @Controller('v1/admin-users')
 export class AdminUserController {
-  constructor(private readonly adminUserService: AdminUserService) {}
+  @Inject(AdminUserService)
+  private readonly adminUserService!: AdminUserService;
 
   @Get()
   async list(@Headers('authorization') authorization?: string): Promise<AdminUserDto[]> {

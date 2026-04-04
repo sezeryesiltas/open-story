@@ -201,7 +201,7 @@ export function SettingsWorkspace() {
             <CardTitle>Database ayarları okunamadı</CardTitle>
             <CardDescription>
               {(settingsQuery.error as Error | undefined)?.message ??
-                'API yanıtı alınamadı. `NEXT_PUBLIC_API_BASE_URL` ve backend servis durumunu kontrol edin.'}
+                'API yanıtı alınamadı. `OPEN_STORY_API_BASE_URL` ve backend servis durumunu kontrol edin.'}
             </CardDescription>
           </CardHeader>
         </Card>

@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { DbService } from '@open-story/db';
-import { AdminAccessService } from '../../admin-auth/admin-access.service';
-import { SimpleJwtService } from '../../admin-auth/simple-jwt';
-import { PublishResolutionRepository } from '../../publish/publish-resolution.repository';
-import { PublishResolutionService } from '../../publish/publish-resolution.service';
-import { StoryContentRepository } from '../../story-content/story-content.repository';
-import { StoryPlatformRepository } from '../../story-platform/story-platform.repository';
-import { StoryGroupSetController } from './story-group-set.controller';
-import { StoryGroupSetService } from './story-group-set.service';
+import { AdminAccessService } from '../../admin-auth/admin-access.service.ts';
+import { SimpleJwtService } from '../../admin-auth/simple-jwt.ts';
+import { PublishResolutionRepository } from '../../publish/publish-resolution.repository.ts';
+import { PublishResolutionService } from '../../publish/publish-resolution.service.ts';
+import { StoryContentRepository } from '../../story-content/story-content.repository.ts';
+import { StoryPlatformRepository } from '../../story-platform/story-platform.repository.ts';
+import { StoryGroupSetController } from './story-group-set.controller.ts';
+import { StoryGroupSetService } from './story-group-set.service.ts';
 
 @Module({
   controllers: [StoryGroupSetController],

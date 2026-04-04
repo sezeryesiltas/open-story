@@ -37,8 +37,6 @@ type StoryGroupSetApiRecord = {
   id: string;
   name: string;
   placementId: string;
-  minStoryGroupCount: number;
-  maxStoryGroupCount: number;
   isFallback: boolean;
   platformTargets: Array<{
     platform: 'ios' | 'android';
@@ -58,8 +56,6 @@ type WorkspaceData = {
 const emptyStoryGroupSetFormValues: StoryGroupSetFormValues = {
   name: '',
   placementId: '',
-  minStoryGroupCount: 0,
-  maxStoryGroupCount: 0,
   isFallback: false,
   iosEnabled: false,
   iosMinAppVersion: '',
@@ -123,8 +119,6 @@ function toFormValues(storyGroupSet: StoryGroupSetApiRecord | null): StoryGroupS
   return {
     name: storyGroupSet.name,
     placementId: storyGroupSet.placementId,
-    minStoryGroupCount: storyGroupSet.minStoryGroupCount,
-    maxStoryGroupCount: storyGroupSet.maxStoryGroupCount,
     isFallback: storyGroupSet.isFallback,
     iosEnabled: Boolean(iosTarget),
     iosMinAppVersion: iosTarget?.minAppVersion ?? '',
@@ -452,10 +446,7 @@ export function StoryGroupSetsWorkspace() {
                         Group composition
                       </p>
                       <p className="mt-3 text-2xl font-semibold">{storyGroupSet.groupIds.length}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        Bağlı group sayısı. İzinli aralık: {storyGroupSet.minStoryGroupCount} -{' '}
-                        {storyGroupSet.maxStoryGroupCount}
-                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">Draft revision içindeki bağlı group sayısı.</p>
                     </div>
 
                     <div className="rounded-lg border border-border/60 bg-muted/30 p-4">

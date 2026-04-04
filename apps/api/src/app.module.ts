@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
-import { AdminUserModule } from './modules/admin-user/admin-user.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { ClientModule } from './modules/client/client.module';
-import { ClientTokenModule } from './modules/client-token/client-token.module';
-import { PlacementModule } from './modules/placement/placement.module';
-import { StoryGroupSetModule } from './modules/story-group-set/story-group-set.module';
-import { StoryGroupModule } from './modules/story-group/story-group.module';
-import { StoryModule } from './modules/story/story.module';
-import { AssetsModule } from './modules/assets/assets.module';
-import { SdkFeedModule } from './modules/sdk-feed/sdk-feed.module';
-import { SettingsModule } from './modules/settings/settings.module';
+import { AdminUserModule } from './modules/admin-user/admin-user.module.ts';
+import { AuthModule } from './modules/auth/auth.module.ts';
+import { ClientModule } from './modules/client/client.module.ts';
+import { ClientTokenModule } from './modules/client-token/client-token.module.ts';
+import { PlacementModule } from './modules/placement/placement.module.ts';
+import { StoryGroupSetModule } from './modules/story-group-set/story-group-set.module.ts';
+import { StoryGroupModule } from './modules/story-group/story-group.module.ts';
+import { StoryModule } from './modules/story/story.module.ts';
+import { AssetsModule } from './modules/assets/assets.module.ts';
+import { SdkFeedModule } from './modules/sdk-feed/sdk-feed.module.ts';
+import { SettingsModule } from './modules/settings/settings.module.ts';
 
 @Module({
   imports: [

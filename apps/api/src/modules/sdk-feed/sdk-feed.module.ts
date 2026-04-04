@@ -5,9 +5,9 @@ import { PublishResolutionRepository } from '../../publish/publish-resolution.re
 import { PublishResolutionService } from '../../publish/publish-resolution.service.ts';
 import { StaticTokenGuard } from '../../sdk-auth/static-token.guard.ts';
 import { StoryPlatformRepository } from '../../story-platform/story-platform.repository.ts';
-import { SdkFeedController } from './sdk-feed.controller';
-import { SdkFeedService } from './sdk-feed.service';
-import { SdkFeedRepository } from './sdk-feed.repository';
+import { SdkFeedController } from './sdk-feed.controller.ts';
+import { SdkFeedService } from './sdk-feed.service.ts';
+import { SdkFeedRepository } from './sdk-feed.repository.ts';
 
 @Module({
   controllers: [SdkFeedController],

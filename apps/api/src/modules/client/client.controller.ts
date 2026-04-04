@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Headers, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Patch } from '@nestjs/common';
 import type { ClientDto, UpdateClientDto } from '@open-story/contracts';
 
-import { ClientService } from './client.service';
+import { ClientService } from './client.service.ts';
 
 @Controller('v1/client')
 export class ClientController {
-  constructor(private readonly clientService: ClientService) {}
+  @Inject(ClientService)
+  private readonly clientService!: ClientService;
 
   @Get()
   async get(@Headers('authorization') authorization?: string): Promise<ClientDto> {

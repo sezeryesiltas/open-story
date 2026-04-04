@@ -15,6 +15,8 @@ export const storyGroupSetSchema = z
     id: rootIdSchema,
     current_draft_revision_id: revisionIdSchema,
     current_published_revision_id: revisionIdSchema.nullable(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
     placement_id: rootIdSchema,
     name: z.string().trim().min(1).max(256),
     is_fallback: z.boolean(),

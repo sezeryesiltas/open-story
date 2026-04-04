@@ -14,17 +14,17 @@ const sizeClasses: Record<
   sm: {
     frame: 'size-11',
     fallbackIcon: 'h-4 w-4',
-    badge: 'min-h-5 min-w-5 text-[10px]',
+    badge: 'min-h-6 min-w-6 text-[11px]',
   },
   md: {
     frame: 'size-12',
     fallbackIcon: 'h-5 w-5',
-    badge: 'min-h-6 min-w-6 text-[11px]',
+    badge: 'min-h-7 min-w-7 text-xs',
   },
   lg: {
     frame: 'size-16',
     fallbackIcon: 'h-6 w-6',
-    badge: 'min-h-6 min-w-6 text-[11px]',
+    badge: 'min-h-8 min-w-8 text-[13px]',
   },
 };
 
@@ -67,7 +67,7 @@ export function StoryGroupLogo({
             )}
 
             {bottomLabel ? (
-              <div className="pointer-events-none absolute bottom-1 left-1/2 z-10 max-w-[calc(100%-8px)] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded-[2px] bg-black p-0.5 text-center text-[8px] font-medium leading-none text-white">
+              <div className="pointer-events-none absolute bottom-0 left-1/2 z-10 max-w-[calc(100%-8px)] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded-[2px] bg-black px-0.5 py-1 text-center text-[8px] font-medium leading-none text-white">
                 {bottomLabel}
               </div>
             ) : null}

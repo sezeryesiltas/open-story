@@ -179,13 +179,18 @@ export interface AssetDto {
   height: number | null;
   durationMs: number | null;
   sizeBytes: number | null;
-  source: 'upload';
+  source: 'upload' | 'url';
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ListAssetsQueryDto {
   type?: AssetTypeDto;
+}
+
+export interface CreateAssetFromUrlDto {
+  type: AssetTypeDto;
+  url: string;
 }
 
 export type SdkFeedRequestDto = SdkFeedRequest;

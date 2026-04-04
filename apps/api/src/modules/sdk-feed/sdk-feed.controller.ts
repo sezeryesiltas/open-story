@@ -1,10 +1,11 @@
-import { Body, Controller, Headers, Post } from '@nestjs/common';
+import { Body, Controller, Headers, Inject, Post } from '@nestjs/common';
 import type { SdkFeedRequestDto, SdkFeedResponseDto } from '@open-story/contracts';
-import { SdkFeedService } from './sdk-feed.service';
+import { SdkFeedService } from './sdk-feed.service.ts';
 
 @Controller('v1/sdk')
 export class SdkFeedController {
-  constructor(private readonly service: SdkFeedService) {}
+  @Inject(SdkFeedService)
+  private readonly service!: SdkFeedService;
 
   @Post('feed')
   async feed(

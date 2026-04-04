@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-import type { JwtPayload, JwtSigner, JwtVerifier } from './admin-session-jwt.guard.ts';
+import type { JwtSigner } from './admin-auth.service.ts';
+import type { JwtPayload, JwtVerifier } from './admin-session-jwt.guard.ts';
 
 type JwtHeader = {
   alg: 'HS256';

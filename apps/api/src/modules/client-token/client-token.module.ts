@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { DbService } from '@open-story/db';
 
-import { AdminAccessService } from '../../admin-auth/admin-access.service';
-import { SimpleJwtService } from '../../admin-auth/simple-jwt';
-import { StoryPlatformRepository } from '../../story-platform/story-platform.repository';
-import { ClientTokenController } from './client-token.controller';
-import { ClientTokenService } from './client-token.service';
+import { AdminAccessService } from '../../admin-auth/admin-access.service.ts';
+import { SimpleJwtService } from '../../admin-auth/simple-jwt.ts';
+import { StoryPlatformRepository } from '../../story-platform/story-platform.repository.ts';
+import { ClientTokenController } from './client-token.controller.ts';
+import { ClientTokenService } from './client-token.service.ts';
 
 @Module({
   controllers: [ClientTokenController],

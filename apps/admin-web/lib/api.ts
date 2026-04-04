@@ -9,20 +9,13 @@ export class ApiRequestError extends Error {
   }
 }
 
-const DEFAULT_API_BASE_URL = '';
-
-function getApiBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(/\/+$/, '');
-}
-
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = `${getApiBaseUrl()}${path}`;
   const headers = new Headers(init?.headers);
   if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(path, {
     ...init,
     cache: 'no-store',
     headers,

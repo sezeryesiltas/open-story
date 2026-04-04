@@ -16,6 +16,14 @@ export type AssetUploadInput = {
   createdByAdminUserId: string | null;
 };
 
+export type AssetImportFromUrlInput = {
+  type: AssetType;
+  url: string;
+  createdByAdminUserId: string | null;
+};
+
+type AssetCreationSource = 'upload' | 'url';
+
 type DetectedAsset =
   | {
       detectedMimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/svg+xml';
@@ -52,6 +60,70 @@ const DEFAULT_PUBLIC_ASSET_BASE_URL = 'http://localhost:3001/uploads/assets';
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
 
 export function createAssetRecordFromUpload(input: AssetUploadInput): AssetRecord {
+  return createAssetRecordFromBuffer({
+    type: input.type,
+    fileName: input.fileName,
+    mimeType: input.mimeType ?? null,
+    buffer: input.buffer,
+    createdByAdminUserId: input.createdByAdminUserId,
+    source: 'upload',
+    publicUrl: null,
+  });
+}
+
+export async function createAssetRecordFromUrlImport(input: AssetImportFromUrlInput): Promise<AssetRecord> {
+  let normalizedUrl: URL;
+
+  try {
+    normalizedUrl = new URL(input.url);
+  } catch {
+    throw ApiServiceError.badRequest('Geçerli bir asset URL girin.');
+  }
+
+  if (normalizedUrl.protocol !== 'http:' && normalizedUrl.protocol !== 'https:') {
+    throw ApiServiceError.badRequest('Asset URL yalnızca http veya https olabilir.');
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(normalizedUrl, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw ApiServiceError.badRequest('Asset URL indirilemedi.');
+  }
+
+  if (!response.ok) {
+    throw ApiServiceError.badRequest(`Asset URL indirilemedi (${response.status}).`);
+  }
+
+  const finalUrl = response.url ? new URL(response.url).toString() : normalizedUrl.toString();
+  const fileName = guessFileNameFromUrl(finalUrl);
+  const mimeType = response.headers.get('content-type')?.split(';')[0]?.trim() || null;
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  return createAssetRecordFromBuffer({
+    type: input.type,
+    fileName,
+    mimeType,
+    buffer,
+    createdByAdminUserId: input.createdByAdminUserId,
+    source: 'url',
+    publicUrl: finalUrl,
+  });
+}
+
+function createAssetRecordFromBuffer(input: {
+  type: AssetType;
+  fileName: string;
+  mimeType: string | null;
+  buffer: Buffer;
+  createdByAdminUserId: string | null;
+  source: AssetCreationSource;
+  publicUrl: string | null;
+}): AssetRecord {
   const normalizedFileName = normalizeFileName(input.fileName);
   const detectedAsset = detectAsset(input.buffer);
   validateUpload(input.type, normalizedFileName, input.mimeType ?? null, input.buffer.byteLength, detectedAsset);
@@ -59,18 +131,24 @@ export function createAssetRecordFromUpload(input: AssetUploadInput): AssetRecor
   const persistedKind = toPersistedKind(input.type);
   const now = new Date().toISOString();
   const extension = extname(normalizedFileName) || detectedAsset.extension;
-  const storageKey = `${persistedKind}/${randomUUID()}${extension.toLowerCase()}`;
-  const filePath = resolveAssetFilePath(storageKey);
+  const storageKey =
+    input.source === 'upload'
+      ? `${persistedKind}/${randomUUID()}${extension.toLowerCase()}`
+      : `remote/${persistedKind}/${randomUUID()}${extension.toLowerCase()}`;
 
-  mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, input.buffer);
+  if (input.source === 'upload') {
+    const filePath = resolveAssetFilePath(storageKey);
+    mkdirSync(dirname(filePath), { recursive: true });
+    writeFileSync(filePath, input.buffer);
+  }
 
   return {
     id: randomUUID(),
     kind: persistedKind,
+    source: input.source,
     mediaType: detectedAsset.mediaType,
     storageKey,
-    publicUrl: buildPublicAssetUrl(storageKey),
+    publicUrl: input.publicUrl ?? buildPublicAssetUrl(storageKey),
     sourceFileName: normalizedFileName,
     mimeType: detectedAsset.detectedMimeType,
     sizeBytes: input.buffer.byteLength,
@@ -206,6 +284,16 @@ function findWorkspaceRoot(startDir: string): string | null {
 function normalizeFileName(value: string): string {
   const normalized = value.trim().replace(/[\\/]+/g, '-');
   return normalized || 'asset';
+}
+
+function guessFileNameFromUrl(urlValue: string): string {
+  try {
+    const parsedUrl = new URL(urlValue);
+    const pathname = parsedUrl.pathname.split('/').pop()?.trim() || '';
+    return pathname || 'asset';
+  } catch {
+    return 'asset';
+  }
 }
 
 function detectAsset(buffer: Buffer): DetectedAsset {

@@ -1,15 +1,16 @@
-import { Body, Controller, Get, Headers, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Inject, Post } from '@nestjs/common';
 import {
   AuthChangePasswordDto,
   AuthLoginRequestDto,
   AuthLoginResponseDto,
   AuthSessionResponseDto,
 } from '@open-story/contracts';
-import { AuthService } from './auth.service';
+import { AuthService } from './auth.service.ts';
 
 @Controller('v1/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  @Inject(AuthService)
+  private readonly authService!: AuthService;
 
   @Post('login')
   async login(@Body() payload: AuthLoginRequestDto): Promise<AuthLoginResponseDto> {
