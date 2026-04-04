@@ -500,16 +500,6 @@ export async function syncStoryMembership(
     throw new Error(`Target story group ${nextGroupId} not found.`);
   }
 
-  if (previousGroup && previousGroup.id !== nextGroupId) {
-    await backendApiRequest<StoryGroupDto>(`/v1/story-groups/${previousGroup.id}`, {
-      method: 'PATCH',
-      authToken,
-      body: JSON.stringify({
-        story_ids: removeId(previousGroup.story_ids, storyId),
-      }),
-    });
-  }
-
   const nextStoryIds = insertAtPosition(
     previousGroup?.id === nextGroupId ? nextGroup.story_ids : [...nextGroup.story_ids, storyId],
     storyId,
@@ -523,4 +513,26 @@ export async function syncStoryMembership(
       story_ids: nextStoryIds,
     }),
   });
+
+  if (previousGroup && previousGroup.id !== nextGroupId) {
+    try {
+      await backendApiRequest<StoryGroupDto>(`/v1/story-groups/${previousGroup.id}`, {
+        method: 'PATCH',
+        authToken,
+        body: JSON.stringify({
+          story_ids: removeId(previousGroup.story_ids, storyId),
+        }),
+      });
+    } catch (error) {
+      await backendApiRequest<StoryGroupDto>(`/v1/story-groups/${nextGroupId}`, {
+        method: 'PATCH',
+        authToken,
+        body: JSON.stringify({
+          story_ids: removeId(nextStoryIds, storyId),
+        }),
+      });
+
+      throw error;
+    }
+  }
 }
