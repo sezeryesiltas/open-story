@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Open Story Sample</string>
+    <string name="sample_title">Open Story Android SDK</string>
+    <string name="sample_subtitle">Bootstrap app for local integration and callback checks.</string>
+    <string name="sample_reload">Reload placement</string>
+    <string name="sample_status">Wire your API base URL and static token in MainActivity before running against the local backend.</string>
+</resources>
