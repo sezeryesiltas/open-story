@@ -43,6 +43,7 @@ const sdkFeedGroupSchema = z
     id: rootIdSchema,
     revision_id: revisionIdSchema,
     title: z.string().trim().min(1).max(256),
+    bottom_label: z.string().trim().min(1).max(256).nullable(),
     logo_url: z.string().url(),
     badge: z
       .object({

@@ -2,6 +2,7 @@ package com.openstory.sdk.internal
 
 import android.content.Context
 import android.view.ViewGroup
+import androidx.annotation.ColorInt
 import androidx.room.Room
 import com.openstory.sdk.OpenStoryCallbacks
 import com.openstory.sdk.OpenStoryConfiguration
@@ -69,11 +70,17 @@ internal class OpenStoryRuntime(
         placementKey: String,
         container: ViewGroup,
         callbacks: OpenStoryCallbacks,
+        @ColorInt textColor: Int,
+        @ColorInt viewedTextColor: Int,
     ) {
         scope.launch {
             val view = ensureStoryBarView(container)
             view.updateCallbacks(callbacks)
             view.updateViewerLauncher(viewerLauncher())
+            view.updateTitleColors(
+                textColor = textColor,
+                viewedTextColor = viewedTextColor,
+            )
             register(placementKey, view)
             view.showLoading()
             startLoadPlacement(placementKey)

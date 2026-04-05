@@ -214,6 +214,26 @@ function StateBadge({
   );
 }
 
+function hasUnpublishedChanges(story: StoryApiRecord): boolean {
+  return Boolean(story.currentPublishedRevisionId && story.currentPublishedRevisionId !== story.currentDraftRevisionId);
+}
+
+function canPublish(story: StoryApiRecord): boolean {
+  return !story.currentPublishedRevisionId || hasUnpublishedChanges(story);
+}
+
+function publishActionLabel(story: StoryApiRecord): string {
+  if (story.archiveState === 'archived') {
+    return 'Restore to publish';
+  }
+
+  if (!story.currentPublishedRevisionId) {
+    return 'Publish';
+  }
+
+  return hasUnpublishedChanges(story) ? 'Republish' : 'Already published';
+}
+
 function StoryThumbnail({
   story,
   assetById,
@@ -357,6 +377,10 @@ export function StoriesWorkspace() {
     [stories],
   );
   const ctaCount = useMemo(() => stories.filter((story) => Boolean(story.cta)).length, [stories]);
+  const pendingChangesCount = useMemo(
+    () => stories.filter((story) => hasUnpublishedChanges(story)).length,
+    [stories],
+  );
 
   const hasActiveFilters =
     selectedStoryGroupId !== 'all' ||
@@ -606,6 +630,7 @@ export function StoriesWorkspace() {
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{stories.length} story</Badge>
             <Badge variant="secondary">{publishedCount} yayında</Badge>
+            <Badge variant="secondary">{pendingChangesCount} taslak değişiklik</Badge>
             <Badge variant="secondary">{archivedCount} arşivde</Badge>
             <Badge variant="secondary">{videoCount} video</Badge>
             <Badge variant="secondary">{ctaCount} CTA</Badge>
@@ -783,6 +808,10 @@ export function StoriesWorkspace() {
                 </TableHeader>
                 <TableBody>
                   {filteredStories.map((story) => {
+                    const draftChangesPending = hasUnpublishedChanges(story);
+                    const canPublishDraft = canPublish(story) && story.archiveState !== 'archived';
+                    const publishLabel = publishActionLabel(story);
+
                     return (
                       <TableRow key={story.id} className="align-top">
                         <TableCell className="border-b border-border/60 py-4 align-top">
@@ -827,13 +856,14 @@ export function StoriesWorkspace() {
                         </TableCell>
 
                         <TableCell className="border-b border-border/60 py-4 align-top">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             {story.publishState === 'published' ? (
                               <CheckCircle2 className="h-4 w-4 text-primary" />
                             ) : (
                               <CircleSlash className="h-4 w-4 text-muted-foreground" />
                             )}
                             <StateBadge type="publish" value={story.publishState} />
+                            {draftChangesPending ? <Badge variant="secondary">Taslak değişiklik var</Badge> : null}
                           </div>
                         </TableCell>
 
@@ -877,13 +907,13 @@ export function StoriesWorkspace() {
                                 {story.archiveState === 'archived' ? 'Restore' : 'Archive'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                disabled={story.publishState === 'published'}
+                                disabled={!canPublishDraft}
                                 onSelect={() =>
                                   handleRowAction(story, 'publish')
                                 }
                               >
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                                {story.publishState === 'published' ? 'Already published' : 'Publish'}
+                                {publishLabel}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

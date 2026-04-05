@@ -72,7 +72,7 @@ test('sdk feed returns a full snapshot for active client and valid static token'
   const group = await groupService.create(
     {
       name: 'Feed Group',
-      bottom_label: null,
+      bottom_label: 'Featured',
       logo_asset_id: ASSET_LOGO_ID,
       badge: null,
       story_ids: [],
@@ -125,6 +125,7 @@ test('sdk feed returns a full snapshot for active client and valid static token'
   assert.equal(response.client_id, 'public-client-id');
   assert.equal(response.resolved_set?.id, set.id);
   assert.equal(response.resolved_set?.groups[0]?.id, group.id);
+  assert.equal(response.resolved_set?.groups[0]?.bottom_label, 'Featured');
   assert.equal(response.resolved_set?.groups[0]?.stories[0]?.id, story.id);
   assert.equal(response.resolved_set?.groups[0]?.stories[0]?.cta?.value, 'app://story');
 });

@@ -22,6 +22,8 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.Window
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -64,27 +66,20 @@ internal class StoryViewerDialog private constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val longPressTimeoutMs = ViewConfiguration.getLongPressTimeout().toLong()
+    private val overlayTouchListener = View.OnTouchListener { _, event -> handleGestureTouch(event) }
 
     private lateinit var stageSurface: FrameLayout
-    private lateinit var mediaHost: FrameLayout
-    private lateinit var gestureOverlay: View
-    private lateinit var scrimTop: View
-    private lateinit var scrimBottom: View
-    private lateinit var progressRow: LinearLayout
-    private lateinit var avatarView: ImageView
-    private lateinit var titleView: TextView
-    private lateinit var soundButton: FrameLayout
-    private lateinit var soundIconView: ImageView
-    private lateinit var closeButton: FrameLayout
-    private lateinit var ctaButton: TextView
-
-    private val progressFillViews = mutableListOf<View>()
+    private lateinit var primaryStage: ViewerStage
+    private lateinit var secondaryStage: ViewerStage
+    private lateinit var activeStage: ViewerStage
+    private lateinit var inactiveStage: ViewerStage
     private var currentGroupIndex = initialGroupIndex
     private var currentStoryIndex = initialStoryIndex
     private var currentPlayer: ExoPlayer? = null
     private var autoAdvanceJob: Job? = null
     private var videoProgressJob: Job? = null
     private var currentProgressAnimator: ValueAnimator? = null
+    private var transitionAnimator: ValueAnimator? = null
     private var viewerClosedReported = false
     private var isMuted = true
     private var imageProgressState = StoryPlaybackProgressState.started(DEFAULT_IMAGE_DURATION_MS)
@@ -94,6 +89,8 @@ internal class StoryViewerDialog private constructor(
     private var downX = 0f
     private var downY = 0f
     private var isTransitionRunning = false
+    private var horizontalSwipeDirection: GroupDirection? = null
+    private var currentTransition: GroupTransitionState? = null
     private val pauseReasons = linkedSetOf<PauseReason>()
     private val longPressRunnable = Runnable {
         if (gestureMode == GestureMode.PENDING) {
@@ -101,6 +98,24 @@ internal class StoryViewerDialog private constructor(
             addPauseReason(PauseReason.LONG_PRESS)
         }
     }
+    private val mediaHost: FrameLayout
+        get() = activeStage.mediaHost
+    private val gestureOverlay: View
+        get() = activeStage.gestureOverlay
+    private val progressRow: LinearLayout
+        get() = activeStage.progressRow
+    private val avatarView: ImageView
+        get() = activeStage.avatarView
+    private val titleView: TextView
+        get() = activeStage.titleView
+    private val soundButton: FrameLayout
+        get() = activeStage.soundButton
+    private val soundIconView: ImageView
+        get() = activeStage.soundIconView
+    private val ctaButton: TextView
+        get() = activeStage.ctaButton
+    private val progressFillViews: MutableList<View>
+        get() = activeStage.progressFillViews
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,6 +136,8 @@ internal class StoryViewerDialog private constructor(
     override fun dismiss() {
         cancelLongPressRecognition()
         stageSurface.animate().cancel()
+        transitionAnimator?.cancel()
+        transitionAnimator = null
         currentProgressAnimator?.cancel()
         currentProgressAnimator = null
         videoProgressJob?.cancel()
@@ -157,6 +174,29 @@ internal class StoryViewerDialog private constructor(
         super.onStop()
     }
 
+    private data class ViewerStage(
+        val root: FrameLayout,
+        val mediaHost: FrameLayout,
+        val gestureOverlay: View,
+        val progressRow: LinearLayout,
+        val progressFillViews: MutableList<View>,
+        val avatarView: ImageView,
+        val titleView: TextView,
+        val soundButton: FrameLayout,
+        val soundIconView: ImageView,
+        val ctaButton: TextView,
+        val transitionShade: View,
+    )
+
+    private data class GroupTransitionState(
+        val sourceStage: ViewerStage,
+        val targetStage: ViewerStage,
+        val targetGroupIndex: Int,
+        val targetStoryIndex: Int,
+        val direction: GroupDirection,
+        var progress: Float = 0f,
+    )
+
     private fun buildContent(): View {
         val root = FrameLayout(context).apply {
             setBackgroundColor(Color.BLACK)
@@ -171,59 +211,81 @@ internal class StoryViewerDialog private constructor(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
             )
-            cameraDistance = context.resources.displayMetrics.density * 12_000f
+            clipChildren = false
+            clipToPadding = false
         }
 
-        mediaHost = FrameLayout(context).apply {
+        primaryStage = createViewerStage()
+        secondaryStage = createViewerStage()
+        activeStage = primaryStage
+        inactiveStage = secondaryStage
+        inactiveStage.root.isVisible = false
+
+        stageSurface.addView(inactiveStage.root)
+        stageSurface.addView(activeStage.root)
+        root.addView(stageSurface)
+        bindStageTouchHandling()
+
+        return root
+    }
+
+    private fun createViewerStage(): ViewerStage {
+        val stageRoot = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            )
+            cameraDistance = context.resources.displayMetrics.density * 12_000f
+            setBackgroundColor(Color.BLACK)
+        }
+        val mediaHost = FrameLayout(context).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
             )
             setBackgroundColor(Color.parseColor("#050505"))
         }
-
-        gestureOverlay = View(context).apply {
+        val gestureOverlay = View(context).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
             )
-            setOnTouchListener { _, event -> handleGestureTouch(event) }
         }
-
-        scrimTop = View(context).apply {
+        val scrimTop = View(context).apply {
             background = GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
                 intArrayOf(0xD9000000.toInt(), 0x14000000),
             )
         }
-        scrimBottom = View(context).apply {
+        val scrimBottom = View(context).apply {
             background = GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
                 intArrayOf(0x00000000, 0xF2000000.toInt()),
             )
         }
-
-        progressRow = LinearLayout(context).apply {
+        val progressRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-
-        avatarView = circularImageView(sizeDp = 40)
-        titleView = TextView(context).apply {
+        val avatarView = circularImageView(sizeDp = 40)
+        val titleView = TextView(context).apply {
             setTextColor(Color.WHITE)
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
         }
-
-        soundIconView = actionIcon(android.R.drawable.ic_lock_silent_mode)
-        soundButton = iconActionButton(
+        val soundIconView = actionIcon(android.R.drawable.ic_lock_silent_mode)
+        val soundButton = iconActionButton(
             icon = soundIconView,
             contentDescriptionText = context.getString(R.string.open_story_sound_off),
         ).apply {
-            setOnClickListener { toggleSound() }
+            setOnClickListener {
+                if (this@StoryViewerDialog.soundButton === this) {
+                    toggleSound()
+                }
+            }
         }
-        closeButton = iconActionButton(
+        val closeButton = iconActionButton(
             icon = actionIcon(android.R.drawable.ic_menu_close_clear_cancel),
             contentDescriptionText = context.getString(R.string.open_story_close),
         ).apply {
@@ -241,7 +303,6 @@ internal class StoryViewerDialog private constructor(
                 },
             )
         }
-
         val headerActions = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -256,7 +317,6 @@ internal class StoryViewerDialog private constructor(
                 },
             )
         }
-
         val headerRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -266,7 +326,6 @@ internal class StoryViewerDialog private constructor(
             )
             addView(headerActions)
         }
-
         val topChrome = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16))
@@ -287,8 +346,7 @@ internal class StoryViewerDialog private constructor(
                 },
             )
         }
-
-        ctaButton = TextView(context).apply {
+        val ctaButton = TextView(context).apply {
             gravity = Gravity.CENTER
             minHeight = dp(40)
             minWidth = dp(160)
@@ -299,10 +357,14 @@ internal class StoryViewerDialog private constructor(
             background = pillBackground("#F7C948")
             isVisible = false
         }
+        val transitionShade = View(context).apply {
+            setBackgroundColor(Color.BLACK)
+            alpha = 0f
+        }
 
-        stageSurface.addView(mediaHost)
-        stageSurface.addView(gestureOverlay)
-        stageSurface.addView(
+        stageRoot.addView(mediaHost)
+        stageRoot.addView(gestureOverlay)
+        stageRoot.addView(
             scrimTop,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -310,7 +372,7 @@ internal class StoryViewerDialog private constructor(
                 Gravity.TOP,
             ),
         )
-        stageSurface.addView(
+        stageRoot.addView(
             scrimBottom,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -318,7 +380,14 @@ internal class StoryViewerDialog private constructor(
                 Gravity.BOTTOM,
             ),
         )
-        stageSurface.addView(
+        stageRoot.addView(
+            transitionShade,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        stageRoot.addView(
             topChrome,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -326,7 +395,7 @@ internal class StoryViewerDialog private constructor(
                 Gravity.TOP,
             ),
         )
-        stageSurface.addView(
+        stageRoot.addView(
             ctaButton,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -336,30 +405,74 @@ internal class StoryViewerDialog private constructor(
                 bottomMargin = dp(28)
             },
         )
-        root.addView(stageSurface)
 
-        return root
+        return ViewerStage(
+            root = stageRoot,
+            mediaHost = mediaHost,
+            gestureOverlay = gestureOverlay,
+            progressRow = progressRow,
+            progressFillViews = mutableListOf(),
+            avatarView = avatarView,
+            titleView = titleView,
+            soundButton = soundButton,
+            soundIconView = soundIconView,
+            ctaButton = ctaButton,
+            transitionShade = transitionShade,
+        )
     }
 
-    private fun renderCurrentStory() {
+    private fun bindStageTouchHandling() {
+        primaryStage.gestureOverlay.setOnTouchListener(
+            if (primaryStage === activeStage) {
+                overlayTouchListener
+            } else {
+                null
+            },
+        )
+        secondaryStage.gestureOverlay.setOnTouchListener(
+            if (secondaryStage === activeStage) {
+                overlayTouchListener
+            } else {
+                null
+            },
+        )
+    }
+
+    private fun renderCurrentStory(reportStoryView: Boolean = true) {
         val group = currentGroupOrNull() ?: return dismiss()
         val story = currentStoryOrNull() ?: return dismiss()
 
         currentStoryProgressFraction = 0f
         titleView.text = group.title
         avatarView.load(group.logoUrl)
-        updateProgressIndicators(group, story)
+        updateProgressIndicators(
+            stage = activeStage,
+            group = group,
+            activeStoryIndex = currentStoryIndex,
+            activeStoryRevisionId = story.revisionId,
+            progressFraction = currentStoryProgressFraction,
+        )
         renderMedia(story)
-        bindCta(group, story)
-        reportStoryView(group, story)
+        bindCta(
+            stage = activeStage,
+            group = group,
+            story = story,
+            interactive = true,
+        )
+        if (reportStoryView) {
+            reportStoryView(group, story)
+        }
     }
 
     private fun updateProgressIndicators(
+        stage: ViewerStage,
         group: SdkFeedGroupPayload,
-        story: SdkFeedStoryPayload,
+        activeStoryIndex: Int,
+        activeStoryRevisionId: String,
+        progressFraction: Float,
     ) {
-        progressRow.removeAllViews()
-        progressFillViews.clear()
+        stage.progressRow.removeAllViews()
+        stage.progressFillViews.clear()
         group.stories.forEachIndexed { storyIndex, candidate ->
             val fillView = View(context).apply {
                 background = GradientDrawable().apply {
@@ -367,14 +480,14 @@ internal class StoryViewerDialog private constructor(
                     setColor(Color.WHITE)
                 }
                 scaleX = when {
-                    storyIndex < currentStoryIndex -> 1f
-                    candidate.revisionId == story.revisionId -> currentStoryProgressFraction
+                    storyIndex < activeStoryIndex -> 1f
+                    candidate.revisionId == activeStoryRevisionId -> progressFraction
                     else -> 0f
                 }
                 pivotX = 0f
             }
 
-            progressRow.addView(
+            stage.progressRow.addView(
                 FrameLayout(context).apply {
                     background = GradientDrawable().apply {
                         cornerRadius = dp(999).toFloat()
@@ -389,13 +502,41 @@ internal class StoryViewerDialog private constructor(
                     )
                 },
                 LinearLayout.LayoutParams(0, dp(3), 1f).apply {
-                    if (progressRow.childCount > 0) {
+                    if (stage.progressRow.childCount > 0) {
                         marginStart = dp(4)
                     }
                 },
             )
-            progressFillViews += fillView
+            stage.progressFillViews += fillView
         }
+    }
+
+    private fun renderPreviewStage(
+        stage: ViewerStage,
+        groupIndex: Int,
+        storyIndex: Int,
+    ) {
+        val group = groups.getOrNull(groupIndex) ?: return
+        val story = group.stories.getOrNull(storyIndex) ?: return
+
+        stage.titleView.text = group.title
+        stage.avatarView.load(group.logoUrl)
+        updateProgressIndicators(
+            stage = stage,
+            group = group,
+            activeStoryIndex = storyIndex,
+            activeStoryRevisionId = story.revisionId,
+            progressFraction = 0f,
+        )
+        renderPreviewMedia(stage, story)
+        bindCta(
+            stage = stage,
+            group = group,
+            story = story,
+            interactive = false,
+        )
+        stage.soundButton.isVisible = story.mediaType == "video"
+        updateSoundButton(stage)
     }
 
     private fun renderMedia(story: SdkFeedStoryPayload) {
@@ -411,6 +552,7 @@ internal class StoryViewerDialog private constructor(
         storyPlaybackStartedAtMs = 0L
 
         addMediaBackdrop(
+            mediaHost = mediaHost,
             imageUrl = story.posterAsset?.url ?: story.asset.url,
         )
 
@@ -448,7 +590,7 @@ internal class StoryViewerDialog private constructor(
             }
             mediaHost.addView(playerView)
             soundButton.isVisible = true
-            updateSoundButton()
+            updateSoundButton(activeStage)
             startVideoProgressMonitoring(player, story)
             return
         }
@@ -468,19 +610,47 @@ internal class StoryViewerDialog private constructor(
         startImageAutoAdvanceIfEligible()
     }
 
-    private fun bindCta(
-        group: SdkFeedGroupPayload,
+    private fun renderPreviewMedia(
+        stage: ViewerStage,
         story: SdkFeedStoryPayload,
     ) {
+        stage.mediaHost.removeAllViews()
+        addMediaBackdrop(
+            mediaHost = stage.mediaHost,
+            imageUrl = story.posterAsset?.url ?: story.asset.url,
+        )
+
+        val imageView = ImageView(context).apply {
+            scaleType = ImageView.ScaleType.FIT_START
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            )
+            load(story.posterAsset?.url ?: story.asset.url)
+        }
+        stage.mediaHost.addView(imageView)
+    }
+
+    private fun bindCta(
+        stage: ViewerStage,
+        group: SdkFeedGroupPayload,
+        story: SdkFeedStoryPayload,
+        interactive: Boolean,
+    ) {
         val cta = story.cta
-        ctaButton.isVisible = cta != null
+        stage.ctaButton.isVisible = cta != null
         if (cta == null) {
-            ctaButton.setOnClickListener(null)
+            stage.ctaButton.setOnClickListener(null)
             return
         }
 
-        ctaButton.text = cta.label
-        ctaButton.setOnClickListener {
+        stage.ctaButton.text = cta.label
+        if (!interactive) {
+            stage.ctaButton.setOnClickListener(null)
+            return
+        }
+
+        stage.ctaButton.setOnClickListener {
             callbacks.onStoryCtaTap(
                 OpenStoryCtaPayload(
                     placementKey = response.placementKey,
@@ -589,30 +759,6 @@ internal class StoryViewerDialog private constructor(
         }
     }
 
-    private fun navigateToNextGroupBySwipe() {
-        if (currentGroupIndex >= groups.lastIndex) {
-            return
-        }
-
-        navigateToGroup(
-            targetGroupIndex = currentGroupIndex + 1,
-            targetStoryIndex = viewedStorySession.firstUnviewedStoryIndex(groups[currentGroupIndex + 1]),
-            direction = GroupDirection.FORWARD,
-        )
-    }
-
-    private fun navigateToPreviousGroupBySwipe() {
-        if (currentGroupIndex <= 0) {
-            return
-        }
-
-        navigateToGroup(
-            targetGroupIndex = currentGroupIndex - 1,
-            targetStoryIndex = groups[currentGroupIndex - 1].stories.lastIndex.coerceAtLeast(0),
-            direction = GroupDirection.BACKWARD,
-        )
-    }
-
     private fun navigateToGroup(
         targetGroupIndex: Int,
         targetStoryIndex: Int,
@@ -631,62 +777,210 @@ internal class StoryViewerDialog private constructor(
             return
         }
 
+        if (!beginGroupTransition(
+                targetGroupIndex = targetGroupIndex,
+                targetStoryIndex = clampedTargetStoryIndex,
+                direction = direction,
+            )
+        ) {
+            return
+        }
+
+        animateCurrentTransitionTo(1f)
+    }
+
+    private fun beginGroupTransition(
+        targetGroupIndex: Int,
+        targetStoryIndex: Int,
+        direction: GroupDirection,
+    ): Boolean {
+        if (targetGroupIndex !in groups.indices) {
+            return false
+        }
+
+        val existingTransition = currentTransition
+        if (existingTransition != null) {
+            return existingTransition.targetGroupIndex == targetGroupIndex &&
+                existingTransition.targetStoryIndex == targetStoryIndex &&
+                existingTransition.direction == direction
+        }
+
+        transitionAnimator?.cancel()
+        stageSurface.animate().cancel()
         isTransitionRunning = true
         addPauseReason(PauseReason.TRANSITION)
-        stageSurface.animate().cancel()
+        inactiveStage.root.isVisible = true
+        renderPreviewStage(
+            stage = inactiveStage,
+            groupIndex = targetGroupIndex,
+            storyIndex = targetStoryIndex,
+        )
 
-        val exitRotation = if (direction == GroupDirection.FORWARD) {
-            -32f
+        currentTransition = GroupTransitionState(
+            sourceStage = activeStage,
+            targetStage = inactiveStage,
+            targetGroupIndex = targetGroupIndex,
+            targetStoryIndex = targetStoryIndex,
+            direction = direction,
+        )
+        applyGroupTransitionProgress(0f)
+        return true
+    }
+
+    private fun updateInteractiveGroupTransition(deltaX: Float): Boolean {
+        val direction = if (deltaX < 0f) {
+            GroupDirection.FORWARD
         } else {
-            32f
+            GroupDirection.BACKWARD
         }
-        val enterRotation = -exitRotation
-        val travelDistance = stageSurface.width * 0.18f
+        val targetGroupIndex = if (direction == GroupDirection.FORWARD) {
+            currentGroupIndex + 1
+        } else {
+            currentGroupIndex - 1
+        }
+        if (targetGroupIndex !in groups.indices) {
+            return false
+        }
 
-        stageSurface.animate()
-            .rotationY(exitRotation)
-            .translationX(if (direction == GroupDirection.FORWARD) -travelDistance else travelDistance)
-            .alpha(0.86f)
-            .setDuration(140L)
-            .setListener(
+        val targetStoryIndex = if (direction == GroupDirection.FORWARD) {
+            viewedStorySession.firstUnviewedStoryIndex(groups[targetGroupIndex])
+        } else {
+            groups[targetGroupIndex].stories.lastIndex.coerceAtLeast(0)
+        }
+        if (!beginGroupTransition(targetGroupIndex, targetStoryIndex, direction)) {
+            return false
+        }
+
+        horizontalSwipeDirection = direction
+        val progress = (abs(deltaX) / stageSurface.width.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+        applyGroupTransitionProgress(progress)
+        return true
+    }
+
+    private fun animateCurrentTransitionTo(targetProgress: Float) {
+        val transition = currentTransition ?: return
+        transitionAnimator?.cancel()
+        val startProgress = transition.progress
+        transitionAnimator = ValueAnimator.ofFloat(startProgress, targetProgress).apply {
+            duration = (GROUP_TRANSITION_DURATION_MS * abs(targetProgress - startProgress))
+                .toLong()
+                .coerceAtLeast(MIN_GROUP_TRANSITION_DURATION_MS)
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { animator ->
+                applyGroupTransitionProgress(animator.animatedValue as Float)
+            }
+            addListener(
                 object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        currentGroupIndex = targetGroupIndex
-                        currentStoryIndex = clampedTargetStoryIndex
-                        renderCurrentStory()
+                    private var wasCancelled = false
 
-                        stageSurface.rotationY = enterRotation
-                        stageSurface.translationX = if (direction == GroupDirection.FORWARD) {
-                            travelDistance
-                        } else {
-                            -travelDistance
+                    override fun onAnimationCancel(animation: Animator) {
+                        wasCancelled = true
+                    }
+
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (wasCancelled) {
+                            return
                         }
-                        stageSurface.alpha = 0.9f
-                        stageSurface.animate()
-                            .rotationY(0f)
-                            .translationX(0f)
-                            .alpha(1f)
-                            .setDuration(180L)
-                            .setListener(
-                                object : AnimatorListenerAdapter() {
-                                    override fun onAnimationEnd(animation: Animator) {
-                                        stageSurface.animate().setListener(null)
-                                        isTransitionRunning = false
-                                        removePauseReason(PauseReason.TRANSITION)
-                                    }
-                                },
-                            )
-                            .start()
+                        transitionAnimator = null
+                        if (abs(targetProgress - 1f) < 0.0001f) {
+                            finishCurrentTransition()
+                        } else {
+                            cancelCurrentTransition()
+                        }
                     }
                 },
             )
-            .start()
+            start()
+        }
+    }
+
+    private fun applyGroupTransitionProgress(progress: Float) {
+        val transition = currentTransition ?: return
+        val clampedProgress = progress.coerceIn(0f, 1f)
+        transition.progress = clampedProgress
+        transition.sourceStage.root.isVisible = true
+        transition.targetStage.root.isVisible = true
+        applyCubeTransform(
+            stage = transition.sourceStage,
+            position = if (transition.direction == GroupDirection.FORWARD) {
+                -clampedProgress
+            } else {
+                clampedProgress
+            },
+        )
+        applyCubeTransform(
+            stage = transition.targetStage,
+            position = if (transition.direction == GroupDirection.FORWARD) {
+                1f - clampedProgress
+            } else {
+                clampedProgress - 1f
+            },
+        )
+        if (clampedProgress < 0.5f) {
+            transition.sourceStage.root.bringToFront()
+        } else {
+            transition.targetStage.root.bringToFront()
+        }
+    }
+
+    private fun applyCubeTransform(
+        stage: ViewerStage,
+        position: Float,
+    ) {
+        stage.root.pivotY = stage.root.height / 2f
+        stage.root.pivotX = if (position < 0f) {
+            stage.root.width.toFloat()
+        } else {
+            0f
+        }
+        stage.root.translationX = stage.root.width * position
+        stage.root.rotationY = CUBE_ROTATION_DEGREES * position
+        stage.transitionShade.alpha = (abs(position) * CUBE_SHADE_MAX_ALPHA).coerceIn(0f, CUBE_SHADE_MAX_ALPHA)
+    }
+
+    private fun finishCurrentTransition() {
+        val transition = currentTransition ?: return
+        currentGroupIndex = transition.targetGroupIndex
+        currentStoryIndex = transition.targetStoryIndex
+        activeStage = transition.targetStage
+        inactiveStage = transition.sourceStage
+        bindStageTouchHandling()
+        activeStage.root.bringToFront()
+        resetStageTransform(activeStage)
+        resetStageTransform(inactiveStage)
+        inactiveStage.root.isVisible = false
+        currentTransition = null
+        horizontalSwipeDirection = null
+        isTransitionRunning = false
+        renderCurrentStory()
+        removePauseReason(PauseReason.TRANSITION)
+    }
+
+    private fun cancelCurrentTransition() {
+        val transition = currentTransition ?: return
+        resetStageTransform(transition.sourceStage)
+        resetStageTransform(transition.targetStage)
+        activeStage.root.bringToFront()
+        transition.targetStage.root.isVisible = false
+        currentTransition = null
+        horizontalSwipeDirection = null
+        isTransitionRunning = false
+        bindStageTouchHandling()
+        removePauseReason(PauseReason.TRANSITION)
+    }
+
+    private fun resetStageTransform(stage: ViewerStage) {
+        stage.root.translationX = 0f
+        stage.root.rotationY = 0f
+        stage.root.pivotX = stage.root.width / 2f
+        stage.root.pivotY = stage.root.height / 2f
+        stage.transitionShade.alpha = 0f
     }
 
     private fun toggleSound() {
         isMuted = !isMuted
         currentPlayer?.volume = if (isMuted) 0f else 1f
-        updateSoundButton()
+        updateSoundButton(activeStage)
     }
 
     private fun handleGestureTouch(event: MotionEvent): Boolean {
@@ -697,6 +991,7 @@ internal class StoryViewerDialog private constructor(
                 }
                 downX = event.x
                 downY = event.y
+                horizontalSwipeDirection = null
                 gestureMode = GestureMode.PENDING
                 startLongPressRecognition()
                 return true
@@ -720,6 +1015,8 @@ internal class StoryViewerDialog private constructor(
                     val translationY = deltaY.coerceAtLeast(0f)
                     stageSurface.translationY = translationY
                     stageSurface.alpha = (1f - (translationY / (stageSurface.height.coerceAtLeast(1) * 0.45f))).coerceIn(0.65f, 1f)
+                } else if (gestureMode == GestureMode.HORIZONTAL_SWIPE) {
+                    updateInteractiveGroupTransition(deltaX)
                 }
                 return true
             }
@@ -743,11 +1040,12 @@ internal class StoryViewerDialog private constructor(
                     }
 
                     GestureMode.HORIZONTAL_SWIPE -> {
-                        if (abs(deltaX) >= groupSwipeThresholdPx()) {
-                            if (deltaX < 0f) {
-                                navigateToNextGroupBySwipe()
+                        val transition = currentTransition
+                        if (transition != null) {
+                            if (transition.progress >= interactiveGroupSwipeCompletionThreshold()) {
+                                animateCurrentTransitionTo(1f)
                             } else {
-                                navigateToPreviousGroupBySwipe()
+                                animateCurrentTransitionTo(0f)
                             }
                         }
                         true
@@ -777,7 +1075,10 @@ internal class StoryViewerDialog private constructor(
                 cancelLongPressRecognition()
                 if (gestureMode == GestureMode.VERTICAL_DRAG) {
                     resetStageSurfacePosition()
+                } else if (gestureMode == GestureMode.HORIZONTAL_SWIPE) {
+                    animateCurrentTransitionTo(0f)
                 }
+                horizontalSwipeDirection = null
                 gestureMode = GestureMode.IDLE
                 return true
             }
@@ -792,7 +1093,7 @@ internal class StoryViewerDialog private constructor(
     }
 
     private fun cancelLongPressRecognition() {
-        if (::gestureOverlay.isInitialized) {
+        if (::activeStage.isInitialized) {
             gestureOverlay.removeCallbacks(longPressRunnable)
         }
     }
@@ -888,7 +1189,10 @@ internal class StoryViewerDialog private constructor(
     private fun currentStoryOrNull(): SdkFeedStoryPayload? =
         currentGroupOrNull()?.stories?.getOrNull(currentStoryIndex)
 
-    private fun addMediaBackdrop(imageUrl: String?) {
+    private fun addMediaBackdrop(
+        mediaHost: FrameLayout,
+        imageUrl: String?,
+    ) {
         if (imageUrl.isNullOrBlank()) {
             return
         }
@@ -922,7 +1226,7 @@ internal class StoryViewerDialog private constructor(
         updateCurrentStoryProgress(startFraction)
         currentProgressAnimator = ValueAnimator.ofFloat(startFraction, 1f).apply {
             duration = durationMs.coerceAtLeast(1L)
-            interpolator = android.view.animation.LinearInterpolator()
+            interpolator = LinearInterpolator()
             addUpdateListener { animator ->
                 val animatedFraction = animator.animatedValue as Float
                 currentStoryProgressFraction = animatedFraction
@@ -963,15 +1267,15 @@ internal class StoryViewerDialog private constructor(
         }
     }
 
-    private fun updateSoundButton() {
-        soundIconView.setImageResource(
+    private fun updateSoundButton(stage: ViewerStage = activeStage) {
+        stage.soundIconView.setImageResource(
             if (isMuted) {
                 android.R.drawable.ic_lock_silent_mode
             } else {
                 android.R.drawable.ic_lock_silent_mode_off
             },
         )
-        soundButton.contentDescription = context.getString(
+        stage.soundButton.contentDescription = context.getString(
             if (isMuted) {
                 R.string.open_story_sound_off
             } else {
@@ -1041,6 +1345,9 @@ internal class StoryViewerDialog private constructor(
 
     private fun groupSwipeThresholdPx(): Float = dp(56).toFloat()
 
+    private fun interactiveGroupSwipeCompletionThreshold(): Float =
+        groupSwipeThresholdPx() / stageSurface.width.coerceAtLeast(1).toFloat()
+
     companion object {
         fun show(
             anchorContext: Context,
@@ -1068,6 +1375,10 @@ internal class StoryViewerDialog private constructor(
 
         private const val DEFAULT_IMAGE_DURATION_MS = 5_000L
         private const val VIDEO_PROGRESS_UPDATE_INTERVAL_MS = 33L
+        private const val GROUP_TRANSITION_DURATION_MS = 320f
+        private const val MIN_GROUP_TRANSITION_DURATION_MS = 120L
+        private const val CUBE_ROTATION_DEGREES = 92f
+        private const val CUBE_SHADE_MAX_ALPHA = 0.22f
     }
 
     private enum class PauseReason {

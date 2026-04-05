@@ -6,7 +6,7 @@ import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import Link from 'next/link';
-import { ArrowRight, CalendarClock, Layers3, PencilLine, Plus, SquareStack } from 'lucide-react';
+import { ArrowRight, CalendarClock, CheckCircle2, Layers3, PencilLine, Plus, SquareStack } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import {
@@ -44,6 +44,8 @@ type StoryGroupSetApiRecord = {
   }>;
   userSegments: string[];
   groupIds: string[];
+  currentDraftRevisionId: string;
+  currentPublishedRevisionId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -108,6 +110,29 @@ function formatSegmentSummary(storyGroupSet: StoryGroupSetApiRecord): string {
   return storyGroupSet.userSegments.join(', ');
 }
 
+function isPublished(storyGroupSet: StoryGroupSetApiRecord): boolean {
+  return Boolean(storyGroupSet.currentPublishedRevisionId);
+}
+
+function hasUnpublishedChanges(storyGroupSet: StoryGroupSetApiRecord): boolean {
+  return Boolean(
+    storyGroupSet.currentPublishedRevisionId &&
+      storyGroupSet.currentPublishedRevisionId !== storyGroupSet.currentDraftRevisionId,
+  );
+}
+
+function canPublish(storyGroupSet: StoryGroupSetApiRecord): boolean {
+  return !storyGroupSet.currentPublishedRevisionId || hasUnpublishedChanges(storyGroupSet);
+}
+
+function publishActionLabel(storyGroupSet: StoryGroupSetApiRecord): string {
+  if (!storyGroupSet.currentPublishedRevisionId) {
+    return 'Publish';
+  }
+
+  return hasUnpublishedChanges(storyGroupSet) ? 'Republish' : 'Already live';
+}
+
 function toFormValues(storyGroupSet: StoryGroupSetApiRecord | null): StoryGroupSetFormValues {
   if (!storyGroupSet) {
     return emptyStoryGroupSetFormValues;
@@ -155,6 +180,7 @@ export function StoryGroupSetsWorkspace() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingStoryGroupSetId, setEditingStoryGroupSetId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const workspaceQuery = useQuery({
     queryKey: ['story-group-sets-workspace'],
@@ -212,14 +238,33 @@ export function StoryGroupSetsWorkspace() {
     },
   });
 
+  const patchStoryGroupSetMutation = useMutation({
+    mutationFn: ({
+      storyGroupSetId,
+      action,
+    }: {
+      storyGroupSetId: string;
+      action: 'publish';
+    }) =>
+      apiRequest<StoryGroupSetApiRecord>(`/api/story-group-sets/${storyGroupSetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['story-group-sets-workspace'] });
+    },
+  });
+
   const openCreateSheet = () => {
     setSubmitError(null);
+    setActionError(null);
     setEditingStoryGroupSetId(null);
     setIsSheetOpen(true);
   };
 
   const openEditSheet = (storyGroupSetId: string) => {
     setSubmitError(null);
+    setActionError(null);
     setEditingStoryGroupSetId(storyGroupSetId);
     setIsSheetOpen(true);
   };
@@ -230,6 +275,19 @@ export function StoryGroupSetsWorkspace() {
     if (!open) {
       setEditingStoryGroupSetId(null);
       setSubmitError(null);
+    }
+  };
+
+  const handleRowAction = async (storyGroupSet: StoryGroupSetApiRecord, action: 'publish') => {
+    setActionError(null);
+
+    try {
+      await patchStoryGroupSetMutation.mutateAsync({
+        storyGroupSetId: storyGroupSet.id,
+        action,
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Story Bar aksiyonu uygulanamadı.');
     }
   };
 
@@ -270,6 +328,14 @@ export function StoryGroupSetsWorkspace() {
     placementKey: placement.placementKey,
   }));
   const canCreateStoryGroupSet = placements.length > 0;
+  const publishedCount = useMemo(
+    () => storyGroupSets.filter((storyGroupSet) => isPublished(storyGroupSet)).length,
+    [storyGroupSets],
+  );
+  const pendingChangesCount = useMemo(
+    () => storyGroupSets.filter((storyGroupSet) => hasUnpublishedChanges(storyGroupSet)).length,
+    [storyGroupSets],
+  );
 
   return (
     <div className="space-y-6">
@@ -308,10 +374,22 @@ export function StoryGroupSetsWorkspace() {
               {storyGroupSets.length} Story Bar
             </Badge>
             <Badge className="w-fit" variant="secondary">
+              {publishedCount} live
+            </Badge>
+            <Badge className="w-fit" variant="secondary">
+              {pendingChangesCount} taslak değişiklik
+            </Badge>
+            <Badge className="w-fit" variant="secondary">
               {placements.length} placement
             </Badge>
           </div>
         </div>
+
+        {actionError ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+            {actionError}
+          </div>
+        ) : null}
 
         {workspaceQuery.isSuccess && !canCreateStoryGroupSet ? (
           <Card className="border-border/60 border-dashed bg-card/80">
@@ -374,6 +452,10 @@ export function StoryGroupSetsWorkspace() {
           <div className="grid gap-4 xl:grid-cols-2">
             {storyGroupSets.map((storyGroupSet) => {
               const placement = placementById.get(storyGroupSet.placementId);
+              const isLive = isPublished(storyGroupSet);
+              const draftChangesPending = hasUnpublishedChanges(storyGroupSet);
+              const canPublishDraft = canPublish(storyGroupSet);
+              const publishLabel = publishActionLabel(storyGroupSet);
 
               return (
                 <Card
@@ -394,15 +476,27 @@ export function StoryGroupSetsWorkspace() {
                         </div>
                       </div>
 
-                      <Button
-                        className="gap-2"
-                        onClick={() => openEditSheet(storyGroupSet.id)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        <PencilLine className="h-4 w-4" />
-                        Edit
-                      </Button>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                          className="gap-2"
+                          disabled={!canPublishDraft}
+                          onClick={() => handleRowAction(storyGroupSet, 'publish')}
+                          size="sm"
+                          variant={canPublishDraft ? 'default' : 'secondary'}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          {publishLabel}
+                        </Button>
+                        <Button
+                          className="gap-2"
+                          onClick={() => openEditSheet(storyGroupSet.id)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <PencilLine className="h-4 w-4" />
+                          Edit
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -412,6 +506,14 @@ export function StoryGroupSetsWorkspace() {
                       <Badge className="w-fit" variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
                         {storyGroupSet.isFallback ? 'Fallback' : 'Targeted'}
                       </Badge>
+                      <Badge className="w-fit" variant={isLive ? 'default' : 'outline'}>
+                        {isLive ? 'Live' : 'Draft'}
+                      </Badge>
+                      {draftChangesPending ? (
+                        <Badge className="w-fit" variant="secondary">
+                          Taslak değişiklik var
+                        </Badge>
+                      ) : null}
                     </div>
                   </CardHeader>
 

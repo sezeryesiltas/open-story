@@ -93,9 +93,17 @@ OpenStory.initialize(
 )
 
 OpenStory.setUserContext(listOf("vip", "beta"))
-OpenStory.renderStoryBar("home_top_story_bar", container, callbacks)
+OpenStory.renderStoryBar(
+    placementKey = "home_top_story_bar",
+    container = container,
+    textColor = Color.WHITE,
+    viewedTextColor = Color.parseColor("#CFCFCF"),
+    callbacks = callbacks,
+)
 OpenStory.reload("home_top_story_bar")
 ```
+
+`textColor` is used while the group still has at least one unviewed story. `viewedTextColor` is used once every story in that group has been viewed on the device.
 
 ## Threading rules
 

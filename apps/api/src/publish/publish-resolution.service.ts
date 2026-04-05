@@ -220,6 +220,7 @@ export class PublishResolutionService {
       id: groupRoot.id,
       revision_id: groupRevision.id,
       title: groupRevision.name,
+      bottom_label: groupRevision.bottomLabel,
       logo_url: logoAsset.publicUrl,
       badge: groupRevision.badge,
       stories,

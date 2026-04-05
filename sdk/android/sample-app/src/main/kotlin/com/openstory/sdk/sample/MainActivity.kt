@@ -5,6 +5,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -78,6 +79,8 @@ class MainActivity : AppCompatActivity() {
         OpenStory.renderStoryBar(
             placementKey = placementKey,
             container = storyBarContainer,
+            textColor = ContextCompat.getColor(this, R.color.sample_text_primary),
+            viewedTextColor = ContextCompat.getColor(this, R.color.sample_story_group_text_viewed),
             callbacks = object : OpenStoryCallbacks {
                 override fun onStoryBarImpression(event: OpenStoryAnalyticsEvent) {
                     statusView.text = getString(
