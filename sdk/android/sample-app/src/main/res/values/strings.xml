@@ -1,7 +1,27 @@
 <resources>
-    <string name="app_name">Open Story Sample</string>
-    <string name="sample_title">Open Story Android SDK</string>
-    <string name="sample_subtitle">Bootstrap app for local integration and callback checks.</string>
-    <string name="sample_reload">Reload placement</string>
-    <string name="sample_status">Wire your API base URL and static token in MainActivity before running against the local backend.</string>
+    <string name="app_name">Open Story Demo</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_list">List</string>
+    <string name="sample_reload">Reload</string>
+    <string name="sample_status">Connect the local API and static token to render the home placement at the top of the page.</string>
+    <string name="sample_status_missing_token">Missing OPEN_STORY_STATIC_TOKEN in sdk/android/local.properties.</string>
+    <string name="sample_status_rendered">Rendered %1$s for %2$s.</string>
+    <string name="sample_status_error">Load failed for %1$s: %2$s</string>
+    <string name="sample_status_reloading">Reloading stories...</string>
+    <string name="sample_unknown_error">Unknown error</string>
+    <string name="sample_all_users">all users</string>
+    <string name="sample_home_badge">DEMO APP</string>
+    <string name="sample_home_title">Story bar placement stays pinned to the top of Home.</string>
+    <string name="sample_home_subtitle">Use this screen to validate the fixed story bar entry point, callback wiring, and refresh behavior against your local backend.</string>
+    <string name="sample_placement_label">Placement</string>
+    <string name="sample_demo_notes_title">Demo notes</string>
+    <string name="sample_demo_notes_body">Dark chrome keeps the SDK surface isolated. Home renders the live placement first, while Search and List give the sample app enough surrounding navigation to feel like a real host app.</string>
+    <string name="sample_search_title">Search surface</string>
+    <string name="sample_search_body">This screen is intentionally static. It gives the bottom navigation realistic context without adding host-side behavior outside the SDK scope.</string>
+    <string name="sample_segments_label">Active user segments</string>
+    <string name="sample_list_title">List surface</string>
+    <string name="sample_list_item_one">Feed cache stays scoped by placement, platform, app version, and normalized segments.</string>
+    <string name="sample_list_item_two">On 401 or 403, cached content must not render again.</string>
+    <string name="sample_list_item_three">CTA handling still belongs to the host app callback, never to SDK navigation.</string>
 </resources>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { jsonError } from '@/lib/server/api-response';
-import { updateStoryGroupSet } from '@/lib/server/admin-bff';
+import { publishStoryGroupSet, updateStoryGroupSet } from '@/lib/server/admin-bff';
 import { BackendApiError, getAdminAuthTokenFromRequest } from '@/lib/server/backend-api';
 
 export const dynamic = 'force-dynamic';
@@ -45,5 +45,28 @@ export async function PUT(
     }
 
     return jsonError('Story Bar güncellenemedi.', 500, 'validation_error');
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ storyGroupSetId: string }> },
+) {
+  try {
+    const payload = (await request.json()) as { action?: string };
+    const { storyGroupSetId } = await context.params;
+    const authToken = getAdminAuthTokenFromRequest(request);
+
+    if (payload.action === 'publish') {
+      return NextResponse.json(await publishStoryGroupSet(storyGroupSetId, {}, authToken));
+    }
+
+    return jsonError('Geçersiz Story Bar aksiyonu.', 400, 'validation_error');
+  } catch (error) {
+    if (error instanceof BackendApiError) {
+      return jsonError(error.message, error.status, error.code ?? 'validation_error');
+    }
+
+    return jsonError('Story Bar aksiyonu uygulanamadı.', 500, 'validation_error');
   }
 }

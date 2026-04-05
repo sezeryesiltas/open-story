@@ -26,6 +26,7 @@ export const sampleSdkFeedResponse = sdkFeedResponseSchema.parse({
         id: '31111111-1111-4111-8111-111111111111',
         revision_id: '41111111-1111-4111-8111-111111111111',
         title: 'Spring Launch',
+        bottom_label: 'Featured',
         logo_url: 'https://cdn.openstory.dev/groups/spring-launch-logo.png',
         badge: {
           type: 'svg',
@@ -79,6 +80,7 @@ export const sampleSdkFeedResponse = sdkFeedResponseSchema.parse({
         id: 'c1111111-1111-4111-8111-111111111111',
         revision_id: 'd1111111-1111-4111-8111-111111111111',
         title: 'Editors Picks',
+        bottom_label: null,
         logo_url: 'https://cdn.openstory.dev/groups/editors-picks-logo.png',
         badge: null,
         stories: [

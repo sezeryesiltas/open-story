@@ -1,6 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.OpenStory.Sample" parent="Theme.Material3.Light.NoActionBar">
-        <item name="android:statusBarColor" tools:targetApi="l">#FFFFFFFF</item>
-        <item name="android:navigationBarColor" tools:targetApi="l">#FFFFFFFF</item>
+    <style name="Theme.OpenStory.Sample" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:statusBarColor" tools:targetApi="l">@color/sample_black</item>
+        <item name="android:navigationBarColor" tools:targetApi="l">@color/sample_black</item>
+        <item name="android:windowBackground">@color/sample_black</item>
     </style>
 </resources>

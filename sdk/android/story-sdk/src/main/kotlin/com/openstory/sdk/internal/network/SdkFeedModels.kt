@@ -56,6 +56,8 @@ internal data class SdkFeedGroupPayload(
     @SerialName("revision_id")
     val revisionId: String,
     val title: String,
+    @SerialName("bottom_label")
+    val bottomLabel: String? = null,
     @SerialName("logo_url")
     val logoUrl: String,
     val badge: SdkFeedBadgePayload? = null,

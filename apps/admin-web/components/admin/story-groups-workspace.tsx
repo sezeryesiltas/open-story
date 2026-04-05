@@ -185,6 +185,29 @@ function StateBadge({
   );
 }
 
+function hasUnpublishedChanges(storyGroup: StoryGroupApiRecord): boolean {
+  return Boolean(
+    storyGroup.currentPublishedRevisionId &&
+      storyGroup.currentPublishedRevisionId !== storyGroup.currentDraftRevisionId,
+  );
+}
+
+function canPublish(storyGroup: StoryGroupApiRecord): boolean {
+  return !storyGroup.currentPublishedRevisionId || hasUnpublishedChanges(storyGroup);
+}
+
+function publishActionLabel(storyGroup: StoryGroupApiRecord): string {
+  if (storyGroup.archiveState === 'archived') {
+    return 'Restore to publish';
+  }
+
+  if (!storyGroup.currentPublishedRevisionId) {
+    return 'Publish';
+  }
+
+  return hasUnpublishedChanges(storyGroup) ? 'Republish' : 'Already published';
+}
+
 export function StoryGroupsWorkspace() {
   const queryClient = useQueryClient();
   const [selectedStoryGroupSetId, setSelectedStoryGroupSetId] = useState('all');
@@ -261,6 +284,10 @@ export function StoryGroupsWorkspace() {
   );
   const sharedReferenceCount = useMemo(
     () => storyGroups.filter((storyGroup) => storyGroup.storyGroupSets.length > 1).length,
+    [storyGroups],
+  );
+  const pendingChangesCount = useMemo(
+    () => storyGroups.filter((storyGroup) => hasUnpublishedChanges(storyGroup)).length,
     [storyGroups],
   );
 
@@ -488,6 +515,7 @@ export function StoryGroupsWorkspace() {
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{storyGroups.length} group</Badge>
             <Badge variant="secondary">{publishedCount} yayında</Badge>
+            <Badge variant="secondary">{pendingChangesCount} taslak değişiklik</Badge>
             <Badge variant="secondary">{archiveCount} arşivde</Badge>
             <Badge variant="secondary">{sharedReferenceCount} çoklu kullanım</Badge>
           </div>
@@ -632,6 +660,9 @@ export function StoryGroupsWorkspace() {
                         : storyGroup.badge
                           ? 'SVG'
                           : null;
+                    const draftChangesPending = hasUnpublishedChanges(storyGroup);
+                    const canPublishDraft = canPublish(storyGroup) && storyGroup.archiveState !== 'archived';
+                    const publishLabel = publishActionLabel(storyGroup);
 
                     return (
                       <TableRow key={storyGroup.id} className="align-top">
@@ -675,13 +706,14 @@ export function StoryGroupsWorkspace() {
                         </TableCell>
 
                         <TableCell className="border-b border-border/60 py-4 align-top">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             {storyGroup.publishState === 'published' ? (
                               <CheckCircle2 className="h-4 w-4 text-primary" />
                             ) : (
                               <CircleSlash className="h-4 w-4 text-muted-foreground" />
                             )}
                             <StateBadge type="publish" value={storyGroup.publishState} />
+                            {draftChangesPending ? <Badge variant="secondary">Taslak değişiklik var</Badge> : null}
                           </div>
                         </TableCell>
 
@@ -726,13 +758,13 @@ export function StoryGroupsWorkspace() {
                                 {storyGroup.archiveState === 'archived' ? 'Restore' : 'Archive'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                disabled={storyGroup.publishState === 'published'}
+                                disabled={!canPublishDraft}
                                 onSelect={() =>
                                   handleRowAction(storyGroup, 'publish')
                                 }
                               >
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                                {storyGroup.publishState === 'published' ? 'Already published' : 'Publish'}
+                                {publishLabel}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

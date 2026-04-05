@@ -93,9 +93,17 @@ OpenStory.initialize(
 )
 
 OpenStory.setUserContext(listOf("vip", "beta"))
-OpenStory.renderStoryBar("home_top_story_bar", container, callbacks)
+OpenStory.renderStoryBar(
+    placementKey = "home_top_story_bar",
+    container = container,
+    textColor = Color.WHITE,
+    viewedTextColor = Color.parseColor("#CFCFCF"),
+    callbacks = callbacks,
+)
 OpenStory.reload("home_top_story_bar")
 ```
+
+`textColor` is used while the group still has at least one unviewed story. `viewedTextColor` is used once every story in that group has been viewed on the device.
 
 ## Threading rules
 
@@ -112,7 +120,7 @@ OpenStory.reload("home_top_story_bar")
 
 ## Local sample app
 
-`sample-app` is intentionally small. It is for integration smoke tests, callback wiring, and local API checks. It is not a showcase UI.
+`sample-app` now acts as a narrow demo host app. It keeps the SDK integration surface small, but adds dark app chrome with `Home`, `Search`, and `List` bottom navigation so the story bar can be exercised in a more realistic shell.
 
 Use `http://10.0.2.2:3001` when running the backend on the same machine and the sample app in the Android emulator.
 

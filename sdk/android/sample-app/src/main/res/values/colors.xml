@@ -1,0 +1,11 @@
+<resources>
+    <color name="sample_black">#000000</color>
+    <color name="sample_surface">#101010</color>
+    <color name="sample_surface_alt">#181818</color>
+    <color name="sample_outline">#262626</color>
+    <color name="sample_text_primary">#FFFFFF</color>
+    <color name="sample_text_secondary">#A9A9A9</color>
+    <color name="sample_story_group_text_viewed">#CFCFCF</color>
+    <color name="sample_accent">#F2C94C</color>
+    <color name="sample_accent_soft">#302507</color>
+</resources>

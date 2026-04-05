@@ -24,6 +24,7 @@ class SdkFeedResponseNormalizerTest {
                         id = "group-1",
                         revisionId = "group-rev-1",
                         title = "Launches",
+                        bottomLabel = "Featured",
                         logoUrl = "http://localhost:3001/uploads/logo.jpg",
                         badge = null,
                         stories = listOf(
