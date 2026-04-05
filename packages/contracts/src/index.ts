@@ -5,6 +5,7 @@ export { appVersionSchema, platformSchema, userSegmentSchema, userSegmentsSchema
 export type { AppVersion, UserSegment, UserSegments } from './common/context.ts';
 
 export * from './sdk/feed.ts';
+export * from './sdk/feed-fixtures.ts';
 export * from './persistence.ts';
 
 export * as adminClient from './admin/client.ts';

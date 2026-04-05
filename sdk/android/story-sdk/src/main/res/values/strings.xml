@@ -1,0 +1,11 @@
+<resources>
+    <string name="open_story_loading">Loading stories...</string>
+    <string name="open_story_empty">No stories available for this placement.</string>
+    <string name="open_story_error">Stories are temporarily unavailable.</string>
+    <string name="open_story_unauthorized">Story feed is unavailable because credentials were rejected.</string>
+    <string name="open_story_close">Close</string>
+    <string name="open_story_sound_on">Sound</string>
+    <string name="open_story_sound_off">Muted</string>
+    <string name="open_story_previous_story">Previous story</string>
+    <string name="open_story_next_story">Next story</string>
+</resources>
