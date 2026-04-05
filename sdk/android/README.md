@@ -112,7 +112,7 @@ OpenStory.reload("home_top_story_bar")
 
 ## Local sample app
 
-`sample-app` is intentionally small. It is for integration smoke tests, callback wiring, and local API checks. It is not a showcase UI.
+`sample-app` now acts as a narrow demo host app. It keeps the SDK integration surface small, but adds dark app chrome with `Home`, `Search`, and `List` bottom navigation so the story bar can be exercised in a more realistic shell.
 
 Use `http://10.0.2.2:3001` when running the backend on the same machine and the sample app in the Android emulator.
 
