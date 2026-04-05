@@ -103,27 +103,22 @@ internal class OpenStoryRuntime(
 
         reloadJobs.remove(placementKey)?.cancel()
         val job = scope.launch {
-            val (cached, viewedState) = withContext(ioDispatcher) {
+            val (cachedEntity, viewedState) = withContext(ioDispatcher) {
                 val cachedEntity = database.storyFeedSnapshotDao().find(cacheKey.databaseKey)
                 val viewedStateSnapshot = viewedStoryStateRepository.snapshot()
                 cachedEntity to viewedStateSnapshot
             }
             val cachedSnapshot = withContext(ioDispatcher) {
-                cached?.payloadJson?.let { payloadJson ->
-                    json.decodeFromString<SdkFeedResponsePayload>(payloadJson)
+                cachedEntity?.payloadJson?.let { payloadJson ->
+                    runCatching {
+                        json.decodeFromString<SdkFeedResponsePayload>(payloadJson)
+                    }.getOrElse {
+                        database.storyFeedSnapshotDao().delete(cacheKey.databaseKey)
+                        null
+                    }
                 }
             }
-
-            if (cachedSnapshot != null) {
-                renderSnapshot(
-                    placementKey = cacheKey.placementKey,
-                    snapshot = cachedSnapshot,
-                    isCached = true,
-                    viewedState = viewedState,
-                )
-            } else {
-                renderLoading(placementKey)
-            }
+            renderLoading(placementKey)
 
             try {
                 val response = withContext(ioDispatcher) {
@@ -158,7 +153,14 @@ internal class OpenStoryRuntime(
                 renderUnauthorized(placementKey)
                 notifyError(placementKey, authorizationError)
             } catch (throwable: Throwable) {
-                if (cached == null) {
+                if (cachedSnapshot != null) {
+                    renderSnapshot(
+                        placementKey = cacheKey.placementKey,
+                        snapshot = cachedSnapshot,
+                        isCached = true,
+                        viewedState = viewedState,
+                    )
+                } else {
                     renderError(placementKey)
                 }
                 notifyError(placementKey, throwable)
@@ -294,6 +296,16 @@ internal class OpenStoryRuntime(
     }
 
     private fun register(placementKey: String, storyBarView: StoryBarView) {
+        storyBarsByPlacement.forEach { (registeredPlacementKey, refs) ->
+            refs.removeAll { ref ->
+                val view = ref.get()
+                view == null || view == storyBarView
+            }
+            if (refs.isEmpty()) {
+                storyBarsByPlacement.remove(registeredPlacementKey, refs)
+            }
+        }
+
         val set = storyBarsByPlacement.getOrPut(placementKey) { mutableSetOf() }
         set.removeAll { it.get() == null }
         set.add(WeakReference(storyBarView))
