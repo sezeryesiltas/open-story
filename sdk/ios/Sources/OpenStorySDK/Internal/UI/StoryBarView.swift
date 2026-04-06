@@ -159,7 +159,7 @@ internal final class StoryBarView: UIView {
         groupRow.translatesAutoresizingMaskIntoConstraints = false
         groupRow.axis = .horizontal
         groupRow.alignment = .top
-        groupRow.spacing = 14
+        groupRow.spacing = 8
         groupRow.isLayoutMarginsRelativeArrangement = true
         groupRow.layoutMargins = UIEdgeInsets(top: 4, left: 4, bottom: 8, right: 4)
 
@@ -251,7 +251,7 @@ private final class StoryBarGroupView: UIControl {
             badgeLabel.isHidden = true
             bottomLabel.isHidden = false
             bottomLabel.text = bottomLabelValue
-            bottomLabel.textColor = isViewed ? viewedTitleColor : titleColor
+            bottomLabel.textColor = UIColor(openStoryHex: "#8B7502")
         } else {
             badgeLabel.isHidden = true
             bottomLabel.isHidden = true
@@ -276,31 +276,33 @@ private final class StoryBarGroupView: UIControl {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 29
+        imageView.layer.cornerRadius = 27
         imageView.backgroundColor = UIColor(white: 0.15, alpha: 1)
         imageView.isUserInteractionEnabled = false
 
         badgeLabel.translatesAutoresizingMaskIntoConstraints = false
         badgeLabel.isUserInteractionEnabled = false
-        badgeLabel.font = .systemFont(ofSize: 11, weight: .bold)
+        badgeLabel.font = .systemFont(ofSize: 14, weight: .regular)
         badgeLabel.textColor = .white
         badgeLabel.textAlignment = .center
+        badgeLabel.baselineAdjustment = .alignCenters
         badgeLabel.backgroundColor = .black
         badgeLabel.layer.cornerRadius = 12
         badgeLabel.layer.masksToBounds = true
-        badgeLabel.textInsets = UIEdgeInsets(top: 0, left: 6, bottom: 0, right: 6)
+        badgeLabel.textInsets = .zero
 
         bottomLabel.translatesAutoresizingMaskIntoConstraints = false
         bottomLabel.isUserInteractionEnabled = false
         bottomLabel.font = .systemFont(ofSize: 10, weight: .bold)
-        bottomLabel.backgroundColor = .black
-        bottomLabel.layer.cornerRadius = 10
+        bottomLabel.backgroundColor = UIColor(openStoryHex: "#FDD74E")
+        bottomLabel.textColor = UIColor(openStoryHex: "#8B7502")
+        bottomLabel.layer.cornerRadius = 5
         bottomLabel.layer.masksToBounds = true
         bottomLabel.textInsets = UIEdgeInsets(top: 2, left: 7, bottom: 2, right: 7)
 
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.isUserInteractionEnabled = false
-        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.font = .systemFont(ofSize: 10, weight: .semibold)
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 2
 
@@ -330,13 +332,13 @@ private final class StoryBarGroupView: UIControl {
 
             imageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
             imageView.centerYAnchor.constraint(equalTo: avatarContainer.centerYAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: 58),
-            imageView.heightAnchor.constraint(equalToConstant: 58),
+            imageView.widthAnchor.constraint(equalToConstant: 54),
+            imageView.heightAnchor.constraint(equalToConstant: 54),
 
             badgeLabel.trailingAnchor.constraint(equalTo: avatarContainer.trailingAnchor, constant: -2),
             badgeLabel.bottomAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: -1),
-            badgeLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 24),
-            badgeLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 24),
+            badgeLabel.heightAnchor.constraint(equalToConstant: 24),
+            badgeLabel.widthAnchor.constraint(equalToConstant: 24),
 
             bottomLabel.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
             bottomLabel.bottomAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: -1),
