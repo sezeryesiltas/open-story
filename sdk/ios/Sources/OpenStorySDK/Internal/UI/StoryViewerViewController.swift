@@ -1181,6 +1181,11 @@ private final class ViewerStageView: UIView {
     let progressStack = UIStackView()
     var progressSegments: [ProgressSegmentView] = []
     let avatarImageView = UIImageView()
+    let avatarRing = GradientRingView(
+        startColor: UIColor(openStoryHex: "#F59E0B"),
+        endColor: UIColor(openStoryHex: "#8B5CF6"),
+        strokeWidth: 2.5
+    )
     let titleLabel = UILabel()
     let soundButton = UIButton(type: .system)
     let closeButton = UIButton(type: .system)
@@ -1207,7 +1212,7 @@ private final class ViewerStageView: UIView {
         mediaHost.clipsToBounds = true
 
         let topScrim = LinearGradientView(
-            colors: [UIColor.black.withAlphaComponent(0.85), UIColor.black.withAlphaComponent(0.08)]
+            colors: [UIColor.black.withAlphaComponent(0.92), UIColor.clear]
         )
         topScrim.translatesAutoresizingMaskIntoConstraints = false
 
@@ -1225,8 +1230,28 @@ private final class ViewerStageView: UIView {
         avatarImageView.translatesAutoresizingMaskIntoConstraints = false
         avatarImageView.contentMode = .scaleAspectFill
         avatarImageView.clipsToBounds = true
-        avatarImageView.layer.cornerRadius = 18
+        avatarImageView.layer.cornerRadius = 16
         avatarImageView.backgroundColor = UIColor(white: 0.15, alpha: 1)
+
+        avatarRing.translatesAutoresizingMaskIntoConstraints = false
+
+        let avatarWrapper = UIView()
+        avatarWrapper.translatesAutoresizingMaskIntoConstraints = false
+        avatarWrapper.addSubview(avatarRing)
+        avatarWrapper.addSubview(avatarImageView)
+
+        NSLayoutConstraint.activate([
+            avatarWrapper.widthAnchor.constraint(equalToConstant: 40),
+            avatarWrapper.heightAnchor.constraint(equalToConstant: 40),
+            avatarRing.topAnchor.constraint(equalTo: avatarWrapper.topAnchor),
+            avatarRing.leadingAnchor.constraint(equalTo: avatarWrapper.leadingAnchor),
+            avatarRing.trailingAnchor.constraint(equalTo: avatarWrapper.trailingAnchor),
+            avatarRing.bottomAnchor.constraint(equalTo: avatarWrapper.bottomAnchor),
+            avatarImageView.topAnchor.constraint(equalTo: avatarWrapper.topAnchor, constant: 4),
+            avatarImageView.leadingAnchor.constraint(equalTo: avatarWrapper.leadingAnchor, constant: 4),
+            avatarImageView.trailingAnchor.constraint(equalTo: avatarWrapper.trailingAnchor, constant: -4),
+            avatarImageView.bottomAnchor.constraint(equalTo: avatarWrapper.bottomAnchor, constant: -4),
+        ])
 
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
@@ -1236,7 +1261,7 @@ private final class ViewerStageView: UIView {
         configureIconButton(soundButton, symbol: "speaker.slash.fill")
         configureIconButton(closeButton, symbol: "xmark")
 
-        let headerLeft = UIStackView(arrangedSubviews: [avatarImageView, titleLabel])
+        let headerLeft = UIStackView(arrangedSubviews: [avatarWrapper, titleLabel])
         headerLeft.translatesAutoresizingMaskIntoConstraints = false
         headerLeft.axis = .horizontal
         headerLeft.alignment = .center
@@ -1256,11 +1281,6 @@ private final class ViewerStageView: UIView {
 
         let headerChrome = UIView()
         headerChrome.translatesAutoresizingMaskIntoConstraints = false
-        headerChrome.backgroundColor = UIColor.black.withAlphaComponent(0.22)
-        headerChrome.layer.cornerRadius = 22
-        headerChrome.layer.cornerCurve = .continuous
-        headerChrome.layer.borderWidth = 1
-        headerChrome.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
         headerChrome.addSubview(headerRow)
 
         let topChrome = UIStackView(arrangedSubviews: [progressStack, headerChrome])
@@ -1320,9 +1340,6 @@ private final class ViewerStageView: UIView {
             headerRow.trailingAnchor.constraint(equalTo: headerChrome.trailingAnchor, constant: -12),
             headerRow.bottomAnchor.constraint(equalTo: headerChrome.bottomAnchor, constant: -10),
 
-            avatarImageView.widthAnchor.constraint(equalToConstant: 36),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 36),
-
             headerLeft.widthAnchor.constraint(greaterThanOrEqualTo: headerRight.widthAnchor),
 
             ctaButton.centerXAnchor.constraint(equalTo: centerXAnchor),
@@ -1363,10 +1380,8 @@ private final class ProgressSegmentView: UIView {
         translatesAutoresizingMaskIntoConstraints = false
         trackView.translatesAutoresizingMaskIntoConstraints = false
         trackView.backgroundColor = UIColor.white.withAlphaComponent(0.35)
-        trackView.layer.cornerRadius = 999
-        fillView.translatesAutoresizingMaskIntoConstraints = false
+        trackView.clipsToBounds = true
         fillView.backgroundColor = .white
-        fillView.layer.cornerRadius = 999
         addSubview(trackView)
         trackView.addSubview(fillView)
 
@@ -1385,8 +1400,11 @@ private final class ProgressSegmentView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        let h = trackView.bounds.height
+        trackView.layer.cornerRadius = h / 2
+        fillView.layer.cornerRadius = h / 2
         let width = trackView.bounds.width * min(1, max(0, progress))
-        fillView.frame = CGRect(x: 0, y: 0, width: width, height: trackView.bounds.height)
+        fillView.frame = CGRect(x: 0, y: 0, width: width, height: h)
     }
 }
 
