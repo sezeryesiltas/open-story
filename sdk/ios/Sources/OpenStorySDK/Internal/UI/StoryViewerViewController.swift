@@ -83,6 +83,10 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
 
         stageSurface.translatesAutoresizingMaskIntoConstraints = false
         stageSurface.clipsToBounds = false
+        // Apply one shared perspective camera to both faces so they rotate into the same hinge line.
+        var perspective = CATransform3DIdentity
+        perspective.m34 = -1 / cubePerspectiveDistance
+        stageSurface.layer.sublayerTransform = perspective
 
         activeStage = primaryStage
         inactiveStage = secondaryStage
@@ -109,6 +113,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             stageSurface.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             stageSurface.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+        updateStageInteractivity()
     }
 
     private func bindGestures() {
@@ -492,6 +497,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         transitionAnimator?.stopAnimation(true)
         isTransitionRunning = true
         addPauseReason(.transition)
+        updateStageInteractivity()
         inactiveStage.isHidden = false
         renderPreviewStage(inactiveStage, groupIndex: targetGroupIndex, storyIndex: targetStoryIndex)
 
@@ -566,13 +572,17 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         transition.sourceStage.isHidden = false
         transition.targetStage.isHidden = false
 
+        // Keep the hinge side explicit. Deriving it from `position` breaks at progress == 0,
+        // where source and target faces can both sit on opposite cube edges with the same value.
         applyCubeTransform(
             stage: transition.sourceStage,
-            position: transition.direction == .forward ? -clamped : clamped
+            position: transition.direction == .forward ? -clamped : clamped,
+            hingeEdge: transition.direction == .forward ? .trailing : .leading
         )
         applyCubeTransform(
             stage: transition.targetStage,
-            position: transition.direction == .forward ? 1 - clamped : clamped - 1
+            position: transition.direction == .forward ? 1 - clamped : clamped - 1,
+            hingeEdge: transition.direction == .forward ? .leading : .trailing
         )
 
         if clamped < 0.5 {
@@ -584,22 +594,29 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
 
     private func applyCubeTransform(
         stage: ViewerStageView,
-        position: CGFloat
+        position: CGFloat,
+        hingeEdge: CubeHingeEdge
     ) {
+        let width = stage.bounds.width
+        guard width > 0 else {
+            return
+        }
+
         let magnitude = abs(position)
-        stage.layer.anchorPoint = CGPoint(x: position < 0 ? 1 : 0, y: 0.5)
+        let usesTrailingHinge = hingeEdge == .trailing
+        stage.layer.anchorPoint = CGPoint(x: usesTrailingHinge ? 1 : 0, y: 0.5)
         stage.layer.position = CGPoint(
-            x: position < 0 ? stage.bounds.width : 0,
+            x: usesTrailingHinge ? width : 0,
             y: stage.bounds.midY
         )
 
         var transform = CATransform3DIdentity
-        transform.m34 = -1 / 900
-        transform = CATransform3DTranslate(transform, stage.bounds.width * position * 0.82, 0, -72 * magnitude)
+        // A strict cube needs full-width translation and a pure 90 degree rotation around the edge.
+        // Any extra scale or z-offset opens a visible gap at the hinge.
+        transform = CATransform3DTranslate(transform, width * position, 0, 0)
         transform = CATransform3DRotate(transform, cubeRotationRadians * position, 0, 1, 0)
-        transform = CATransform3DScale(transform, 1 - (0.08 * magnitude), 1 - (0.08 * magnitude), 1)
         stage.layer.transform = transform
-        stage.alpha = max(0.78, 1 - (magnitude * 0.22))
+        stage.alpha = 1
         stage.layer.shadowOpacity = Float(min(0.24, magnitude * 0.24))
         stage.layer.shadowRadius = 34
         stage.layer.shadowOffset = CGSize(width: -14 * position, height: 0)
@@ -621,6 +638,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         currentTransition = nil
         isTransitionRunning = false
         removePauseReason(.transition)
+        updateStageInteractivity()
         renderCurrentStory()
     }
 
@@ -635,6 +653,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         currentTransition = nil
         isTransitionRunning = false
         removePauseReason(.transition)
+        updateStageInteractivity()
     }
 
     private func resetStageTransform(_ stage: ViewerStageView) {
@@ -644,6 +663,13 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         stage.alpha = 1
         stage.layer.shadowOpacity = 0
         stage.transitionShade.alpha = 0
+    }
+
+    private func updateStageInteractivity() {
+        // Stage buttons bypass the stageSurface gesture guards, so lock both faces directly while
+        // a cube transition is active and only re-enable the settled front face afterwards.
+        activeStage.isUserInteractionEnabled = !isTransitionRunning
+        inactiveStage.isUserInteractionEnabled = false
     }
 
     private func startImageAutoAdvanceIfEligible() {
@@ -1057,12 +1083,18 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         case backward
     }
 
+    private enum CubeHingeEdge {
+        case leading
+        case trailing
+    }
+
     private static let defaultImageDurationMs: Int64 = 5_000
     private let swipeDismissThreshold: CGFloat = 120
     private let groupSwipeThreshold: CGFloat = 56
     private let gestureThreshold: CGFloat = 10
+    private let cubePerspectiveDistance: CGFloat = 900
     private let cubeShadeMaxAlpha: CGFloat = 0.22
-    private let cubeRotationRadians: CGFloat = .pi / 2.05
+    private let cubeRotationRadians: CGFloat = .pi / 2
 
     private var interactiveGroupSwipeCompletionThreshold: CGFloat {
         groupSwipeThreshold / max(1, stageSurface.bounds.width)
