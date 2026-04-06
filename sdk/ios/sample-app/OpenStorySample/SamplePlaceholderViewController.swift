@@ -25,17 +25,17 @@ final class SamplePlaceholderViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        view.backgroundColor = UIColor(red: 0.98, green: 0.96, blue: 0.93, alpha: 1)
+        view.backgroundColor = Theme.background
 
         let heroCard = UIView()
         heroCard.translatesAutoresizingMaskIntoConstraints = false
-        heroCard.backgroundColor = UIColor(red: 0.2, green: 0.12, blue: 0.07, alpha: 1)
+        heroCard.backgroundColor = Theme.heroSolidBackground
         heroCard.layer.cornerRadius = 28
         heroCard.layer.masksToBounds = true
 
         let iconView = UIImageView(image: UIImage(systemName: symbolName))
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.tintColor = UIColor(red: 1, green: 0.84, blue: 0.46, alpha: 1)
+        iconView.tintColor = Theme.heroIconTint
         iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 42, weight: .bold)
 
         let titleLabel = UILabel()
@@ -47,7 +47,7 @@ final class SamplePlaceholderViewController: UIViewController {
         let subtitleLabel = UILabel()
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         subtitleLabel.font = .systemFont(ofSize: 16, weight: .medium)
-        subtitleLabel.textColor = UIColor(white: 1, alpha: 0.74)
+        subtitleLabel.textColor = Theme.heroSubtitle
         subtitleLabel.numberOfLines = 0
         subtitleLabel.text = subtitleText
 

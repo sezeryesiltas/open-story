@@ -4,8 +4,8 @@ final class SampleRootTabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        tabBar.tintColor = UIColor(red: 0.84, green: 0.41, blue: 0.18, alpha: 1)
-        tabBar.unselectedItemTintColor = UIColor(white: 0.44, alpha: 1)
+        tabBar.tintColor = Theme.accent
+        tabBar.unselectedItemTintColor = Theme.tabBarUnselected
 
         viewControllers = [
             wrapped(
@@ -46,7 +46,7 @@ final class SampleRootTabBarController: UITabBarController {
             selectedImage: nil
         )
         navigationController.navigationBar.prefersLargeTitles = true
-        navigationController.navigationBar.tintColor = UIColor(red: 0.2, green: 0.12, blue: 0.07, alpha: 1)
+        navigationController.navigationBar.tintColor = Theme.navBarTint
         return navigationController
     }
 }
