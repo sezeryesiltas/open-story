@@ -13,11 +13,14 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
     private var didRenderStoryBar = false
     private var eventLog: [String] = []
 
+    private var heroGradientLayer: CAGradientLayer?
+    private var topSurfaceGradientLayer: CAGradientLayer?
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         title = "Home"
-        view.backgroundColor = UIColor(red: 0.98, green: 0.96, blue: 0.93, alpha: 1)
+        view.backgroundColor = Theme.background
         navigationItem.largeTitleDisplayMode = .always
 
         buildUI()
@@ -36,9 +39,16 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
             placementKey: config.placementKey,
             in: storyBarHost,
             callbacks: self,
-            titleColor: UIColor(red: 0.17, green: 0.10, blue: 0.07, alpha: 1),
-            viewedTitleColor: UIColor(red: 0.56, green: 0.51, blue: 0.46, alpha: 1)
+            titleColor: Theme.primaryText,
+            viewedTitleColor: Theme.mutedText
         )
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        guard traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) else { return }
+        heroGradientLayer?.colors = Theme.heroGradientColors(for: traitCollection)
+        topSurfaceGradientLayer?.colors = Theme.topSurfaceGradientColors(for: traitCollection)
     }
 
     func onStoryBarImpression(event: OpenStoryAnalyticsEvent) {
@@ -77,7 +87,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
     }
 
     private func buildUI() {
-        view.backgroundColor = UIColor(red: 0.98, green: 0.96, blue: 0.93, alpha: 1)
+        view.backgroundColor = Theme.background
 
         storyBarHost.translatesAutoresizingMaskIntoConstraints = false
         storyBarHost.backgroundColor = .clear
@@ -94,12 +104,12 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
 
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         statusLabel.font = .systemFont(ofSize: 14, weight: .semibold)
-        statusLabel.textColor = UIColor(red: 0.36, green: 0.21, blue: 0.11, alpha: 1)
+        statusLabel.textColor = Theme.statusText
         statusLabel.numberOfLines = 0
 
         eventLogLabel.translatesAutoresizingMaskIntoConstraints = false
         eventLogLabel.font = .monospacedSystemFont(ofSize: 12, weight: .medium)
-        eventLogLabel.textColor = UIColor(red: 0.27, green: 0.21, blue: 0.18, alpha: 1)
+        eventLogLabel.textColor = Theme.eventLogText
         eventLogLabel.numberOfLines = 0
         eventLogLabel.text = "waiting for callbacks..."
 
@@ -107,7 +117,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         reloadButton.configuration = .filled()
         reloadButton.configuration?.title = "Reload Placement"
         reloadButton.configuration?.cornerStyle = .capsule
-        reloadButton.configuration?.baseBackgroundColor = UIColor(red: 0.84, green: 0.41, blue: 0.18, alpha: 1)
+        reloadButton.configuration?.baseBackgroundColor = Theme.accent
         reloadButton.configuration?.baseForegroundColor = .white
         reloadButton.addTarget(self, action: #selector(handleReloadTap), for: .touchUpInside)
 
@@ -179,30 +189,28 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         card.layer.masksToBounds = true
 
         let gradientLayer = CAGradientLayer()
-        gradientLayer.colors = [
-            UIColor(red: 0.20, green: 0.12, blue: 0.07, alpha: 1).cgColor,
-            UIColor(red: 0.52, green: 0.24, blue: 0.12, alpha: 1).cgColor,
-        ]
+        gradientLayer.colors = Theme.heroGradientColors(for: traitCollection)
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer.endPoint = CGPoint(x: 1, y: 1)
         card.layer.insertSublayer(gradientLayer, at: 0)
+        heroGradientLayer = gradientLayer
 
         let icon = UIImageView(image: UIImage(systemName: "sparkles.tv.fill"))
         icon.translatesAutoresizingMaskIntoConstraints = false
-        icon.tintColor = UIColor(red: 1, green: 0.84, blue: 0.46, alpha: 1)
+        icon.tintColor = Theme.heroIconTint
         icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 32, weight: .bold)
 
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = .white
+        titleLabel.textColor = Theme.heroTitle
         titleLabel.numberOfLines = 0
         titleLabel.text = "open-story iOS host app"
 
         let subtitleLabel = UILabel()
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         subtitleLabel.font = .systemFont(ofSize: 15, weight: .medium)
-        subtitleLabel.textColor = UIColor(white: 1, alpha: 0.76)
+        subtitleLabel.textColor = Theme.heroSubtitle
         subtitleLabel.numberOfLines = 0
         subtitleLabel.text = "This host stays intentionally narrow: tab shell, placement reload, callback visibility, and fixed viewer validation."
 
@@ -234,31 +242,29 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
     private func makeTopStorySurface() -> UIView {
         let surface = LayoutAwareView()
         surface.translatesAutoresizingMaskIntoConstraints = false
-        surface.backgroundColor = UIColor(red: 0.97, green: 0.93, blue: 0.88, alpha: 1)
+        surface.backgroundColor = Theme.background
         surface.layer.cornerRadius = 28
         surface.layer.cornerCurve = .continuous
         surface.layer.masksToBounds = true
 
         let gradientLayer = CAGradientLayer()
-        gradientLayer.colors = [
-            UIColor(red: 0.99, green: 0.96, blue: 0.91, alpha: 1).cgColor,
-            UIColor(red: 0.96, green: 0.89, blue: 0.80, alpha: 1).cgColor,
-        ]
+        gradientLayer.colors = Theme.topSurfaceGradientColors(for: traitCollection)
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer.endPoint = CGPoint(x: 1, y: 1)
         surface.layer.insertSublayer(gradientLayer, at: 0)
+        topSurfaceGradientLayer = gradientLayer
 
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.22, green: 0.13, blue: 0.08, alpha: 1)
+        titleLabel.textColor = Theme.secondaryText
         titleLabel.numberOfLines = 0
         titleLabel.text = "Story bar sabit olarak üst yüzeyde durur."
 
         let subtitleLabel = UILabel()
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         subtitleLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        subtitleLabel.textColor = UIColor(red: 0.45, green: 0.28, blue: 0.18, alpha: 1)
+        subtitleLabel.textColor = Theme.tertiaryText
         subtitleLabel.numberOfLines = 0
         subtitleLabel.text = "Container yerine doğrudan host yüzeyinin üstünde render edilir. Aşağıdaki içerik sadece sayfa kabuğunu simüle eder."
 
@@ -290,7 +296,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
 
         let titleLabel = UILabel()
         titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.17, green: 0.10, blue: 0.07, alpha: 1)
+        titleLabel.textColor = Theme.primaryText
         titleLabel.text = title
 
         let stack = UIStackView(arrangedSubviews: [titleLabel])
@@ -301,12 +307,12 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         for row in rows {
             let label = UILabel()
             label.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
-            label.textColor = UIColor(red: 0.58, green: 0.42, blue: 0.30, alpha: 1)
+            label.textColor = Theme.detailKeyText
             label.text = row.0
 
             let value = UILabel()
             value.font = .systemFont(ofSize: 15, weight: .medium)
-            value.textColor = UIColor(red: 0.22, green: 0.16, blue: 0.12, alpha: 1)
+            value.textColor = Theme.detailValueText
             value.numberOfLines = 0
             value.text = row.1
 
@@ -332,7 +338,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
-        titleLabel.textColor = UIColor(red: 0.17, green: 0.10, blue: 0.07, alpha: 1)
+        titleLabel.textColor = Theme.primaryText
         titleLabel.text = "Callback stream"
 
         let stack = UIStackView(arrangedSubviews: [titleLabel, statusLabel, eventLogLabel])
@@ -373,11 +379,11 @@ private final class CardView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         translatesAutoresizingMaskIntoConstraints = false
-        backgroundColor = UIColor(white: 1, alpha: 0.92)
+        backgroundColor = Theme.cardBackground
         layer.cornerRadius = 26
         layer.cornerCurve = .continuous
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.05
+        layer.shadowOpacity = Theme.cardShadowOpacity(for: traitCollection)
         layer.shadowRadius = 22
         layer.shadowOffset = CGSize(width: 0, height: 10)
     }
@@ -385,6 +391,12 @@ private final class CardView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         nil
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        guard traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) else { return }
+        layer.shadowOpacity = Theme.cardShadowOpacity(for: traitCollection)
     }
 }
 

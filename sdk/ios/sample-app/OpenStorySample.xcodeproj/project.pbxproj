@@ -16,6 +16,7 @@
 		CACFE97CF2AA3432B9848C3B /* SampleHomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 760A00247B74ECB0EEDB3297 /* SampleHomeViewController.swift */; };
 		DD7569F664514E4D0B515192 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9485EFD0EDF61A28701E1FFC /* AppDelegate.swift */; };
 		F76748A65A2F4EAAFD07990C /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CBA003F826BB412D91CF7F /* SceneDelegate.swift */; };
+		FA3D7E1B2C8A4F00B1D9E4A7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3D7E1A2C8A4F00B1D9E4A6 /* Theme.swift */; };
 		FCF2D648B81EA6A3217C548E /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EB5D996E48B4F048BC0B9A04 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
@@ -30,6 +31,7 @@
 		C89E0F668F6E207DD41F65E2 /* SamplePlaceholderViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SamplePlaceholderViewController.swift; sourceTree = "<group>"; };
 		CF70CA51372926EE304C6E77 /* SampleRootTabBarController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SampleRootTabBarController.swift; sourceTree = "<group>"; };
 		EB5D996E48B4F048BC0B9A04 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		FA3D7E1A2C8A4F00B1D9E4A6 /* Theme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +74,7 @@
 				C89E0F668F6E207DD41F65E2 /* SamplePlaceholderViewController.swift */,
 				CF70CA51372926EE304C6E77 /* SampleRootTabBarController.swift */,
 				C7CBA003F826BB412D91CF7F /* SceneDelegate.swift */,
+				FA3D7E1A2C8A4F00B1D9E4A6 /* Theme.swift */,
 			);
 			name = OpenStorySample;
 			path = OpenStorySample;
@@ -194,6 +197,7 @@
 				814F1E71B1B9DE04EEB16F73 /* SamplePlaceholderViewController.swift in Sources */,
 				72EF93BBA75B6CFB75497F10 /* SampleRootTabBarController.swift in Sources */,
 				F76748A65A2F4EAAFD07990C /* SceneDelegate.swift in Sources */,
+				FA3D7E1B2C8A4F00B1D9E4A7 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
