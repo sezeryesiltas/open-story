@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FB23B2122065EDF70EB29AAF"
+               BlueprintIdentifier = "7DB7CD44E4210F35563F4A70"
                BuildableName = "OpenStorySample.app"
                BlueprintName = "OpenStorySample"
                ReferencedContainer = "container:OpenStorySample.xcodeproj">
@@ -30,7 +30,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FB23B2122065EDF70EB29AAF"
+            BlueprintIdentifier = "7DB7CD44E4210F35563F4A70"
             BuildableName = "OpenStorySample.app"
             BlueprintName = "OpenStorySample"
             ReferencedContainer = "container:OpenStorySample.xcodeproj">
@@ -53,7 +53,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FB23B2122065EDF70EB29AAF"
+            BlueprintIdentifier = "7DB7CD44E4210F35563F4A70"
             BuildableName = "OpenStorySample.app"
             BlueprintName = "OpenStorySample"
             ReferencedContainer = "container:OpenStorySample.xcodeproj">
@@ -70,7 +70,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FB23B2122065EDF70EB29AAF"
+            BlueprintIdentifier = "7DB7CD44E4210F35563F4A70"
             BuildableName = "OpenStorySample.app"
             BlueprintName = "OpenStorySample"
             ReferencedContainer = "container:OpenStorySample.xcodeproj">
