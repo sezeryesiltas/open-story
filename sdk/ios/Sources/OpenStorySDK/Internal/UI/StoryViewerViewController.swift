@@ -26,7 +26,8 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
     private var storyPlaybackStartedAtMs: CFTimeInterval = 0
     private var currentStoryProgressFraction: CGFloat = 0
     private var currentCTAContext: CTAContext?
-    private var transitionAnimator: UIViewPropertyAnimator?
+    private var transitionDisplayLink: CADisplayLink?
+    private var timedTransition: TimedTransitionAnimation?
     private var currentTransition: GroupTransitionState?
     private var isTransitionRunning = false
     private var panMode: PanMode = .idle
@@ -315,14 +316,22 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         story: SdkFeedStoryPayload
     ) {
         stage.mediaHost.subviews.forEach { $0.removeFromSuperview() }
+        let previewURL = story.posterAsset?.url ?? story.asset.url
         addMediaBackdrop(
             to: stage.mediaHost,
-            imageURL: story.posterAsset?.url ?? story.asset.url
+            imageURL: previewURL
         )
 
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFit
+
+        if let cachedPreview = RemoteImageLoader.cachedImage(from: previewURL) {
+            imageView.image = cachedPreview
+        } else if let fallback = snapshotImage(of: activeStage.mediaHost) {
+            imageView.image = fallback
+        }
+
         stage.mediaHost.addSubview(imageView)
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: stage.mediaHost.topAnchor),
@@ -330,7 +339,18 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             imageView.trailingAnchor.constraint(equalTo: stage.mediaHost.trailingAnchor),
             imageView.bottomAnchor.constraint(equalTo: stage.mediaHost.bottomAnchor),
         ])
-        RemoteImageLoader.loadImage(from: story.posterAsset?.url ?? story.asset.url, into: imageView)
+        RemoteImageLoader.loadImage(from: previewURL, into: imageView)
+    }
+
+    private func snapshotImage(of view: UIView) -> UIImage? {
+        guard view.bounds.width > 1, view.bounds.height > 1 else {
+            return nil
+        }
+
+        let renderer = UIGraphicsImageRenderer(bounds: view.bounds)
+        return renderer.image { context in
+            view.layer.render(in: context.cgContext)
+        }
     }
 
     private func bindCTA(
@@ -494,12 +514,11 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
                 currentTransition.direction == direction
         }
 
-        transitionAnimator?.stopAnimation(true)
+        stopTimedTransitionAnimation()
         isTransitionRunning = true
         addPauseReason(.transition)
         updateStageInteractivity()
         inactiveStage.isHidden = false
-        renderPreviewStage(inactiveStage, groupIndex: targetGroupIndex, storyIndex: targetStoryIndex)
 
         currentTransition = GroupTransitionState(
             sourceStage: activeStage,
@@ -509,6 +528,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             direction: direction,
             progress: 0
         )
+        renderPreviewStage(inactiveStage, groupIndex: targetGroupIndex, storyIndex: targetStoryIndex)
         applyGroupTransitionProgress(0)
         return true
     }
@@ -542,23 +562,67 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             return
         }
 
-        transitionAnimator?.stopAnimation(true)
+        stopTimedTransitionAnimation()
         let startProgress = transition.progress
-        let duration = max(0.18, 0.42 * abs(targetProgress - startProgress))
-        let animator = UIViewPropertyAnimator(duration: duration, dampingRatio: 0.9) { [weak self] in
-            self?.applyGroupTransitionProgress(targetProgress)
-        }
-        animator.addCompletion { [weak self] position in
-            guard let self else { return }
-            self.transitionAnimator = nil
-            if position == .end, abs(targetProgress - 1) < 0.0001 {
-                self.finishCurrentTransition()
+        guard abs(targetProgress - startProgress) > 0.0001 else {
+            if abs(targetProgress - 1) < 0.0001 {
+                finishCurrentTransition()
             } else {
-                self.cancelCurrentTransition()
+                cancelCurrentTransition()
+            }
+            return
+        }
+
+        let duration = max(0.18, 0.42 * abs(targetProgress - startProgress))
+        timedTransition = TimedTransitionAnimation(
+            startProgress: startProgress,
+            targetProgress: targetProgress,
+            duration: duration,
+            startedAt: nil
+        )
+
+        let displayLink = CADisplayLink(target: self, selector: #selector(handleTimedTransitionFrame(_:)))
+        transitionDisplayLink = displayLink
+        displayLink.add(to: .main, forMode: .common)
+    }
+
+    @objc
+    private func handleTimedTransitionFrame(_ displayLink: CADisplayLink) {
+        guard var animation = timedTransition else {
+            stopTimedTransitionAnimation()
+            return
+        }
+
+        if animation.startedAt == nil {
+            animation.startedAt = displayLink.timestamp
+            timedTransition = animation
+        }
+
+        guard let startedAt = animation.startedAt else {
+            return
+        }
+
+        let elapsed = max(0, displayLink.timestamp - startedAt)
+        let fraction = min(1, CGFloat(elapsed / animation.duration))
+        let easedFraction = 1 - pow(1 - fraction, 3)
+        let progress = animation.startProgress + ((animation.targetProgress - animation.startProgress) * easedFraction)
+        applyGroupTransitionProgress(progress)
+
+        if fraction >= 1 {
+            let targetProgress = animation.targetProgress
+            stopTimedTransitionAnimation()
+            if abs(targetProgress - 1) < 0.0001 {
+                finishCurrentTransition()
+            } else {
+                cancelCurrentTransition()
             }
         }
-        transitionAnimator = animator
-        animator.startAnimation()
+    }
+
+    private func stopTimedTransitionAnimation() {
+        transitionDisplayLink?.invalidate()
+        transitionDisplayLink = nil
+        timedTransition = nil
     }
 
     private func applyGroupTransitionProgress(_ progress: CGFloat) {
@@ -603,18 +667,22 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         }
 
         let magnitude = abs(position)
-        let usesTrailingHinge = hingeEdge == .trailing
-        stage.layer.anchorPoint = CGPoint(x: usesTrailingHinge ? 1 : 0, y: 0.5)
-        stage.layer.position = CGPoint(
-            x: usesTrailingHinge ? width : 0,
-            y: stage.bounds.midY
-        )
+        let angle = cubeRotationRadians * position
+        // Pivot offset from the layer center to the hinge edge.
+        let pivotX: CGFloat = (hingeEdge == .trailing) ? width / 2 : -width / 2
 
+        // Build the cube face transform entirely in the transform matrix so that
+        // anchorPoint and position stay at their Auto-Layout-friendly defaults.
+        //
+        // Reading right-to-left (application order):
+        //   1. shift so the hinge edge sits at the layer origin
+        //   2. rotate around Y at the hinge
+        //   3. shift back
+        //   4. slide the whole face to track the cube surface
         var transform = CATransform3DIdentity
-        // A strict cube needs full-width translation and a pure 90 degree rotation around the edge.
-        // Any extra scale or z-offset opens a visible gap at the hinge.
-        transform = CATransform3DTranslate(transform, width * position, 0, 0)
-        transform = CATransform3DRotate(transform, cubeRotationRadians * position, 0, 1, 0)
+        transform = CATransform3DTranslate(transform, width * position + pivotX, 0, 0)
+        transform = CATransform3DRotate(transform, angle, 0, 1, 0)
+        transform = CATransform3DTranslate(transform, -pivotX, 0, 0)
         stage.layer.transform = transform
         stage.alpha = 1
         stage.layer.shadowOpacity = Float(min(0.24, magnitude * 0.24))
@@ -628,6 +696,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             return
         }
 
+        stopTimedTransitionAnimation()
         currentGroupIndex = transition.targetGroupIndex
         currentStoryIndex = transition.targetStoryIndex
         activeStage = transition.targetStage
@@ -647,6 +716,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             return
         }
 
+        stopTimedTransitionAnimation()
         resetStageTransform(transition.sourceStage)
         resetStageTransform(transition.targetStage)
         transition.targetStage.isHidden = true
@@ -657,8 +727,6 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
     }
 
     private func resetStageTransform(_ stage: ViewerStageView) {
-        stage.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        stage.layer.position = CGPoint(x: stage.bounds.midX, y: stage.bounds.midY)
         stage.layer.transform = CATransform3DIdentity
         stage.alpha = 1
         stage.layer.shadowOpacity = 0
@@ -1063,6 +1131,13 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         let targetStoryIndex: Int
         let direction: GroupDirection
         var progress: CGFloat
+    }
+
+    private struct TimedTransitionAnimation {
+        let startProgress: CGFloat
+        let targetProgress: CGFloat
+        let duration: CFTimeInterval
+        var startedAt: CFTimeInterval?
     }
 
     private enum PauseReason: Hashable {

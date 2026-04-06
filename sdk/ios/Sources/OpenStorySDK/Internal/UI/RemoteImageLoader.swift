@@ -51,5 +51,12 @@ internal enum RemoteImageLoader {
             }
         }.resume()
     }
+
+    static func cachedImage(from urlString: String?) -> UIImage? {
+        guard let urlString, let url = URL(string: urlString) else {
+            return nil
+        }
+        return cache.object(forKey: url as NSURL)
+    }
 }
 #endif
