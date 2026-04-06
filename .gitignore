@@ -15,3 +15,4 @@ apps/api/data/
 sdk/android/.gradle/
 sdk/android/local.properties
 sdk/android/**/build/
+sdk/ios/.build/
