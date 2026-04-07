@@ -1,11 +1,13 @@
 <resources>
-    <color name="sample_black">#000000</color>
-    <color name="sample_surface">#101010</color>
-    <color name="sample_surface_alt">#181818</color>
-    <color name="sample_outline">#262626</color>
-    <color name="sample_text_primary">#FFFFFF</color>
-    <color name="sample_text_secondary">#A9A9A9</color>
-    <color name="sample_story_group_text_viewed">#CFCFCF</color>
-    <color name="sample_accent">#F2C94C</color>
-    <color name="sample_accent_soft">#302507</color>
+    <color name="sample_background">#F7F7F5</color>
+    <color name="sample_surface">#FFFFFF</color>
+    <color name="sample_surface_alt">#EFF1EE</color>
+    <color name="sample_outline">#D5D9D2</color>
+    <color name="sample_text_primary">#141814</color>
+    <color name="sample_text_secondary">#5E675D</color>
+    <color name="sample_story_group_text_viewed">#7A8579</color>
+    <color name="sample_accent">#9A6A00</color>
+    <color name="sample_accent_soft">#FFF1CF</color>
+    <color name="sample_primary_button_background">#141814</color>
+    <color name="sample_primary_button_text">#FFFFFF</color>
 </resources>

@@ -1,6 +1,7 @@
 package com.openstory.sdk.internal.ui
 
 import android.graphics.Color
+import android.util.TypedValue
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -20,6 +21,25 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class StoryBarViewTest {
+    @Test
+    fun avatarRingStrokeWidthIsTwoDpThickerThanBaseline() {
+        val field = StoryBarView::class.java.getDeclaredField("AVATAR_RING_STROKE_WIDTH_DP")
+        field.isAccessible = true
+
+        assertThat(field.getFloat(null)).isEqualTo(3.53f)
+    }
+
+    @Test
+    fun bottomLabelStyleMatchesIosTokens() {
+        val backgroundField = StoryBarView::class.java.getDeclaredField("BOTTOM_LABEL_BACKGROUND_HEX")
+        backgroundField.isAccessible = true
+        val radiusField = StoryBarView::class.java.getDeclaredField("BOTTOM_LABEL_CORNER_RADIUS_DP")
+        radiusField.isAccessible = true
+
+        assertThat(backgroundField.get(null) as String).isEqualTo("#FDD74E")
+        assertThat(radiusField.getFloat(null)).isEqualTo(5f)
+    }
+
     @Test
     fun renderSnapshotUsesConfiguredTextColorForUnviewedGroups() {
         val view = StoryBarView(ApplicationProvider.getApplicationContext())
@@ -69,9 +89,8 @@ class StoryBarViewTest {
     }
 
     @Test
-    fun renderSnapshotRendersBottomLabelUsingConfiguredGroupTextColor() {
+    fun renderSnapshotUsesIosBottomLabelTextColor() {
         val view = StoryBarView(ApplicationProvider.getApplicationContext())
-        val textColor = Color.parseColor("#F3E7D8")
         val group = storyGroup(
             title = "Featured",
             bottomLabel = "NEW",
@@ -79,7 +98,7 @@ class StoryBarViewTest {
         )
 
         view.updateTitleColors(
-            textColor = textColor,
+            textColor = Color.parseColor("#F3E7D8"),
             viewedTextColor = Color.parseColor("#CFCFCF"),
         )
         view.renderSnapshot(
@@ -88,7 +107,7 @@ class StoryBarViewTest {
             viewedState = ViewedStoryStateSnapshot(viewedStoryRevisionIds = emptySet()),
         )
 
-        assertThat(findTextView(view, "NEW").currentTextColor).isEqualTo(textColor)
+        assertThat(findTextView(view, "NEW").currentTextColor).isEqualTo(Color.parseColor("#8B7502"))
     }
 
     @Test
@@ -109,6 +128,29 @@ class StoryBarViewTest {
 
         assertThat(findTextViewOrNull(view, "NEW")).isNull()
         assertThat(findTextView(view, "🔥").text.toString()).isEqualTo("🔥")
+    }
+
+    @Test
+    fun renderSnapshotUsesLargerTextSizeForEmojiBadge() {
+        val view = StoryBarView(ApplicationProvider.getApplicationContext())
+        val group = storyGroup(
+            title = "Featured",
+            badge = SdkFeedBadgePayload(type = "emoji", value = "🔥"),
+            revisions = listOf("story-rev-1"),
+        )
+
+        view.renderSnapshot(
+            response = responsePayload(group),
+            isCached = false,
+            viewedState = ViewedStoryStateSnapshot(viewedStoryRevisionIds = emptySet()),
+        )
+
+        val expectedTextSizePx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_SP,
+            14f,
+            view.resources.displayMetrics,
+        )
+        assertThat(findTextView(view, "🔥").textSize).isWithin(0.01f).of(expectedTextSizePx)
     }
 
     private fun responsePayload(group: SdkFeedGroupPayload): SdkFeedResponsePayload {

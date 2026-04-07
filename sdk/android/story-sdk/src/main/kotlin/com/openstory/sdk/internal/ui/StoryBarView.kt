@@ -1,13 +1,8 @@
 package com.openstory.sdk.internal.ui
 
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Outline
-import android.graphics.Paint
-import android.graphics.RectF
-import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -178,6 +173,7 @@ internal class StoryBarView @JvmOverloads constructor(
                         anchorContext = context,
                         response = response,
                         initialGroupIndex = index,
+                        isCached = isCached,
                         group = group,
                         callbacks = callbacks,
                     )
@@ -225,13 +221,10 @@ internal class StoryBarView @JvmOverloads constructor(
             clipToPadding = false
         }
 
-        val ringColors = if (isViewed) {
-            intArrayOf(Color.parseColor("#D8CEC2"), Color.parseColor("#BDB2A6"))
-        } else if (isCached) {
-            intArrayOf(Color.parseColor("#C3A173"), Color.parseColor("#B4845D"))
-        } else {
-            intArrayOf(Color.parseColor("#F59E0B"), Color.parseColor("#8B5CF6"))
-        }
+        val ringColors = storyAvatarRingColors(
+            isViewed = isViewed,
+            isCached = isCached,
+        )
 
         val image = ImageView(context).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
@@ -249,16 +242,17 @@ internal class StoryBarView @JvmOverloads constructor(
 
         val badgeValue = group.badge?.value?.takeIf { it.isNotBlank() }
         val badge = badgeValue?.let { renderedBadgeValue ->
+            val isSvgBadge = group.badge?.type == "svg"
             TextView(context).apply {
-                text = if (group.badge?.type == "svg") "SVG" else renderedBadgeValue
-                minWidth = dp(24)
-                minHeight = dp(24)
-                textSize = 11f
+                text = if (isSvgBadge) "SVG" else renderedBadgeValue
+                minWidth = dp(if (isSvgBadge) 24 else 28)
+                minHeight = dp(if (isSvgBadge) 24 else 28)
+                textSize = if (isSvgBadge) 11f else 14f
                 gravity = Gravity.CENTER
                 setTextColor(Color.WHITE)
                 setTypeface(typeface, Typeface.BOLD)
                 background = roundedBackground("#000000")
-                setPadding(dp(6), dp(0), dp(6), dp(0))
+                setPadding(dp(if (isSvgBadge) 6 else 5), dp(0), dp(if (isSvgBadge) 6 else 5), dp(0))
                 elevation = dp(2).toFloat()
             }
         }
@@ -273,9 +267,12 @@ internal class StoryBarView @JvmOverloads constructor(
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
                 textSize = 10f
-                setTextColor(activeTextColor)
+                setTextColor(Color.parseColor(BOTTOM_LABEL_TEXT_HEX))
                 setTypeface(typeface, Typeface.BOLD)
-                background = roundedBackground("#000000", 5f)
+                background = roundedBackground(
+                    BOTTOM_LABEL_BACKGROUND_HEX,
+                    BOTTOM_LABEL_CORNER_RADIUS_DP,
+                )
                 setPadding(dp(7), dp(2), dp(7), dp(2))
             }
         }
@@ -283,8 +280,8 @@ internal class StoryBarView @JvmOverloads constructor(
         avatarFrame.addView(
             GradientRingView(
                 context = context,
-                startColor = ringColors[0],
-                endColor = ringColors[1],
+                startColor = ringColors.startColor,
+                endColor = ringColors.endColor,
                 strokeWidthPx = ringStrokeWidthPx.toFloat(),
             ),
             LayoutParams(
@@ -393,53 +390,24 @@ internal class StoryBarView @JvmOverloads constructor(
             anchorContext: Context,
             response: SdkFeedResponsePayload,
             initialGroupIndex: Int,
+            isCached: Boolean,
             group: SdkFeedGroupPayload,
             callbacks: OpenStoryCallbacks,
         )
     }
 
     private companion object {
-        const val AVATAR_DIAMETER_DP = 67.05f
-        const val AVATAR_RING_STROKE_WIDTH_DP = 1.53f
-        const val AVATAR_IMAGE_DIAMETER_DP = 55.62f
+        const val AVATAR_DIAMETER_DP = STORY_BAR_AVATAR_RING_DIAMETER_DP
+        const val AVATAR_RING_STROKE_WIDTH_DP = STORY_BAR_AVATAR_RING_STROKE_WIDTH_DP
+        const val AVATAR_IMAGE_DIAMETER_DP = STORY_BAR_AVATAR_IMAGE_DIAMETER_DP
+        const val BOTTOM_LABEL_BACKGROUND_HEX = "#FDD74E"
+        const val BOTTOM_LABEL_TEXT_HEX = "#8B7502"
+        const val BOTTOM_LABEL_CORNER_RADIUS_DP = 5f
 
         @ColorInt
         val DEFAULT_TITLE_TEXT_COLOR: Int = Color.parseColor("#2B1A12")
 
         @ColorInt
         val DEFAULT_VIEWED_TITLE_TEXT_COLOR: Int = Color.parseColor("#8E8176")
-    }
-}
-
-private class GradientRingView(
-    context: Context,
-    @ColorInt private val startColor: Int,
-    @ColorInt private val endColor: Int,
-    private val strokeWidthPx: Float,
-) : View(context) {
-    private val ovalBounds = RectF()
-    private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = strokeWidthPx
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        val inset = strokeWidthPx / 2f
-        ovalBounds.set(inset, inset, w.toFloat() - inset, h.toFloat() - inset)
-        ringPaint.shader = LinearGradient(
-            0f,
-            0f,
-            w.toFloat(),
-            h.toFloat(),
-            startColor,
-            endColor,
-            Shader.TileMode.CLAMP,
-        )
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        canvas.drawOval(ovalBounds, ringPaint)
     }
 }

@@ -3,14 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/sample_black"
+    android:background="@color/sample_background"
     android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/topAppBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/sample_black"
+        android:background="@color/sample_background"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         app:subtitleTextColor="@color/sample_text_secondary"
@@ -132,11 +132,11 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
-                        android:backgroundTint="@color/sample_text_primary"
+                        android:backgroundTint="@color/sample_primary_button_background"
                         android:paddingStart="18dp"
                         android:paddingEnd="18dp"
                         android:text="@string/sample_reload"
-                        android:textColor="@color/sample_black" />
+                        android:textColor="@color/sample_primary_button_text" />
                 </LinearLayout>
 
                 <TextView
@@ -323,7 +323,7 @@
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/sample_black"
+        android:background="@color/sample_background"
         app:itemIconTint="@color/bottom_nav_item_tint"
         app:itemTextColor="@color/bottom_nav_item_tint"
         app:labelVisibilityMode="labeled"

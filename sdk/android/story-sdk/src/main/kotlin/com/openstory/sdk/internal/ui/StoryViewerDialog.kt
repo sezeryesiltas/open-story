@@ -59,6 +59,7 @@ internal class StoryViewerDialog private constructor(
     private val response: SdkFeedResponsePayload,
     private val initialGroupIndex: Int,
     private val initialStoryIndex: Int,
+    private val isCached: Boolean,
     private val viewedStorySession: ViewedStorySession,
     private val callbacks: OpenStoryCallbacks,
 ) : Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
@@ -104,10 +105,6 @@ internal class StoryViewerDialog private constructor(
         get() = activeStage.gestureOverlay
     private val progressRow: LinearLayout
         get() = activeStage.progressRow
-    private val avatarView: ImageView
-        get() = activeStage.avatarView
-    private val titleView: TextView
-        get() = activeStage.titleView
     private val soundButton: FrameLayout
         get() = activeStage.soundButton
     private val soundIconView: ImageView
@@ -180,6 +177,7 @@ internal class StoryViewerDialog private constructor(
         val gestureOverlay: View,
         val progressRow: LinearLayout,
         val progressFillViews: MutableList<View>,
+        val avatarRingView: GradientRingView,
         val avatarView: ImageView,
         val titleView: TextView,
         val soundButton: FrameLayout,
@@ -230,6 +228,12 @@ internal class StoryViewerDialog private constructor(
     }
 
     private fun createViewerStage(): ViewerStage {
+        val avatarRingDiameterPx = dp(VIEWER_AVATAR_RING_DIAMETER_DP)
+        val avatarImageDiameterPx = dp(VIEWER_AVATAR_IMAGE_DIAMETER_DP)
+        val initialRingColors = storyAvatarRingColors(
+            isViewed = false,
+            isCached = isCached,
+        )
         val stageRoot = FrameLayout(context).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -251,22 +255,44 @@ internal class StoryViewerDialog private constructor(
                 FrameLayout.LayoutParams.MATCH_PARENT,
             )
         }
-        val scrimTop = View(context).apply {
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(0xD9000000.toInt(), 0x14000000),
-            )
-        }
-        val scrimBottom = View(context).apply {
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(0x00000000, 0xF2000000.toInt()),
-            )
-        }
+        val scrimTop = LinearGradientView(
+            context = context,
+            colors = intArrayOf(0xEB000000.toInt(), 0x00000000),
+        )
+        val scrimBottom = LinearGradientView(
+            context = context,
+            colors = intArrayOf(0x00000000, 0xF2000000.toInt()),
+        )
         val progressRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-        val avatarView = circularImageView(sizeDp = 40)
+        val avatarRingView = GradientRingView(
+            context = context,
+            startColor = initialRingColors.startColor,
+            endColor = initialRingColors.endColor,
+            strokeWidthPx = dp(VIEWER_AVATAR_RING_STROKE_WIDTH_DP).toFloat(),
+        )
+        val avatarView = circularImageView()
+        val avatarHost = FrameLayout(context).apply {
+            clipChildren = false
+            clipToPadding = false
+            addView(
+                avatarRingView,
+                FrameLayout.LayoutParams(
+                    avatarRingDiameterPx,
+                    avatarRingDiameterPx,
+                    Gravity.CENTER,
+                ),
+            )
+            addView(
+                avatarView,
+                FrameLayout.LayoutParams(
+                    avatarImageDiameterPx,
+                    avatarImageDiameterPx,
+                    Gravity.CENTER,
+                ),
+            )
+        }
         val titleView = TextView(context).apply {
             setTextColor(Color.WHITE)
             textSize = 14f
@@ -295,7 +321,10 @@ internal class StoryViewerDialog private constructor(
         val headerLeft = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(avatarView)
+            addView(
+                avatarHost,
+                LinearLayout.LayoutParams(avatarRingDiameterPx, avatarRingDiameterPx),
+            )
             addView(
                 titleView,
                 LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
@@ -412,6 +441,7 @@ internal class StoryViewerDialog private constructor(
             gestureOverlay = gestureOverlay,
             progressRow = progressRow,
             progressFillViews = mutableListOf(),
+            avatarRingView = avatarRingView,
             avatarView = avatarView,
             titleView = titleView,
             soundButton = soundButton,
@@ -443,8 +473,7 @@ internal class StoryViewerDialog private constructor(
         val story = currentStoryOrNull() ?: return dismiss()
 
         currentStoryProgressFraction = 0f
-        titleView.text = group.title
-        avatarView.load(group.logoUrl)
+        bindStageHeader(activeStage, group)
         updateProgressIndicators(
             stage = activeStage,
             group = group,
@@ -461,6 +490,7 @@ internal class StoryViewerDialog private constructor(
         )
         if (reportStoryView) {
             reportStoryView(group, story)
+            updateAvatarRing(activeStage, group)
         }
     }
 
@@ -519,8 +549,7 @@ internal class StoryViewerDialog private constructor(
         val group = groups.getOrNull(groupIndex) ?: return
         val story = group.stories.getOrNull(storyIndex) ?: return
 
-        stage.titleView.text = group.title
-        stage.avatarView.load(group.logoUrl)
+        bindStageHeader(stage, group)
         updateProgressIndicators(
             stage = stage,
             group = group,
@@ -537,6 +566,29 @@ internal class StoryViewerDialog private constructor(
         )
         stage.soundButton.isVisible = story.mediaType == "video"
         updateSoundButton(stage)
+    }
+
+    private fun bindStageHeader(
+        stage: ViewerStage,
+        group: SdkFeedGroupPayload,
+    ) {
+        stage.titleView.text = group.title
+        stage.avatarView.load(group.logoUrl)
+        updateAvatarRing(stage, group)
+    }
+
+    private fun updateAvatarRing(
+        stage: ViewerStage,
+        group: SdkFeedGroupPayload,
+    ) {
+        val ringColors = storyAvatarRingColors(
+            isViewed = viewedStorySession.isGroupViewed(group),
+            isCached = isCached,
+        )
+        stage.avatarRingView.updateColors(
+            startColor = ringColors.startColor,
+            endColor = ringColors.endColor,
+        )
     }
 
     private fun renderMedia(story: SdkFeedStoryPayload) {
@@ -1309,8 +1361,8 @@ internal class StoryViewerDialog private constructor(
         }
     }
 
-    private fun circularImageView(sizeDp: Int): ImageView {
-        val imageView = ImageView(context).apply {
+    private fun circularImageView(): ImageView {
+        return ImageView(context).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
@@ -1325,9 +1377,6 @@ internal class StoryViewerDialog private constructor(
                 clipToOutline = true
             }
         }
-
-        imageView.layoutParams = LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp))
-        return imageView
     }
 
     private fun pillBackground(colorHex: String): GradientDrawable {
@@ -1341,6 +1390,9 @@ internal class StoryViewerDialog private constructor(
     private fun dp(value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()
 
+    private fun dp(value: Float): Int =
+        (value * context.resources.displayMetrics.density).toInt()
+
     private fun swipeDismissThresholdPx(): Float = dp(120).toFloat()
 
     private fun groupSwipeThresholdPx(): Float = dp(56).toFloat()
@@ -1349,11 +1401,18 @@ internal class StoryViewerDialog private constructor(
         groupSwipeThresholdPx() / stageSurface.width.coerceAtLeast(1).toFloat()
 
     companion object {
+        private const val VIEWER_AVATAR_IMAGE_DIAMETER_DP = 40f
+        private val VIEWER_AVATAR_RING_DIAMETER_DP =
+            storyAvatarRingDiameterDpForImage(VIEWER_AVATAR_IMAGE_DIAMETER_DP)
+        private val VIEWER_AVATAR_RING_STROKE_WIDTH_DP =
+            storyAvatarRingStrokeWidthDpForImage(VIEWER_AVATAR_IMAGE_DIAMETER_DP)
+
         fun show(
             anchorContext: Context,
             response: SdkFeedResponsePayload,
             initialGroupIndex: Int,
             initialStoryIndex: Int,
+            isCached: Boolean,
             viewedStorySession: ViewedStorySession,
             callbacks: OpenStoryCallbacks,
         ): Boolean {
@@ -1367,6 +1426,7 @@ internal class StoryViewerDialog private constructor(
                 response = response,
                 initialGroupIndex = initialGroupIndex,
                 initialStoryIndex = initialStoryIndex,
+                isCached = isCached,
                 viewedStorySession = viewedStorySession,
                 callbacks = callbacks,
             ).show()
