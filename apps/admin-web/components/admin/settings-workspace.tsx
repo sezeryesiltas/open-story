@@ -1,5 +1,6 @@
 'use client';
 
+import type { DatabaseSettingsDto, UpdateDatabaseSettingsDto } from '@open-story/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
@@ -8,26 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { ArrowRightLeft, Database, HardDriveDownload, RefreshCcw } from 'lucide-react';
+import { Database, HardDriveDownload, RefreshCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { PageHeader } from '@/components/admin/page-header';
 import { ApiRequestError, apiRequest } from '@/lib/api';
-
-type DatabaseSettings = {
-  defaultSqliteUrl: string;
-  activeDatabaseUrl: string;
-  externalDatabaseUrl: string | null;
-  isUsingExternalDatabase: boolean;
-  migratedAt: string | null;
-  tableCounts: Record<string, number>;
-};
-
-type UpdateDatabaseSettingsRequest = {
-  externalDatabaseUrl?: string | null;
-};
+import { formatDatabaseSettingsDate } from '@/lib/database-settings-presentation';
 
 type Notice =
   | {
@@ -48,20 +37,6 @@ const formSchema = z.object({
 });
 
 type SettingsFormValues = z.infer<typeof formSchema>;
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return 'Henüz taşınmadı';
-  }
-
-  return new Intl.DateTimeFormat('tr-TR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
 
 function LoadingCards() {
   return (
@@ -97,7 +72,7 @@ export function SettingsWorkspace() {
 
   const settingsQuery = useQuery({
     queryKey: ['database-settings'],
-    queryFn: () => apiRequest<DatabaseSettings>('/api/settings/database'),
+    queryFn: () => apiRequest<DatabaseSettingsDto>('/api/settings/database'),
   });
 
   const {
@@ -123,8 +98,8 @@ export function SettingsWorkspace() {
   }, [reset, settingsQuery.data]);
 
   const updateMutation = useMutation({
-    mutationFn: (payload: UpdateDatabaseSettingsRequest) =>
-      apiRequest<DatabaseSettings>('/api/settings/database', {
+    mutationFn: (payload: UpdateDatabaseSettingsDto) =>
+      apiRequest<DatabaseSettingsDto>('/api/settings/database', {
         method: 'PUT',
         body: JSON.stringify(payload),
       }),
@@ -266,24 +241,8 @@ export function SettingsWorkspace() {
                   {settings.activeDatabaseUrl}
                 </p>
                 <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  Son kopyalama: {formatDate(settings.migratedAt)}
+                  Son kopyalama: {formatDatabaseSettingsDate(settings.migratedAt)}
                 </p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border/60 bg-card p-5">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ArrowRightLeft className="h-4 w-4" />
-                Aktif veri hacmi
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {Object.entries(settings.tableCounts).map(([tableName, count]) => (
-                  <div key={tableName} className="rounded-lg border border-border/60 bg-muted/30 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{tableName}</p>
-                    <p className="mt-3 text-2xl font-semibold">{count}</p>
-                  </div>
-                ))}
               </div>
             </div>
           </CardContent>

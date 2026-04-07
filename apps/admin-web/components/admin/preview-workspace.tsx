@@ -459,125 +459,144 @@ export function PreviewWorkspace() {
                 <>
                   {activeGroup && activeStory ? (
                     <>
-                      <div className="mx-auto flex w-full max-w-[390px] flex-col gap-4">
-                        <div className="overflow-x-auto px-1 pt-1 pb-2">
-                          <div className="flex min-w-max gap-4 px-1">
-                            {groups.map((group, groupIndex) => (
-                              <GroupAvatarButton
-                                bottomLabel={data.groupMetaById[group.id]?.bottomLabel ?? null}
-                                group={group}
-                                key={group.id}
-                                onSelect={() => {
-                                  setActiveGroupIndex(groupIndex);
-                                  setActiveStoryIndex(0);
-                                }}
-                                isActive={groupIndex === activeGroupIndex}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        <ViewerStage
-                          activeStoryIndex={activeStoryIndex}
-                          canGoBackward={canGoBackward}
-                          canGoForward={canGoForward}
-                          group={activeGroup}
-                          onNext={goToNextStory}
-                          onPrevious={goToPreviousStory}
-                          story={activeStory}
-                        />
-                      </div>
-
-                      <div className="mx-auto flex w-full max-w-[390px] flex-col gap-3">
-                        <div className="flex flex-wrap gap-2">
-                          <StatusPill
-                            label="Görünür"
-                            value={`${data.stats?.visibleGroupCount ?? 0} group / ${data.stats?.visibleStoryCount ?? 0} story`}
-                          />
-                          <StatusPill
-                            label="Medya"
-                            value={`${data.stats?.imageCount ?? 0} image / ${data.stats?.videoCount ?? 0} video`}
-                          />
-                          <StatusPill label="CTA" value={`${data.stats?.ctaCount ?? 0} story`} />
-                        </div>
-
-                        {selectedStoryGroupSet ? (
+                      <div className="grid gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
+                        <div className="order-2 flex flex-col gap-4 xl:order-1">
                           <div className="rounded-xl border border-border/60 bg-background/70 p-4">
-                            <p className="text-sm leading-6 text-muted-foreground">
-                              <span className="font-medium text-foreground">{selectedStoryGroupSet.name}</span>
-                              {' • '}
-                              {formatTargetingSummary(selectedStoryGroupSet)}
-                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <StatusPill
+                                label="Görünür"
+                                value={`${data.stats?.visibleGroupCount ?? 0} group / ${data.stats?.visibleStoryCount ?? 0} story`}
+                              />
+                              <StatusPill
+                                label="Medya"
+                                value={`${data.stats?.imageCount ?? 0} image / ${data.stats?.videoCount ?? 0} video`}
+                              />
+                              <StatusPill label="CTA" value={`${data.stats?.ctaCount ?? 0} story`} />
+                            </div>
+
+                            {selectedStoryGroupSet ? (
+                              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                                <span className="font-medium text-foreground">{selectedStoryGroupSet.name}</span>
+                                {' • '}
+                                {formatTargetingSummary(selectedStoryGroupSet)}
+                              </p>
+                            ) : null}
                           </div>
-                        ) : null}
 
-                        {data.warnings.length > 0 ? (
-                          <div className="rounded-xl border border-border/60 bg-background/70 p-4 text-sm leading-6 text-muted-foreground">
-                            {data.warnings[0]}
+                          <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+                            <div className="flex flex-wrap gap-2">
+                              <Badge>Group {activeGroupIndex + 1}</Badge>
+                              <Badge variant="secondary">
+                                Story {activeStoryIndex + 1}/{activeGroup.stories.length}
+                              </Badge>
+                              <Badge variant="outline">{activeStory.media_type}</Badge>
+                              {activeStory.cta ? <Badge>CTA var</Badge> : <Badge variant="outline">CTA yok</Badge>}
+                            </div>
+
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                              <Button
+                                className="justify-between"
+                                disabled={!canGoBackward}
+                                onClick={goToPreviousStory}
+                                variant="outline"
+                              >
+                                <span className="inline-flex items-center gap-2">
+                                  <ArrowLeft className="h-4 w-4" data-icon />
+                                  Önceki
+                                </span>
+                              </Button>
+                              <Button className="justify-between" disabled={!canGoForward} onClick={goToNextStory}>
+                                <span className="inline-flex items-center gap-2">
+                                  Sonraki
+                                  <ArrowRight className="h-4 w-4" data-icon />
+                                </span>
+                              </Button>
+                            </div>
                           </div>
-                        ) : null}
-                      </div>
 
-                      <div className="mx-auto flex w-full max-w-[390px] flex-wrap items-center justify-center gap-2 text-center">
-                        <Badge>Group {activeGroupIndex + 1}</Badge>
-                        <Badge variant="secondary">
-                          Story {activeStoryIndex + 1}/{activeGroup.stories.length}
-                        </Badge>
-                        <Badge variant="outline">{activeStory.media_type}</Badge>
-                        {activeStory.cta ? <Badge>CTA var</Badge> : <Badge variant="outline">CTA yok</Badge>}
-                      </div>
-
-                      <div className="mx-auto flex w-full max-w-[390px] flex-wrap justify-center gap-3">
-                        <Button disabled={!canGoBackward} onClick={goToPreviousStory} variant="outline">
-                          <ArrowLeft />
-                          Önceki
-                        </Button>
-                        <Button disabled={!canGoForward} onClick={goToNextStory}>
-                          Sonraki
-                          <ArrowRight />
-                        </Button>
-                      </div>
-
-                      <div className="rounded-xl border border-border/60 bg-background/70 p-4">
-                        <div className="flex items-center gap-2">
-                          <MousePointerClick className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">CTA bilgileri</span>
-                        </div>
-                        {activeStory.cta ? (
-                          <div className="mt-4 flex flex-col gap-2 text-sm leading-6 text-muted-foreground">
-                            <span>Label: {activeStory.cta.label}</span>
-                            <span>Type: {activeStory.cta.type}</span>
-                            <span className="break-all">Value: {activeStory.cta.value}</span>
-                          </div>
-                        ) : (
-                          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                            Bu story için CTA tanımlanmamış.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-3">
-                        {activeGroup.stories.map((story, storyIndex) => (
-                          <button
-                            key={story.id}
-                            className={`rounded-xl border px-3 py-3 text-left transition-colors ${
-                              storyIndex === activeStoryIndex
-                                ? 'border-primary bg-primary/10'
-                                : 'border-border/60 bg-background/70 hover:bg-accent/60'
-                            }`}
-                            onClick={() => setActiveStoryIndex(storyIndex)}
-                            type="button"
-                          >
+                          <div className="rounded-xl border border-border/60 bg-background/70 p-4">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline">#{storyIndex + 1}</Badge>
-                              <span className="font-medium">{story.title}</span>
+                              <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">CTA bilgileri</span>
                             </div>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <Badge variant="secondary">{story.media_type}</Badge>
-                              {story.cta ? <Badge>CTA</Badge> : null}
+                            {activeStory.cta ? (
+                              <div className="mt-4 flex flex-col gap-3 text-sm leading-6 text-muted-foreground">
+                                <div className="rounded-lg border border-border/60 bg-background px-3 py-2">
+                                  <span className="font-medium text-foreground">Label:</span> {activeStory.cta.label}
+                                </div>
+                                <div className="rounded-lg border border-border/60 bg-background px-3 py-2">
+                                  <span className="font-medium text-foreground">Type:</span> {activeStory.cta.type}
+                                </div>
+                                <div className="rounded-lg border border-border/60 bg-background px-3 py-2 break-all">
+                                  <span className="font-medium text-foreground">Value:</span> {activeStory.cta.value}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                                Bu story için CTA tanımlanmamış.
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium">Story navigasyonu</span>
+                              <Badge variant="secondary">{activeGroup.stories.length} story</Badge>
                             </div>
-                          </button>
-                        ))}
+                            <div className="mt-4 flex flex-col gap-3">
+                              {activeGroup.stories.map((story, storyIndex) => (
+                                <button
+                                  key={story.id}
+                                  className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
+                                    storyIndex === activeStoryIndex
+                                      ? 'border-primary bg-primary/10'
+                                      : 'border-border/60 bg-background hover:bg-accent/60'
+                                  }`}
+                                  onClick={() => setActiveStoryIndex(storyIndex)}
+                                  type="button"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline">#{storyIndex + 1}</Badge>
+                                    <span className="font-medium">{story.title}</span>
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <Badge variant="secondary">{story.media_type}</Badge>
+                                    {story.cta ? <Badge>CTA</Badge> : null}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="order-1 flex flex-col gap-4 xl:order-2 xl:items-center">
+                          <div className="mx-auto w-full max-w-[390px] overflow-x-auto px-1 pt-1 pb-2">
+                            <div className="flex min-w-full w-max justify-center gap-4 px-1">
+                              {groups.map((group, groupIndex) => (
+                                <GroupAvatarButton
+                                  bottomLabel={data.groupMetaById[group.id]?.bottomLabel ?? null}
+                                  group={group}
+                                  key={group.id}
+                                  onSelect={() => {
+                                    setActiveGroupIndex(groupIndex);
+                                    setActiveStoryIndex(0);
+                                  }}
+                                  isActive={groupIndex === activeGroupIndex}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <ViewerStage
+                            activeStoryIndex={activeStoryIndex}
+                            canGoBackward={canGoBackward}
+                            canGoForward={canGoForward}
+                            group={activeGroup}
+                            onNext={goToNextStory}
+                            onPrevious={goToPreviousStory}
+                            story={activeStory}
+                          />
+                        </div>
                       </div>
                     </>
                   ) : null}

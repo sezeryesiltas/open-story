@@ -274,6 +274,7 @@ export function inspectPreviewSetContent({
       id: storyGroup.id,
       revision_id: storyGroup.currentPublishedRevisionId ?? storyGroup.currentDraftRevisionId,
       title: storyGroup.name,
+      bottom_label: storyGroup.bottomLabel,
       logo_url: toAbsoluteUrl(logoAsset.url, origin),
       badge: storyGroup.badge,
       stories,

@@ -5,7 +5,6 @@ import {
   Home,
   KeyRound,
   Layers3,
-  LogIn,
   ShieldCheck,
   SquareStack,
   Users
@@ -33,30 +32,18 @@ export const adminNavSections: AdminNavSection[] = [
         description: 'Hızlı erişim ve genel görünüm.',
         href: '/',
         icon: Home
-      },
-      {
-        title: 'Placements',
-        description: 'Gösterim alanlarını yönetin.',
-        href: '/placements',
-        icon: Layers3
-      },
-      {
-        title: 'Client & Tokens',
-        description: 'Uygulama erişimini yönetin.',
-        href: '/client',
-        icon: KeyRound
-      },
-      {
-        title: 'Settings',
-        description: 'Bağlantı ayarlarını yönetin.',
-        href: '/settings',
-        icon: Database
       }
     ]
   },
   {
     title: 'Content',
     items: [
+      {
+        title: 'Placements',
+        description: 'Gösterim alanlarını yönetin.',
+        href: '/placements',
+        icon: Layers3
+      },
       {
         title: 'Story Bars',
         description: 'Story bar listelerini yönetin.',
@@ -84,8 +71,14 @@ export const adminNavSections: AdminNavSection[] = [
     ]
   },
   {
-    title: 'Access',
+    title: 'Settings',
     items: [
+      {
+        title: 'Client & Tokens',
+        description: 'Uygulama erişimini yönetin.',
+        href: '/client',
+        icon: KeyRound
+      },
       {
         title: 'Users',
         description: 'Yönetici hesaplarını yönetin.',
@@ -93,10 +86,10 @@ export const adminNavSections: AdminNavSection[] = [
         icon: Users
       },
       {
-        title: 'Login',
-        description: 'Panele giriş yapın.',
-        href: '/login',
-        icon: LogIn
+        title: 'DB Settings',
+        description: 'Bağlantı ayarlarını yönetin.',
+        href: '/settings',
+        icon: Database
       },
       {
         title: 'Change Password',
