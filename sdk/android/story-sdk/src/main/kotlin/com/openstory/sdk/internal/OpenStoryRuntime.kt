@@ -251,7 +251,7 @@ internal class OpenStoryRuntime(
     }
 
     private fun viewerLauncher(): StoryBarView.ViewerLauncher {
-        return StoryBarView.ViewerLauncher { anchorContext, response, initialGroupIndex, group, callbacks ->
+        return StoryBarView.ViewerLauncher { anchorContext, response, initialGroupIndex, isCached, group, callbacks ->
             val viewedStorySession = ViewedStorySession(
                 initialSnapshot = viewedStoryStateRepository.currentSnapshot(),
                 onStoryViewed = ::onStoryViewed,
@@ -261,6 +261,7 @@ internal class OpenStoryRuntime(
                 response = response,
                 initialGroupIndex = initialGroupIndex,
                 initialStoryIndex = viewedStorySession.firstUnviewedStoryIndex(group),
+                isCached = isCached,
                 viewedStorySession = viewedStorySession,
                 callbacks = callbacks,
             )
