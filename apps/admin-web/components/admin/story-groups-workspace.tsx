@@ -95,6 +95,7 @@ type PublishFilterValue = 'all' | 'published' | 'unpublished';
 
 const emptyStoryGroups: StoryGroupApiRecord[] = [];
 const emptyStoryGroupSets: StoryGroupSetApiRecord[] = [];
+const emptyAssetRecords: AssetApiRecord[] = [];
 const emptyStoryGroupFormValues: StoryGroupFormValues = {
   name: '',
   bottomLabel: '',
@@ -239,14 +240,13 @@ export function StoryGroupsWorkspace() {
 
   const storyGroups = workspaceQuery.data?.storyGroups ?? emptyStoryGroups;
   const storyGroupSets = workspaceQuery.data?.storyGroupSets ?? emptyStoryGroupSets;
-  const groupLogoAssets = workspaceQuery.data?.groupLogoAssets ?? [];
   const storyGroupSetOptions = useMemo(
     () => [...storyGroupSets].sort((left, right) => left.name.localeCompare(right.name, 'tr')),
     [storyGroupSets],
   );
   const groupLogoAssetById = useMemo(
-    () => new Map(groupLogoAssets.map((asset) => [asset.id, asset])),
-    [groupLogoAssets],
+    () => new Map((workspaceQuery.data?.groupLogoAssets ?? emptyAssetRecords).map((asset) => [asset.id, asset])),
+    [workspaceQuery.data?.groupLogoAssets],
   );
 
   const filteredStoryGroups = useMemo(() => {
