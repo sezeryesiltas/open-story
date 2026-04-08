@@ -16,7 +16,7 @@ import { Label } from '@open-story/ui/components/label';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
 import { RefreshCcw, UserPlus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
 import { ApiRequestError, apiRequest } from '@/lib/api';
@@ -58,7 +58,7 @@ export function UsersWorkspace() {
   });
 
   const users = usersQuery.data ?? [];
-  const activeUserCount = useMemo(() => users.filter((user) => user.isActive).length, [users]);
+  const activeUserCount = users.filter((user) => user.isActive).length;
 
   const createUserMutation = useMutation({
     mutationFn: () =>

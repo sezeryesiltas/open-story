@@ -133,6 +133,28 @@ function StatusPill({
   );
 }
 
+function PreviewWarnings({ warnings }: { warnings: string[] }) {
+  if (warnings.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="mt-1 h-4 w-4 shrink-0 text-amber-600" />
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">Preview uyarıları</p>
+          <ul className="mt-2 flex flex-col gap-2 text-sm leading-6 text-muted-foreground">
+            {warnings.map((warning, index) => (
+              <li key={`${index}-${warning}`}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatBadgeValue(group: SdkFeedGroup) {
   if (!group.badge) {
     return null;
@@ -373,7 +395,7 @@ export function PreviewWorkspace() {
     (activeStoryIndex < activeGroup.stories.length - 1 || activeGroupIndex < groups.length - 1);
   const selectedStoryGroupSet =
     data?.candidateSets.find((storyGroupSet) => storyGroupSet.id === selectedSetId) ?? null;
-  const issuePreview = (data?.issues ?? []).slice(0, 3);
+  const visibilityIssues = (data?.issues ?? []).slice(0, 3);
 
   return (
     <div className="flex flex-col gap-6">
@@ -454,6 +476,8 @@ export function PreviewWorkspace() {
                   </Select>
                 </div>
               </div>
+
+              {data ? <PreviewWarnings warnings={data.warnings} /> : null}
 
               {groups.length > 0 ? (
                 <>
@@ -611,13 +635,13 @@ export function PreviewWorkspace() {
 
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Uyarılar</CardTitle>
-              <CardDescription>Önizleme sırasında dikkat edilmesi gereken noktalar.</CardDescription>
+              <CardTitle>Görünürlük sorunları</CardTitle>
+              <CardDescription>Önizlemede filtrelenen grup ve story kayıtları.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {issuePreview.length > 0 ? (
+              {visibilityIssues.length > 0 ? (
                 <div className="flex flex-col gap-3">
-                  {issuePreview.map((issue) => (
+                  {visibilityIssues.map((issue) => (
                     <div
                       key={`${issue.entity}-${issue.id}-${issue.reason}`}
                       className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/70 p-4 text-sm leading-6 text-muted-foreground"
@@ -633,7 +657,7 @@ export function PreviewWorkspace() {
               ) : (
                 <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/70 p-4 text-sm leading-6 text-muted-foreground">
                   <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                  <p>Seçili içerik için ek bir uyarı bulunmuyor.</p>
+                  <p>Seçili içerik için ek bir görünürlük sorunu bulunmuyor.</p>
                 </div>
               )}
             </CardContent>
@@ -647,19 +671,22 @@ export function PreviewWorkspace() {
             <CardTitle>Önizleme için içerik ekleyin</CardTitle>
             <CardDescription>Önizlemeyi kullanmak için önce placement ve içerik oluşturun.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button asChild variant="outline">
-              <Link href="/placements">Placement oluştur</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/story-group-sets">Story Bar oluştur</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/story-groups">Story Group oluştur</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/stories">Story oluştur</Link>
-            </Button>
+          <CardContent className="flex flex-col gap-4">
+            {data ? <PreviewWarnings warnings={data.warnings} /> : null}
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="outline">
+                <Link href="/placements">Placement oluştur</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/story-group-sets">Story Bar oluştur</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/story-groups">Story Group oluştur</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/stories">Story oluştur</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : null}

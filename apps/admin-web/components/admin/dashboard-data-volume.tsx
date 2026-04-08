@@ -121,7 +121,7 @@ export function DashboardDataVolume({
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Toplam kayit</p>
                 <p className="mt-2 text-3xl font-semibold tracking-tight">{formatMetricCount(totalCount)}</p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Platformun tum tablo satirlari tek snapshot'ta gorunur.
+                  Platformun tum tablo satirlari tek snapshot&#39;ta gorunur.
                 </p>
               </div>
             </div>
