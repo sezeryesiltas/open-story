@@ -5,9 +5,9 @@ module.exports = {
   apps: [
     {
       name: 'open-story-api',
-      script: 'apps/api/dist/main.js',
-      interpreter: 'node',
-      interpreter_args: '--experimental-strip-types',
+      script: 'node_modules/.bin/tsx',
+      args: 'apps/api/src/main.ts',
+      interpreter: 'none',
       env: {
         NODE_ENV: 'production',
       },
