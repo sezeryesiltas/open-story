@@ -25,8 +25,8 @@ COPY turbo.json ./
 COPY apps/ ./apps/
 COPY packages/ ./packages/
 
-# Build API (tsc) and Admin Web (next build)
-RUN pnpm run build
+# Build only admin-web (API runs from TypeScript source via tsx at runtime)
+RUN pnpm --filter @open-story/admin-web run build
 
 
 # ---- Stage 3: Runner ----
@@ -36,11 +36,8 @@ RUN corepack enable pnpm && npm install -g pm2
 
 WORKDIR /app
 
-# Copy the full built workspace
+# Copy the full built workspace (keep devDependencies — tsx needed at runtime for API)
 COPY --from=builder /app ./
-
-# Remove dev dependencies to slim the image
-RUN pnpm prune --prod
 
 # Create data directory (will be overridden by volume mount)
 RUN mkdir -p /data/assets
