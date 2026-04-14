@@ -1,0 +1,38 @@
+# Dependencies (reinstalled in container)
+node_modules
+**/node_modules
+
+# Build outputs (rebuilt in container)
+.next
+**/dist
+**/.turbo
+
+# Git
+.git
+.gitignore
+
+# SDK sources (not needed for web/api)
+sdk/
+
+# Documentation
+docs/
+*.md
+!pnpm-workspace.yaml
+
+# Local dev data (volume-mounted in production)
+apps/api/data/
+*.sqlite
+
+# Environment files
+.env*
+!.env.production.example
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Misc
+skills-lock.json
+.agents/
