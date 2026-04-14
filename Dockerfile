@@ -21,7 +21,7 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS builder
 
 # Copy all source files
-COPY turbo.json ./
+COPY turbo.json ecosystem.config.cjs ./
 COPY apps/ ./apps/
 COPY packages/ ./packages/
 
