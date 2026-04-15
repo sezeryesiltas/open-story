@@ -32,7 +32,8 @@ RUN pnpm --filter @open-story/admin-web run build
 # ---- Stage 3: Runner ----
 FROM node:22-slim AS runner
 
-RUN corepack enable pnpm && npm install -g pm2
+RUN apt-get update && apt-get install -y --no-install-recommends procps && rm -rf /var/lib/apt/lists/*
+RUN corepack enable pnpm && npm install -g pm2 tsx
 
 WORKDIR /app
 
