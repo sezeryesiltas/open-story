@@ -6,7 +6,7 @@ module.exports = {
     {
       name: 'open-story-api',
       script: '/usr/local/bin/tsx',
-      args: 'apps/api/src/main.ts',
+      args: '--tsconfig apps/api/tsconfig.json apps/api/src/main.ts',
       interpreter: 'none',
       env: {
         NODE_ENV: 'production',
