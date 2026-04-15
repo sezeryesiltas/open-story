@@ -5,7 +5,7 @@ module.exports = {
   apps: [
     {
       name: 'open-story-api',
-      script: 'node_modules/.bin/tsx',
+      script: '/usr/local/bin/tsx',
       args: 'apps/api/src/main.ts',
       interpreter: 'none',
       env: {
@@ -14,7 +14,7 @@ module.exports = {
     },
     {
       name: 'open-story-admin',
-      script: 'node_modules/.bin/next',
+      script: './apps/admin-web/node_modules/.bin/next',
       args: 'start -p 3000',
       cwd: './apps/admin-web',
       interpreter: 'none',
