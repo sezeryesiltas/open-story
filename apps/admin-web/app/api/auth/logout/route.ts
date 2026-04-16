@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   response.cookies.set(ADMIN_AUTH_COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.OPEN_STORY_COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production',
     path: '/',
     expires: new Date(0),
   });
