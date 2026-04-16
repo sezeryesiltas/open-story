@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     nextResponse.cookies.set(ADMIN_AUTH_COOKIE_NAME, response.accessToken, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.OPEN_STORY_COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production',
       path: '/',
       expires: new Date(Date.now() + response.expiresIn * 1000),
     });
