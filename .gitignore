@@ -17,4 +17,13 @@ sdk/android/.gradle/
 sdk/android/local.properties
 sdk/android/**/build/
 sdk/ios/.build/
+sdk/flutter/.dart_tool/
+sdk/flutter/.flutter-plugins
+sdk/flutter/.flutter-plugins-dependencies
+sdk/flutter/.packages
+sdk/flutter/build/
+sdk/flutter/pubspec.lock
+sdk/flutter/ios/Flutter/
+sdk/flutter/ios/Pods/
+sdk/flutter/ios/.symlinks/
 DerivedData/
