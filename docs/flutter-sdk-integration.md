@@ -76,7 +76,7 @@ Use this when the host app should pull directly from the monorepo:
 dependencies:
   open_story_flutter:
     git:
-      url: git@github.com:your-org/open-story.git
+      url: git@github.com:sezeryesiltas/open-story.git
       ref: main
       path: sdk/flutter
 ```
@@ -128,6 +128,25 @@ feed. That behavior is preserved in Flutter as well.
 await OpenStory.setUserContext(<String>["vip", "beta"]);
 await OpenStory.reload("home_top_story_bar");
 ```
+
+## Base URL rule
+
+Pass the API origin root in `baseUrl`.
+
+Use:
+
+```dart
+baseUrl: "https://api.example.com"
+```
+
+Do not pass a nested API path such as:
+
+```dart
+baseUrl: "https://api.example.com/api"
+```
+
+The native SDK appends `/v1/sdk/feed` internally, so using `/api` in the base
+URL would incorrectly request `/api/v1/sdk/feed`.
 
 ## Render the story bar
 

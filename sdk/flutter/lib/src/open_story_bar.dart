@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/foundation.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
 import "package:flutter/widgets.dart";
 
@@ -12,8 +13,7 @@ import "models/open_story_platform_error.dart";
 typedef OpenStoryAnalyticsEventHandler =
     void Function(OpenStoryAnalyticsEvent event);
 typedef OpenStoryCtaPayloadHandler = void Function(OpenStoryCtaPayload payload);
-typedef OpenStoryErrorHandler =
-    void Function(OpenStoryPlatformError error);
+typedef OpenStoryErrorHandler = void Function(OpenStoryPlatformError error);
 
 class OpenStoryBar extends StatefulWidget {
   const OpenStoryBar({
@@ -54,18 +54,13 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
   static const String _viewType = "open_story_flutter/story_bar";
 
   late final String _callbackChannelName;
-  late final EventChannel _eventChannel;
+  EventChannel? _eventChannel;
   StreamSubscription<dynamic>? _eventSubscription;
 
   @override
   void initState() {
     super.initState();
     _callbackChannelName = "open_story_flutter/events/${_nextCallbackId++}";
-    _eventChannel = EventChannel(_callbackChannelName);
-    _eventSubscription = _eventChannel.receiveBroadcastStream().listen(
-      _handlePlatformEvent,
-      onError: _handleStreamError,
-    );
   }
 
   @override
@@ -87,6 +82,7 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
         creationParams: _creationParams,
         creationParamsCodec: const StandardMessageCodec(),
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        onPlatformViewCreated: _handlePlatformViewCreated,
       ),
       TargetPlatform.iOS => UiKitView(
         key: ValueKey<String>(_platformViewKey),
@@ -94,16 +90,14 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
         creationParams: _creationParams,
         creationParamsCodec: const StandardMessageCodec(),
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        onPlatformViewCreated: _handlePlatformViewCreated,
       ),
       _ => throw UnsupportedError(
         "OpenStoryBar supports only Android and iOS.",
       ),
     };
 
-    return SizedBox(
-      height: widget.height,
-      child: platformView,
-    );
+    return SizedBox(height: widget.height, child: platformView);
   }
 
   Map<String, Object?> get _creationParams {
@@ -121,6 +115,15 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
       widget.titleColor?.value.toString() ?? "default-title",
       widget.viewedTitleColor?.value.toString() ?? "default-viewed-title",
     ].join("|");
+  }
+
+  void _handlePlatformViewCreated(int _) {
+    _eventSubscription?.cancel();
+    _eventChannel = EventChannel(_callbackChannelName);
+    _eventSubscription = _eventChannel!.receiveBroadcastStream().listen(
+      _handlePlatformEvent,
+      onError: _handleStreamError,
+    );
   }
 
   void _handlePlatformEvent(dynamic rawEvent) {
