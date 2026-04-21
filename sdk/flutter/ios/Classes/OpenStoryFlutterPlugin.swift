@@ -55,8 +55,8 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
                 )
                 result(nil)
             }
-        } catch let error as FlutterError {
-            result(error)
+        } catch let error as OpenStoryFlutterPluginError {
+            result(Self.invalidArgumentsError(message: error.message))
         } catch {
             result(Self.invalidArgumentsError(message: error.localizedDescription))
         }
@@ -71,8 +71,8 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
                 OpenStory.setUserContext(userSegments)
                 result(nil)
             }
-        } catch let error as FlutterError {
-            result(error)
+        } catch let error as OpenStoryFlutterPluginError {
+            result(Self.invalidArgumentsError(message: error.message))
         } catch {
             result(Self.invalidArgumentsError(message: error.localizedDescription))
         }
@@ -87,8 +87,8 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
                 OpenStory.reload(placementKey: placementKey)
                 result(nil)
             }
-        } catch let error as FlutterError {
-            result(error)
+        } catch let error as OpenStoryFlutterPluginError {
+            result(Self.invalidArgumentsError(message: error.message))
         } catch {
             result(Self.invalidArgumentsError(message: error.localizedDescription))
         }
@@ -96,7 +96,7 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
 
     private func dictionary(from arguments: Any?) throws -> [String: Any] {
         guard let dictionary = arguments as? [String: Any] else {
-            throw Self.invalidArgumentsError(message: "Method arguments must be a map.")
+            throw OpenStoryFlutterPluginError(message: "Method arguments must be a map.")
         }
         return dictionary
     }
@@ -106,10 +106,10 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
         key: String
     ) throws -> String {
         guard let value = dictionary[key] as? String else {
-            throw Self.invalidArgumentsError(message: "\(key) must be a string.")
+            throw OpenStoryFlutterPluginError(message: "\(key) must be a string.")
         }
         guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw Self.invalidArgumentsError(message: "\(key) must not be blank.")
+            throw OpenStoryFlutterPluginError(message: "\(key) must not be blank.")
         }
         return value
     }
@@ -119,11 +119,11 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
         key: String
     ) throws -> Int {
         guard let value = dictionary[key] as? NSNumber else {
-            throw Self.invalidArgumentsError(message: "\(key) must be a number.")
+            throw OpenStoryFlutterPluginError(message: "\(key) must be a number.")
         }
         let milliseconds = value.intValue
         guard milliseconds > 0 else {
-            throw Self.invalidArgumentsError(message: "\(key) must be positive.")
+            throw OpenStoryFlutterPluginError(message: "\(key) must be positive.")
         }
         return milliseconds
     }
@@ -133,12 +133,12 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
         key: String
     ) throws -> [String] {
         guard let values = dictionary[key] as? [Any] else {
-            throw Self.invalidArgumentsError(message: "\(key) must be a list of strings.")
+            throw OpenStoryFlutterPluginError(message: "\(key) must be a list of strings.")
         }
 
         return try values.enumerated().map { index, value in
             guard let stringValue = value as? String else {
-                throw Self.invalidArgumentsError(
+                throw OpenStoryFlutterPluginError(
                     message: "\(key)[\(index)] must be a string."
                 )
             }
@@ -156,4 +156,8 @@ public final class OpenStoryFlutterPlugin: NSObject, FlutterPlugin {
 
     private static let methodChannelName = "open_story_flutter/methods"
     fileprivate static let viewTypeName = "open_story_flutter/story_bar"
+}
+
+private struct OpenStoryFlutterPluginError: Error {
+    let message: String
 }

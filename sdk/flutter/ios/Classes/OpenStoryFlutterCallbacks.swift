@@ -42,7 +42,6 @@ final class OpenStoryEventStreamHandler: NSObject, FlutterStreamHandler {
     }
 }
 
-@MainActor
 final class OpenStoryFlutterCallbacks: NSObject, OpenStoryCallbacks {
     private let streamHandler: OpenStoryEventStreamHandler
 
@@ -51,34 +50,42 @@ final class OpenStoryFlutterCallbacks: NSObject, OpenStoryCallbacks {
         super.init()
     }
 
+    @MainActor
     func onStoryBarImpression(event: OpenStoryAnalyticsEvent) {
         streamHandler.send(analyticsPayload(from: event))
     }
 
+    @MainActor
     func onStoryGroupTap(event: OpenStoryAnalyticsEvent) {
         streamHandler.send(analyticsPayload(from: event))
     }
 
+    @MainActor
     func onStoryView(event: OpenStoryAnalyticsEvent) {
         streamHandler.send(analyticsPayload(from: event))
     }
 
+    @MainActor
     func onStoryComplete(event: OpenStoryAnalyticsEvent) {
         streamHandler.send(analyticsPayload(from: event))
     }
 
+    @MainActor
     func onStoryCtaTap(payload: OpenStoryCtaPayload) {
         streamHandler.send(ctaPayload(from: payload))
     }
 
+    @MainActor
     func onViewerClose(event: OpenStoryAnalyticsEvent) {
         streamHandler.send(analyticsPayload(from: event))
     }
 
+    @MainActor
     func onGroupComplete(event: OpenStoryAnalyticsEvent) {
         streamHandler.send(analyticsPayload(from: event))
     }
 
+    @MainActor
     func onError(placementKey: String, error: any Error) {
         let nsError = error as NSError
         var payload: [String: Any] = [

@@ -5,7 +5,7 @@ final class OpenStoryStoryBarPlatformView: NSObject, FlutterPlatformView {
     private let containerView: UIView
     private let streamHandler: OpenStoryEventStreamHandler
     private let eventChannel: FlutterEventChannel
-    private let callbacks: OpenStoryFlutterCallbacks
+    private var callbacks: OpenStoryFlutterCallbacks?
 
     init(
         frame: CGRect,
@@ -25,7 +25,6 @@ final class OpenStoryStoryBarPlatformView: NSObject, FlutterPlatformView {
             name: callbackChannelName,
             binaryMessenger: messenger
         )
-        callbacks = OpenStoryFlutterCallbacks(streamHandler: streamHandler)
 
         super.init()
 
@@ -48,16 +47,18 @@ final class OpenStoryStoryBarPlatformView: NSObject, FlutterPlatformView {
         }
 
         let titleColor = Self.color(from: payload["titleColorValue"])
-            ?? OpenStory.defaultStoryGroupTitleColor
+            ?? Self.defaultStoryGroupTitleColor
         let viewedTitleColor = Self.color(from: payload["viewedTitleColorValue"])
-            ?? OpenStory.defaultViewedStoryGroupTitleColor
+            ?? Self.defaultViewedStoryGroupTitleColor
 
         Task { @MainActor [weak self] in
             guard let self else { return }
+            let callbacks = OpenStoryFlutterCallbacks(streamHandler: self.streamHandler)
+            self.callbacks = callbacks
             OpenStory.renderStoryBar(
                 placementKey: placementKey,
                 in: self.containerView,
-                callbacks: self.callbacks,
+                callbacks: callbacks,
                 titleColor: titleColor,
                 viewedTitleColor: viewedTitleColor
             )
@@ -88,4 +89,18 @@ final class OpenStoryStoryBarPlatformView: NSObject, FlutterPlatformView {
         let blue = CGFloat(argb & 0xff) / 255
         return UIColor(red: red, green: green, blue: blue, alpha: alpha)
     }
+
+    private static let defaultStoryGroupTitleColor = UIColor(
+        red: 43 / 255,
+        green: 26 / 255,
+        blue: 18 / 255,
+        alpha: 1
+    )
+
+    private static let defaultViewedStoryGroupTitleColor = UIColor(
+        red: 142 / 255,
+        green: 129 / 255,
+        blue: 118 / 255,
+        alpha: 1
+    )
 }

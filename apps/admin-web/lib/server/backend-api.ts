@@ -28,6 +28,7 @@ type BackendApiRequestOptions = {
   headers?: HeadersInit;
   authToken?: string | null;
   contentType?: string | null;
+  duplex?: 'half';
 };
 
 const DEFAULT_BACKEND_API_BASE_URL = 'http://localhost:3001';
@@ -64,12 +65,15 @@ export async function backendApiRequest<T>(
   let response: Response;
 
   try {
-    response = await fetch(`${getBackendApiBaseUrl()}${path}`, {
+    const requestInit: RequestInit & { duplex?: 'half' } = {
       method: options.method ?? 'GET',
       body: options.body,
       headers,
       cache: 'no-store',
-    });
+      duplex: options.duplex,
+    };
+
+    response = await fetch(`${getBackendApiBaseUrl()}${path}`, requestInit);
   } catch {
     throw new BackendApiError(
       `Backend servisine ulaşılamadı: ${getBackendApiBaseUrl()}. API servisi çalışmıyor olabilir.`,
