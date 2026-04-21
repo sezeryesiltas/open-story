@@ -24,13 +24,21 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get('content-type') ?? '';
 
     if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData();
+      const requestBody = request.body;
+      if (!requestBody) {
+        return jsonError('Upload isteği boş gövde ile geldi.', 400, 'validation_error');
+      }
+
       return NextResponse.json(
         await backendApiRequest('/v1/assets/upload', {
           method: 'POST',
           authToken: getAdminAuthTokenFromRequest(request),
-          body: formData,
+          body: requestBody,
+          headers: {
+            'Content-Type': contentType,
+          },
           contentType: null,
+          duplex: 'half',
         }),
         { status: 201 },
       );
