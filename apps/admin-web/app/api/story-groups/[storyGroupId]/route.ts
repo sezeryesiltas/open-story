@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jsonError } from '@/lib/server/api-response';
 import {
   archiveStoryGroup,
-  getStoryGroup,
+  mapStoryGroup,
   publishStoryGroup,
   syncStoryGroupSetReferences,
-  updateStoryGroup,
+  updateStoryGroupRaw,
 } from '@/lib/server/admin-bff';
 import { BackendApiError, getAdminAuthTokenFromRequest } from '@/lib/server/backend-api';
 
@@ -30,7 +30,7 @@ export async function PUT(
     };
     const { storyGroupId } = await context.params;
 
-    await updateStoryGroup(
+    const storyGroup = await updateStoryGroupRaw(
       storyGroupId,
       {
         name: payload.name,
@@ -40,9 +40,9 @@ export async function PUT(
       },
       authToken,
     );
-    await syncStoryGroupSetReferences(storyGroupId, payload.story_group_set_ids, authToken);
+    const storyGroupSets = await syncStoryGroupSetReferences(storyGroupId, payload.story_group_set_ids, authToken);
 
-    return NextResponse.json(await getStoryGroup(storyGroupId, authToken));
+    return NextResponse.json(mapStoryGroup(storyGroup, storyGroupSets));
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');

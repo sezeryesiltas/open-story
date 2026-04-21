@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { jsonError } from '@/lib/server/api-response';
 import {
-  createStoryGroup,
-  getStoryGroup,
+  createStoryGroupRaw,
   listStoryGroups,
+  mapStoryGroup,
   syncStoryGroupSetReferences,
 } from '@/lib/server/admin-bff';
 import { BackendApiError, getAdminAuthTokenFromRequest } from '@/lib/server/backend-api';
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       } | null;
     };
 
-    const storyGroup = await createStoryGroup(
+    const storyGroup = await createStoryGroupRaw(
       {
         name: payload.name,
         bottom_label: payload.bottom_label,
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       authToken,
     );
 
-    await syncStoryGroupSetReferences(storyGroup.id, payload.story_group_set_ids, authToken);
-    return NextResponse.json(await getStoryGroup(storyGroup.id, authToken), { status: 201 });
+    const storyGroupSets = await syncStoryGroupSetReferences(storyGroup.id, payload.story_group_set_ids, authToken);
+    return NextResponse.json(mapStoryGroup(storyGroup, storyGroupSets), { status: 201 });
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
