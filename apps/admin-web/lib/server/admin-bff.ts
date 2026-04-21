@@ -218,25 +218,37 @@ export async function getStoryGroup(storyGroupId: string, authToken?: string | n
 }
 
 export async function createStoryGroup(payload: CreateStoryGroupDto, authToken?: string | null): Promise<AdminStoryGroupRecord> {
-  const storyGroup = await backendApiRequest<StoryGroupDto>('/v1/story-groups', {
-    method: 'POST',
-    authToken,
-    body: JSON.stringify(payload),
-  });
+  const storyGroup = await createStoryGroupRaw(payload, authToken);
 
   const storyGroupSets = await backendApiRequest<StoryGroupSetDto[]>('/v1/story-group-sets', { authToken });
   return mapStoryGroup(storyGroup, storyGroupSets);
 }
 
+export async function createStoryGroupRaw(payload: CreateStoryGroupDto, authToken?: string | null): Promise<StoryGroupDto> {
+  return backendApiRequest<StoryGroupDto>('/v1/story-groups', {
+    method: 'POST',
+    authToken,
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function updateStoryGroup(storyGroupId: string, payload: UpdateStoryGroupDto, authToken?: string | null): Promise<AdminStoryGroupRecord> {
-  const storyGroup = await backendApiRequest<StoryGroupDto>(`/v1/story-groups/${storyGroupId}`, {
+  const storyGroup = await updateStoryGroupRaw(storyGroupId, payload, authToken);
+
+  const storyGroupSets = await backendApiRequest<StoryGroupSetDto[]>('/v1/story-group-sets', { authToken });
+  return mapStoryGroup(storyGroup, storyGroupSets);
+}
+
+export async function updateStoryGroupRaw(
+  storyGroupId: string,
+  payload: UpdateStoryGroupDto,
+  authToken?: string | null,
+): Promise<StoryGroupDto> {
+  return backendApiRequest<StoryGroupDto>(`/v1/story-groups/${storyGroupId}`, {
     method: 'PATCH',
     authToken,
     body: JSON.stringify(payload),
   });
-
-  const storyGroupSets = await backendApiRequest<StoryGroupSetDto[]>('/v1/story-group-sets', { authToken });
-  return mapStoryGroup(storyGroup, storyGroupSets);
 }
 
 export async function publishStoryGroup(storyGroupId: string, payload: PublishStoryGroupDto, authToken?: string | null): Promise<AdminStoryGroupRecord> {
@@ -462,11 +474,11 @@ export async function syncStoryGroupSetReferences(
   storyGroupId: string,
   nextStoryGroupSetIds: string[],
   authToken?: string | null,
-): Promise<void> {
+): Promise<StoryGroupSetDto[]> {
   const storyGroupSets = await backendApiRequest<StoryGroupSetDto[]>('/v1/story-group-sets', { authToken });
   const selectedSetIds = new Set(nextStoryGroupSetIds);
 
-  for (const storyGroupSet of storyGroupSets) {
+  for (const [index, storyGroupSet] of storyGroupSets.entries()) {
     const currentlyIncluded = storyGroupSet.group_ids.includes(storyGroupId);
     const shouldInclude = selectedSetIds.has(storyGroupSet.id);
 
@@ -474,16 +486,18 @@ export async function syncStoryGroupSetReferences(
       continue;
     }
 
-    await backendApiRequest<StoryGroupSetDto>(`/v1/story-group-sets/${storyGroupSet.id}`, {
+    storyGroupSets[index] = await backendApiRequest<StoryGroupSetDto>(`/v1/story-group-sets/${storyGroupSet.id}`, {
       method: 'PATCH',
       authToken,
       body: JSON.stringify({
         group_ids: shouldInclude
           ? [...storyGroupSet.group_ids, storyGroupId]
-          : removeId(storyGroupSet.group_ids, storyGroupId),
+        : removeId(storyGroupSet.group_ids, storyGroupId),
       }),
     });
   }
+
+  return storyGroupSets;
 }
 
 export async function syncStoryMembership(
