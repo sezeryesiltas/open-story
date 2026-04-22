@@ -1,8 +1,9 @@
 services:
-  app:
+  api:
     build:
       context: .
       dockerfile: Dockerfile
+      target: api-runner
     volumes:
       - ${OPEN_STORY_HOST_DATA_DIR:-./data}:/data/db
       - ${OPEN_STORY_HOST_ASSETS_DIR:-./assets}:/data/assets
@@ -10,8 +11,20 @@ services:
       - .env.production
     restart: unless-stopped
     expose:
-      - "3000"
       - "3001"
+
+  admin-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: admin-web-runner
+    env_file:
+      - .env.production
+    depends_on:
+      - api
+    restart: unless-stopped
+    expose:
+      - "3000"
 
   nginx:
     image: nginx:alpine
@@ -21,5 +34,6 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - app
+      - api
+      - admin-web
     restart: unless-stopped

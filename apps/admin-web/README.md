@@ -30,5 +30,7 @@ pnpm --filter @open-story/admin-web check
 ## Runtime notes
 
 - Browser tarafı her zaman local `app/api/*` BFF route’larına gider.
-- BFF tarafı backend için varsayılan olarak `http://localhost:3001` adresini kullanır.
+- BFF tarafı, auth dahil olmak üzere tüm admin isteklerini backend API'ye proxy eder.
+- Same-container çalışmada backend varsayılanı `http://localhost:3001` adresidir.
+- Split-container Docker çalışmada `OPEN_STORY_API_BASE_URL=http://api:3001` kullanın.
 - Gerekirse backend adresi `OPEN_STORY_API_BASE_URL` ile override edilir.

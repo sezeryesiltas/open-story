@@ -25,7 +25,9 @@ apps/api/data/
 
 # Environment files
 .env*
+.env
 !.env.production.example
+!.env.compose.example
 
 # IDE / OS
 .vscode
