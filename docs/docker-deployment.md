@@ -6,7 +6,8 @@ Open Story'yi tek bir sunucuda Docker Compose ile, ama `api` ve `admin-web` ayr�
 
 ```text
 Internet
-  -> nginx
+  -> HTTPS Load Balancer
+    -> nginx (HTTP :80 only)
     -> /                -> admin-web:3000
     -> /api/*           -> admin-web:3000
     -> /v1/*            -> api:3001
@@ -89,6 +90,7 @@ Notlar:
 - `OPEN_STORY_PUBLIC_ASSET_BASE_URL` dışarıdan erişilen gerçek domain olmalı.
 - HTTPS load balancer arkasında `OPEN_STORY_COOKIE_SECURE=true` kullanın.
 - Sadece düz HTTP ile test ediyorsanız `OPEN_STORY_COOKIE_SECURE=false` yapın.
+- Load balancer SSL terminate ettiği için container tarafında ayrıca `443` dinlemeyin.
 
 ## 5. Build ve Başlat
 
@@ -136,6 +138,14 @@ curl https://openstory.cloud/v1/sdk/feed \
 
 Token eksik olduğu için `401` dönmesi API'nin erişilebilir olduğunu gösterir.
 
+Health check:
+
+```bash
+curl http://127.0.0.1/healthz
+```
+
+`200 OK` dönmelidir.
+
 ## Güncelleme
 
 ```bash
@@ -151,6 +161,9 @@ Login hatası:
 - `docker compose logs -f admin-web`
 - `docker compose logs -f api`
 - Browser Network tab'da `/api/auth/login` response body
+- GCP backend service protocol/port ayarı `HTTP :80` olmalı
+- GCP health check `HTTP :80` ve path `/healthz` olmalı
+- HTTPS sertifikası load balancer üzerinde terminate edilmeli; backend'e `443` ile gitmeyin
 
 Asset görünmüyor:
 
