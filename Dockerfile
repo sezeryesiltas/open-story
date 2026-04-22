@@ -21,28 +21,39 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS builder
 
 # Copy all source files
-COPY turbo.json ecosystem.config.cjs ./
+COPY turbo.json ./
 COPY apps/ ./apps/
 COPY packages/ ./packages/
 
-# Build only admin-web (API runs from TypeScript source via tsx at runtime)
+# Build admin-web for production. API still runs from source via tsx.
 RUN pnpm --filter @open-story/admin-web run build
 
 
-# ---- Stage 3: Runner ----
-FROM node:22-slim AS runner
+# ---- Stage 3a: API Runner ----
+FROM node:22-slim AS api-runner
 
-RUN apt-get update && apt-get install -y --no-install-recommends procps && rm -rf /var/lib/apt/lists/*
-RUN corepack enable pnpm && npm install -g pm2 tsx
+RUN corepack enable pnpm && npm install -g tsx
 
 WORKDIR /app
 
-# Copy the full built workspace (keep devDependencies — tsx needed at runtime for API)
 COPY --from=builder /app ./
 
-# Create data directory (will be overridden by volume mount)
-RUN mkdir -p /data/assets
+RUN mkdir -p /data/db /data/assets
 
-EXPOSE 3000 3001
+EXPOSE 3001
 
-CMD ["pm2-runtime", "ecosystem.config.cjs"]
+CMD ["tsx", "--tsconfig", "apps/api/tsconfig.json", "apps/api/src/main.ts"]
+
+
+# ---- Stage 3b: Admin Web Runner ----
+FROM node:22-slim AS admin-web-runner
+
+WORKDIR /app
+
+COPY --from=builder /app ./
+
+WORKDIR /app/apps/admin-web
+
+EXPOSE 3000
+
+CMD ["./node_modules/.bin/next", "start", "-p", "3000"]
