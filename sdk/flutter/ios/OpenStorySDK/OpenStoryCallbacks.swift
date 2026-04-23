@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 public protocol OpenStoryCallbacks: AnyObject {
+    func onStoryBarVisibilityChanged(placementKey: String, isVisible: Bool)
     func onStoryBarImpression(event: OpenStoryAnalyticsEvent)
     func onStoryGroupTap(event: OpenStoryAnalyticsEvent)
     func onStoryView(event: OpenStoryAnalyticsEvent)
@@ -14,6 +15,7 @@ public protocol OpenStoryCallbacks: AnyObject {
 
 @MainActor
 public extension OpenStoryCallbacks {
+    func onStoryBarVisibilityChanged(placementKey: String, isVisible: Bool) {}
     func onStoryBarImpression(event: OpenStoryAnalyticsEvent) {}
     func onStoryGroupTap(event: OpenStoryAnalyticsEvent) {}
     func onStoryView(event: OpenStoryAnalyticsEvent) {}

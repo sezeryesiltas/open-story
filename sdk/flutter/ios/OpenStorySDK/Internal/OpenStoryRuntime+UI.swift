@@ -16,6 +16,7 @@ extension OpenStoryRuntime {
         }
 
         let view = ensureStoryBarView(in: container)
+        view.bindPlacementKey(trimmedPlacementKey)
         view.updateCallbacks(callbacks)
         view.updateViewerLauncher(viewerLauncher())
         view.updateTitleColors(titleColor: titleColor, viewedTitleColor: viewedTitleColor)

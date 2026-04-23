@@ -71,8 +71,9 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
   };
 
   late final String _callbackChannelName;
-  EventChannel? _eventChannel;
+  bool _isVisible = false;
   StreamSubscription<dynamic>? _eventSubscription;
+  int _eventSubscriptionGeneration = 0;
 
   @override
   void initState() {
@@ -82,7 +83,12 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
 
   @override
   void dispose() {
-    _eventSubscription?.cancel();
+    _eventSubscriptionGeneration += 1;
+    final StreamSubscription<dynamic>? subscription = _eventSubscription;
+    _eventSubscription = null;
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
     super.dispose();
   }
 
@@ -116,7 +122,16 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
         ),
     };
 
-    return SizedBox(height: widget.height, child: platformView);
+    return ClipRect(
+      child: Align(
+        alignment: Alignment.topCenter,
+        heightFactor: _isVisible ? 1 : 0,
+        child: SizedBox(
+          height: widget.height,
+          child: platformView,
+        ),
+      ),
+    );
   }
 
   Set<Factory<OneSequenceGestureRecognizer>> get _gestureRecognizers {
@@ -141,12 +156,36 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
   }
 
   void _handlePlatformViewCreated(int _) {
-    _eventSubscription?.cancel();
-    _eventChannel = EventChannel(_callbackChannelName);
-    _eventSubscription = _eventChannel!.receiveBroadcastStream().listen(
-          _handlePlatformEvent,
-          onError: _handleStreamError,
-        );
+    unawaited(_replaceEventSubscription());
+  }
+
+  Future<void> _replaceEventSubscription() async {
+    final int generation = ++_eventSubscriptionGeneration;
+    final StreamSubscription<dynamic>? previousSubscription =
+        _eventSubscription;
+    _eventSubscription = null;
+
+    if (previousSubscription != null) {
+      await previousSubscription.cancel();
+    }
+
+    if (!mounted || generation != _eventSubscriptionGeneration) {
+      return;
+    }
+
+    final EventChannel eventChannel = EventChannel(_callbackChannelName);
+    final StreamSubscription<dynamic> subscription =
+        eventChannel.receiveBroadcastStream().listen(
+              _handlePlatformEvent,
+              onError: _handleStreamError,
+            );
+
+    if (!mounted || generation != _eventSubscriptionGeneration) {
+      await subscription.cancel();
+      return;
+    }
+
+    _eventSubscription = subscription;
   }
 
   void _handlePlatformEvent(dynamic rawEvent) {
@@ -160,6 +199,9 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
           return;
         case "cta":
           widget.onStoryCtaTap?.call(OpenStoryCtaPayload.fromMap(payload));
+          return;
+        case "visibility":
+          _handleVisibilityEvent(payload);
           return;
         case "error":
           widget.onError?.call(OpenStoryPlatformError.fromMap(payload));
@@ -176,6 +218,23 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
         ),
       );
     }
+  }
+
+  void _handleVisibilityEvent(Map<String, Object?> payload) {
+    final Object? rawValue = payload["isVisible"];
+    if (rawValue is! bool) {
+      throw const FormatException(
+        "OpenStory visibility callback is missing a boolean isVisible value.",
+      );
+    }
+
+    if (!mounted || _isVisible == rawValue) {
+      return;
+    }
+
+    setState(() {
+      _isVisible = rawValue;
+    });
   }
 
   void _handleStreamError(Object error) {

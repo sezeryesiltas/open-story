@@ -70,8 +70,10 @@ final class OpenStoryStoryBarPlatformView: NSObject, FlutterPlatformView {
     }
 
     func dispose() {
-        eventChannel.setStreamHandler(nil)
         streamHandler.close()
+        DispatchQueue.main.async { [eventChannel] in
+            eventChannel.setStreamHandler(nil)
+        }
         Task { @MainActor [weak containerView] in
             containerView?.subviews.forEach { $0.removeFromSuperview() }
         }

@@ -18,6 +18,8 @@ internal final class StoryBarView: UIView {
     private var viewerLauncher: ViewerLauncher?
     private var impressionSentForPlacement = false
     private var lastPlacementKey: String?
+    private var placementKey: String?
+    private var isContentVisible = false
     private var titleColor = UIColor(openStoryHex: "#2B1A12")
     private var viewedTitleColor = UIColor(openStoryHex: "#8E8176")
 
@@ -31,18 +33,28 @@ internal final class StoryBarView: UIView {
         nil
     }
 
+    func bindPlacementKey(_ placementKey: String) {
+        self.placementKey = placementKey
+    }
+
     func showLoading() {
-        groupRow.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        scrollView.isHidden = true
-        emptyStateLabel.isHidden = false
-        emptyStateLabel.text = "Loading stories..."
+        emptyStateLabel.isHidden = true
+        if groupRow.arrangedSubviews.isEmpty {
+            scrollView.isHidden = true
+            updateContentVisibility(false)
+            return
+        }
+
+        scrollView.isHidden = false
+        updateContentVisibility(true)
     }
 
     func showEmpty(_ text: String) {
+        _ = text
         groupRow.arrangedSubviews.forEach { $0.removeFromSuperview() }
         scrollView.isHidden = true
-        emptyStateLabel.isHidden = false
-        emptyStateLabel.text = text
+        emptyStateLabel.isHidden = true
+        updateContentVisibility(false)
     }
 
     func updateCallbacks(_ callbacks: (any OpenStoryCallbacks)?) {
@@ -77,6 +89,7 @@ internal final class StoryBarView: UIView {
             impressionSentForPlacement = false
             lastPlacementKey = response.placementKey
         }
+        placementKey = response.placementKey
 
         let groups = response.resolvedSet?.groups ?? []
         guard !groups.isEmpty else {
@@ -125,6 +138,8 @@ internal final class StoryBarView: UIView {
             groupRow.addArrangedSubview(view)
         }
 
+        updateContentVisibility(true)
+
         if !impressionSentForPlacement {
             callbacks?.onStoryBarImpression(
                 event: OpenStoryAnalyticsEvent(
@@ -140,6 +155,7 @@ internal final class StoryBarView: UIView {
         clipsToBounds = false
 
         emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
+        emptyStateLabel.isHidden = true
         emptyStateLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         emptyStateLabel.textColor = UIColor(openStoryHex: "#6D3D18")
         emptyStateLabel.backgroundColor = UIColor(openStoryHex: "#FFE5D0")
@@ -150,6 +166,7 @@ internal final class StoryBarView: UIView {
         emptyStateLabel.textInsets = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.isHidden = true
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.clipsToBounds = false
         scrollView.delaysContentTouches = false
@@ -184,6 +201,22 @@ internal final class StoryBarView: UIView {
             groupRow.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
             groupRow.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
         ])
+    }
+
+    private func updateContentVisibility(_ isVisible: Bool) {
+        guard isContentVisible != isVisible else {
+            return
+        }
+
+        isContentVisible = isVisible
+        guard let placementKey = placementKey ?? lastPlacementKey else {
+            return
+        }
+
+        callbacks?.onStoryBarVisibilityChanged(
+            placementKey: placementKey,
+            isVisible: isVisible
+        )
     }
 }
 

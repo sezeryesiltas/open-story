@@ -75,6 +75,7 @@ internal class OpenStoryRuntime(
     ) {
         scope.launch {
             val view = ensureStoryBarView(container)
+            view.bindPlacementKey(placementKey)
             view.updateCallbacks(callbacks)
             view.updateViewerLauncher(viewerLauncher())
             view.updateTitleColors(

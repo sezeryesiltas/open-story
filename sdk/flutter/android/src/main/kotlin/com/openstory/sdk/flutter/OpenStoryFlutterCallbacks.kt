@@ -7,6 +7,19 @@ import com.openstory.sdk.model.OpenStoryCtaPayload
 internal class OpenStoryFlutterCallbacks(
     private val eventStreamHandler: BufferedEventStreamHandler,
 ) : OpenStoryCallbacks {
+    override fun onStoryBarVisibilityChanged(
+        placementKey: String,
+        isVisible: Boolean,
+    ) {
+        eventStreamHandler.send(
+            mapOf(
+                "type" to "visibility",
+                "placementKey" to placementKey,
+                "isVisible" to isVisible,
+            ),
+        )
+    }
+
     override fun onStoryBarImpression(event: OpenStoryAnalyticsEvent) {
         eventStreamHandler.send(event.toFlutterPayload())
     }

@@ -51,6 +51,17 @@ final class OpenStoryFlutterCallbacks: NSObject, OpenStoryCallbacks {
     }
 
     @MainActor
+    func onStoryBarVisibilityChanged(placementKey: String, isVisible: Bool) {
+        streamHandler.send(
+            [
+                "type": "visibility",
+                "placementKey": placementKey,
+                "isVisible": isVisible,
+            ]
+        )
+    }
+
+    @MainActor
     func onStoryBarImpression(event: OpenStoryAnalyticsEvent) {
         streamHandler.send(analyticsPayload(from: event))
     }

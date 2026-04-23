@@ -4,6 +4,11 @@ import com.openstory.sdk.model.OpenStoryAnalyticsEvent
 import com.openstory.sdk.model.OpenStoryCtaPayload
 
 interface OpenStoryCallbacks {
+    fun onStoryBarVisibilityChanged(
+        placementKey: String,
+        isVisible: Boolean,
+    ) = Unit
+
     fun onStoryBarImpression(event: OpenStoryAnalyticsEvent) = Unit
 
     fun onStoryGroupTap(event: OpenStoryAnalyticsEvent) = Unit

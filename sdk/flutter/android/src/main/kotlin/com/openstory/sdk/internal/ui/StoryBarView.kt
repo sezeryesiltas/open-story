@@ -38,6 +38,7 @@ internal class StoryBarView @JvmOverloads constructor(
         setPadding(dp(12))
         gravity = Gravity.CENTER_VERTICAL
         background = roundedBackground("#FFE5D0")
+        isVisible = false
     }
 
     private val scrollView = HorizontalScrollView(context).apply {
@@ -58,6 +59,8 @@ internal class StoryBarView @JvmOverloads constructor(
     private var viewerLauncher: ViewerLauncher? = null
     private var impressionSentForPlacement = false
     private var lastPlacementKey: String? = null
+    private var boundPlacementKey: String? = null
+    private var isContentVisible = false
     @ColorInt
     private var titleTextColor: Int = DEFAULT_TITLE_TEXT_COLOR
     @ColorInt
@@ -90,18 +93,29 @@ internal class StoryBarView @JvmOverloads constructor(
         )
     }
 
+    fun bindPlacementKey(placementKey: String) {
+        boundPlacementKey = placementKey
+    }
+
     fun showLoading() {
-        groupRow.removeAllViews()
-        scrollView.isVisible = false
-        emptyStateView.isVisible = true
-        emptyStateView.setText(R.string.open_story_loading)
+        emptyStateView.isVisible = false
+        if (groupRow.childCount == 0) {
+            scrollView.isVisible = false
+            updateContentVisibility(false)
+            return
+        }
+
+        scrollView.isVisible = true
+        updateContentVisibility(true)
     }
 
     fun showEmpty(text: CharSequence) {
+        @Suppress("UNUSED_PARAMETER")
+        val unusedText = text
         groupRow.removeAllViews()
         scrollView.isVisible = false
-        emptyStateView.isVisible = true
-        emptyStateView.text = text
+        emptyStateView.isVisible = false
+        updateContentVisibility(false)
     }
 
     fun updateCallbacks(callbacks: OpenStoryCallbacks) {
@@ -133,6 +147,7 @@ internal class StoryBarView @JvmOverloads constructor(
             impressionSentForPlacement = false
             lastPlacementKey = response.placementKey
         }
+        boundPlacementKey = response.placementKey
 
         val groups = response.resolvedSet?.groups.orEmpty()
         if (groups.isEmpty()) {
@@ -181,6 +196,8 @@ internal class StoryBarView @JvmOverloads constructor(
             )
         }
 
+        updateContentVisibility(true)
+
         if (!impressionSentForPlacement) {
             callbacks.onStoryBarImpression(
                 OpenStoryAnalyticsEvent(
@@ -190,6 +207,16 @@ internal class StoryBarView @JvmOverloads constructor(
             )
             impressionSentForPlacement = true
         }
+    }
+
+    private fun updateContentVisibility(isVisible: Boolean) {
+        if (isContentVisible == isVisible) {
+            return
+        }
+
+        isContentVisible = isVisible
+        val placementKey = boundPlacementKey ?: lastPlacementKey ?: return
+        callbacks.onStoryBarVisibilityChanged(placementKey, isVisible)
     }
 
     private fun createGroupAvatar(
