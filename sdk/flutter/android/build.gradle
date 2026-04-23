@@ -2,7 +2,7 @@ group = "com.openstory.sdk.flutter"
 version = "0.1.0"
 
 buildscript {
-    ext.kotlin_version = "2.0.21"
+    ext.kotlin_version = "2.2.0"
 
     repositories {
         google()
@@ -10,10 +10,10 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:8.5.2"
+        classpath "com.android.tools.build:gradle:8.13.0"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
-        classpath "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:2.0.21-1.0.27"
+        classpath "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:2.2.0-2.0.2"
     }
 }
 
@@ -29,13 +29,17 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "org.jetbrains.kotlin.plugin.serialization"
 apply plugin: "com.google.devtools.ksp"
 
+ksp {
+    useKsp2 = false
+}
+
 android {
     namespace = "com.openstory.sdk"
     compileSdk = 34
 
     defaultConfig {
         minSdk = 21
-        consumerProguardFiles("../../android/story-sdk/consumer-rules.pro")
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {
@@ -52,11 +56,9 @@ android {
         main.manifest.srcFile "src/main/AndroidManifest.xml"
         main.java.srcDirs += [
             "src/main/kotlin",
-            "../../android/story-sdk/src/main/kotlin",
         ]
         main.res.srcDirs += [
             "src/main/res",
-            "../../android/story-sdk/src/main/res",
         ]
     }
 }

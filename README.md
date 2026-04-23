@@ -34,7 +34,7 @@ Initial monorepo foundation is created on branch:
 - `apps/admin-web` can depend only on `packages/*`.
 - `apps/api` can depend only on `packages/contracts`, `packages/db`, `packages/config`.
 - `sdk/android` and `sdk/ios` are isolated from Node workspace packages and evolve with native toolchains.
-- `sdk/flutter` stays thin and reuses the sibling native SDKs through platform-specific wrappers.
+- `sdk/flutter` stays thin and ships vendored native SDK snapshots behind platform-specific wrappers.
 - Shared domain contracts must live in `packages/contracts` before being duplicated anywhere else.
 
 See `docs/adr/0001-monorepo-module-boundaries.md` for rationale and enforcement principles.

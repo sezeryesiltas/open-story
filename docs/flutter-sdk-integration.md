@@ -22,15 +22,29 @@ It does not include:
 
 The package lives at `sdk/flutter`.
 
-It is not a standalone pub package yet. The Android and iOS plugin layers reuse
-the sibling native SDK sources under `sdk/android` and `sdk/ios`, so integrate
-it in one of these ways:
+It is not a standalone pub package yet, but the package contents are now
+self-contained. The Flutter plugin vendors version-controlled snapshots of the
+native Android and iOS SDKs under `sdk/flutter/android` and `sdk/flutter/ios`,
+so integrate it in one of these ways:
 
 1. local path dependency to this repository checkout
-2. git dependency that preserves the repository layout and points to `sdk/flutter`
+2. git dependency that points to `sdk/flutter`
+3. copied `sdk/flutter` directory in another repository
 
-Do not copy only `sdk/flutter` into another repository without also changing the
-native source references inside the plugin.
+Native SDK changes do not flow into Flutter automatically. That is intentional:
+the Flutter package should move forward only when you choose to sync a new
+native snapshot and cut a new Flutter SDK version.
+
+From the source repository, refresh the vendored native snapshots with:
+
+```bash
+cd sdk/flutter
+./tool/sync_native_sdks.sh
+```
+
+That command copies the current `sdk/ios` and `sdk/android/story-sdk` sources
+into the Flutter package. Treat it as a release-preparation step, not as part of
+normal host-app integration.
 
 ## Host prerequisites
 
@@ -236,11 +250,12 @@ Flutter SDK itself.
 
 Native behavior is delegated to the existing SDKs:
 
-- Android keeps using the current battle-tested native stack already in the repo
-- iOS keeps using the current Swift/UIKit implementation already in the repo
+- Android ships a vendored snapshot of the current native Kotlin implementation
+- iOS ships a vendored snapshot of the current Swift/UIKit implementation
 
 That keeps the Flutter layer narrow and avoids a parallel implementation of
-cache, viewer, media, or viewed-state logic in Dart.
+cache, viewer, media, or viewed-state logic in Dart, without forcing host apps
+to depend on the monorepo layout at build time.
 
 ## No sample app
 

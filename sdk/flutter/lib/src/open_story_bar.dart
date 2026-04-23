@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/foundation.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
 import "package:flutter/widgets.dart";
@@ -10,8 +11,8 @@ import "models/open_story_analytics_event.dart";
 import "models/open_story_cta_payload.dart";
 import "models/open_story_platform_error.dart";
 
-typedef OpenStoryAnalyticsEventHandler =
-    void Function(OpenStoryAnalyticsEvent event);
+typedef OpenStoryAnalyticsEventHandler = void Function(
+    OpenStoryAnalyticsEvent event);
 typedef OpenStoryCtaPayloadHandler = void Function(OpenStoryCtaPayload payload);
 typedef OpenStoryErrorHandler = void Function(OpenStoryPlatformError error);
 
@@ -22,6 +23,7 @@ class OpenStoryBar extends StatefulWidget {
     this.height = 106,
     this.titleColor,
     this.viewedTitleColor,
+    this.gestureRecognizers,
     this.onStoryBarImpression,
     this.onStoryGroupTap,
     this.onStoryView,
@@ -36,6 +38,12 @@ class OpenStoryBar extends StatefulWidget {
   final double height;
   final Color? titleColor;
   final Color? viewedTitleColor;
+
+  /// Which gestures should be forwarded to the embedded platform view.
+  ///
+  /// When omitted, the story bar claims horizontal drags so it can scroll
+  /// inside vertically scrollable Flutter parents without blocking page scroll.
+  final Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers;
   final OpenStoryAnalyticsEventHandler? onStoryBarImpression;
   final OpenStoryAnalyticsEventHandler? onStoryGroupTap;
   final OpenStoryAnalyticsEventHandler? onStoryView;
@@ -52,6 +60,15 @@ class OpenStoryBar extends StatefulWidget {
 class _OpenStoryBarState extends State<OpenStoryBar> {
   static int _nextCallbackId = 0;
   static const String _viewType = "open_story_flutter/story_bar";
+
+  // The native story bar scrolls horizontally, so it should claim horizontal
+  // drags by default while leaving vertical drags to parent scrollables.
+  static final Set<Factory<OneSequenceGestureRecognizer>>
+      _defaultGestureRecognizers = <Factory<OneSequenceGestureRecognizer>>{
+    Factory<OneSequenceGestureRecognizer>(
+      () => HorizontalDragGestureRecognizer(),
+    ),
+  };
 
   late final String _callbackChannelName;
   EventChannel? _eventChannel;
@@ -77,43 +94,49 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
 
     final Widget platformView = switch (defaultTargetPlatform) {
       TargetPlatform.android => AndroidView(
-        key: ValueKey<String>(_platformViewKey),
-        viewType: _viewType,
-        creationParams: _creationParams,
-        creationParamsCodec: const StandardMessageCodec(),
-        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-        onPlatformViewCreated: _handlePlatformViewCreated,
-      ),
+          key: ValueKey<String>(_platformViewKey),
+          viewType: _viewType,
+          creationParams: _creationParams,
+          creationParamsCodec: const StandardMessageCodec(),
+          gestureRecognizers: _gestureRecognizers,
+          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+          onPlatformViewCreated: _handlePlatformViewCreated,
+        ),
       TargetPlatform.iOS => UiKitView(
-        key: ValueKey<String>(_platformViewKey),
-        viewType: _viewType,
-        creationParams: _creationParams,
-        creationParamsCodec: const StandardMessageCodec(),
-        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-        onPlatformViewCreated: _handlePlatformViewCreated,
-      ),
+          key: ValueKey<String>(_platformViewKey),
+          viewType: _viewType,
+          creationParams: _creationParams,
+          creationParamsCodec: const StandardMessageCodec(),
+          gestureRecognizers: _gestureRecognizers,
+          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+          onPlatformViewCreated: _handlePlatformViewCreated,
+        ),
       _ => throw UnsupportedError(
-        "OpenStoryBar supports only Android and iOS.",
-      ),
+          "OpenStoryBar supports only Android and iOS.",
+        ),
     };
 
     return SizedBox(height: widget.height, child: platformView);
+  }
+
+  Set<Factory<OneSequenceGestureRecognizer>> get _gestureRecognizers {
+    return widget.gestureRecognizers ?? _defaultGestureRecognizers;
   }
 
   Map<String, Object?> get _creationParams {
     return <String, Object?>{
       "placementKey": widget.placementKey,
       "callbackChannel": _callbackChannelName,
-      "titleColorValue": widget.titleColor?.value,
-      "viewedTitleColorValue": widget.viewedTitleColor?.value,
+      "titleColorValue": widget.titleColor?.toARGB32(),
+      "viewedTitleColorValue": widget.viewedTitleColor?.toARGB32(),
     };
   }
 
   String get _platformViewKey {
     return [
       widget.placementKey,
-      widget.titleColor?.value.toString() ?? "default-title",
-      widget.viewedTitleColor?.value.toString() ?? "default-viewed-title",
+      widget.titleColor?.toARGB32().toString() ?? "default-title",
+      widget.viewedTitleColor?.toARGB32().toString() ?? "default-viewed-title",
     ].join("|");
   }
 
@@ -121,9 +144,9 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
     _eventSubscription?.cancel();
     _eventChannel = EventChannel(_callbackChannelName);
     _eventSubscription = _eventChannel!.receiveBroadcastStream().listen(
-      _handlePlatformEvent,
-      onError: _handleStreamError,
-    );
+          _handlePlatformEvent,
+          onError: _handleStreamError,
+        );
   }
 
   void _handlePlatformEvent(dynamic rawEvent) {

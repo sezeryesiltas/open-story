@@ -181,6 +181,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             story: story,
             interactive: true
         )
+        updateChromeVisibility(animated: false)
 
         if shouldReportStoryView {
             reportStoryView(group: group, story: story)
@@ -243,6 +244,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         bindCTA(stage: stage, group: group, story: story, interactive: false)
         stage.soundButton.isHidden = story.mediaType != "video"
         updateSoundButtons()
+        updateChromeVisibility(animated: false)
     }
 
     private func renderMedia(_ story: SdkFeedStoryPayload) {
@@ -253,7 +255,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
 
         addMediaBackdrop(
             to: activeStage.mediaHost,
-            imageURL: story.posterAsset?.url ?? story.asset.url
+            imageURL: story.viewerBackdropImageURL
         )
 
         if story.mediaType == "video", let url = URL(string: story.asset.url) {
@@ -262,7 +264,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             let playerSurfaceView = PlayerSurfaceView()
             playerSurfaceView.translatesAutoresizingMaskIntoConstraints = false
             playerSurfaceView.player = player
-            playerSurfaceView.playerLayer.videoGravity = .resizeAspect
+            playerSurfaceView.playerLayer.videoGravity = .resizeAspectFill
             activeStage.mediaHost.addSubview(playerSurfaceView)
             NSLayoutConstraint.activate([
                 playerSurfaceView.topAnchor.constraint(equalTo: activeStage.mediaHost.topAnchor),
@@ -296,7 +298,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
 
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.contentMode = .scaleAspectFit
+        imageView.contentMode = .scaleAspectFill
         activeStage.mediaHost.addSubview(imageView)
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: activeStage.mediaHost.topAnchor),
@@ -319,12 +321,12 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         let previewURL = story.posterAsset?.url ?? story.asset.url
         addMediaBackdrop(
             to: stage.mediaHost,
-            imageURL: previewURL
+            imageURL: story.viewerBackdropImageURL
         )
 
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.contentMode = .scaleAspectFit
+        imageView.contentMode = .scaleAspectFill
 
         if let cachedPreview = RemoteImageLoader.cachedImage(from: previewURL) {
             imageView.image = cachedPreview
@@ -361,6 +363,8 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
     ) {
         guard let cta = story.cta else {
             stage.ctaButton.isHidden = true
+            stage.ctaButton.alpha = 0
+            stage.ctaButton.isUserInteractionEnabled = false
             if stage === activeStage {
                 currentCTAContext = nil
             }
@@ -368,6 +372,8 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         }
 
         stage.ctaButton.isHidden = false
+        stage.ctaButton.alpha = pauseReasons.contains(.longPress) ? 0 : 1
+        stage.ctaButton.isUserInteractionEnabled = interactive && !pauseReasons.contains(.longPress)
         stage.ctaButton.setTitle(cta.label, for: .normal)
 
         if interactive, stage === activeStage {
@@ -920,10 +926,38 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
     }
 
     private func applyPauseState() {
+        updateChromeVisibility(animated: true)
         if pauseReasons.isEmpty {
             resumeCurrentStory()
         } else {
             pauseCurrentStory()
+        }
+    }
+
+    private func updateChromeVisibility(animated: Bool) {
+        let shouldHideChrome = pauseReasons.contains(.longPress)
+        let updates = {
+            [self.activeStage, self.inactiveStage].forEach { stage in
+                stage.topChrome.alpha = shouldHideChrome ? 0 : 1
+                stage.topChrome.isUserInteractionEnabled = !shouldHideChrome
+
+                let shouldShowCTA = !stage.ctaButton.isHidden && !shouldHideChrome
+                stage.ctaButton.alpha = shouldShowCTA ? 1 : 0
+                stage.ctaButton.isUserInteractionEnabled = shouldShowCTA
+            }
+        }
+
+        guard animated else {
+            updates()
+            return
+        }
+
+        UIView.animate(
+            withDuration: 0.18,
+            delay: 0,
+            options: [.beginFromCurrentState, .allowUserInteraction]
+        ) {
+            updates()
         }
     }
 
@@ -1178,6 +1212,7 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
 
 private final class ViewerStageView: UIView {
     let mediaHost = UIView()
+    let topChrome = UIStackView()
     let progressStack = UIStackView()
     var progressSegments: [ProgressSegmentView] = []
     let avatarImageView = UIImageView()
@@ -1271,7 +1306,7 @@ private final class ViewerStageView: UIView {
         headerRight.translatesAutoresizingMaskIntoConstraints = false
         headerRight.axis = .horizontal
         headerRight.alignment = .center
-        headerRight.spacing = 8
+        headerRight.spacing = 6
 
         let headerRow = UIStackView(arrangedSubviews: [headerLeft, headerRight])
         headerRow.translatesAutoresizingMaskIntoConstraints = false
@@ -1283,12 +1318,13 @@ private final class ViewerStageView: UIView {
         headerChrome.translatesAutoresizingMaskIntoConstraints = false
         headerChrome.addSubview(headerRow)
 
-        let topChrome = UIStackView(arrangedSubviews: [progressStack, headerChrome])
         topChrome.translatesAutoresizingMaskIntoConstraints = false
+        topChrome.addArrangedSubview(progressStack)
+        topChrome.addArrangedSubview(headerChrome)
         topChrome.axis = .vertical
-        topChrome.spacing = 12
+        topChrome.spacing = 6
         topChrome.isLayoutMarginsRelativeArrangement = true
-        topChrome.layoutMargins = UIEdgeInsets(top: 8, left: 18, bottom: 0, right: 18)
+        topChrome.layoutMargins = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
 
         ctaButton.translatesAutoresizingMaskIntoConstraints = false
         ctaButton.configuration = .filled()
@@ -1331,14 +1367,14 @@ private final class ViewerStageView: UIView {
             transitionShade.trailingAnchor.constraint(equalTo: trailingAnchor),
             transitionShade.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            topChrome.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 6),
+            topChrome.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
             topChrome.leadingAnchor.constraint(equalTo: leadingAnchor),
             topChrome.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-            headerRow.topAnchor.constraint(equalTo: headerChrome.topAnchor, constant: 10),
+            headerRow.topAnchor.constraint(equalTo: headerChrome.topAnchor, constant: 6),
             headerRow.leadingAnchor.constraint(equalTo: headerChrome.leadingAnchor, constant: 12),
             headerRow.trailingAnchor.constraint(equalTo: headerChrome.trailingAnchor, constant: -12),
-            headerRow.bottomAnchor.constraint(equalTo: headerChrome.bottomAnchor, constant: -10),
+            headerRow.bottomAnchor.constraint(equalTo: headerChrome.bottomAnchor, constant: -6),
 
             headerLeft.widthAnchor.constraint(greaterThanOrEqualTo: headerRight.widthAnchor),
 
@@ -1357,12 +1393,12 @@ private final class ViewerStageView: UIView {
         button.configuration?.background.backgroundColor = UIColor.white.withAlphaComponent(0.08)
         button.configuration?.background.strokeColor = UIColor.white.withAlphaComponent(0.1)
         button.configuration?.background.strokeWidth = 0.75
-        button.configuration?.background.cornerRadius = 19
-        button.configuration?.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10)
+        button.configuration?.background.cornerRadius = 17
+        button.configuration?.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
         button.setImage(UIImage(systemName: symbol), for: .normal)
         NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 38),
-            button.heightAnchor.constraint(equalToConstant: 38),
+            button.widthAnchor.constraint(equalToConstant: 34),
+            button.heightAnchor.constraint(equalToConstant: 34),
         ])
     }
 }

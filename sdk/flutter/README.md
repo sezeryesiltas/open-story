@@ -28,9 +28,17 @@ Not included:
 
 ## Integration
 
-This package reuses the sibling native SDK sources under `sdk/android` and
-`sdk/ios`. Consume it from this repository with a local path dependency or a git
-dependency that preserves the `sdk/` folder structure.
+This package vendors version-controlled snapshots of the native Android and iOS
+SDKs under `android/` and `ios/`. That keeps the Flutter package self-contained
+for path, git, or copied-directory usage, while preserving native viewer/cache
+behavior.
+
+When the sibling native SDKs change in this repository, update the vendored
+snapshots intentionally with:
+
+```bash
+./tool/sync_native_sdks.sh
+```
 
 See [docs/flutter-sdk-integration.md](../../docs/flutter-sdk-integration.md)
 for the full setup guide.
