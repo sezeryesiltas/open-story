@@ -2,9 +2,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
+  HttpCode,
   Inject,
+  Param,
   Post,
   Query,
   UploadedFile,
@@ -72,5 +75,14 @@ export class AssetsController {
       },
       authorization,
     );
+  }
+
+  @Delete(':assetId')
+  @HttpCode(204)
+  async delete(
+    @Param('assetId') assetId: string,
+    @Headers('authorization') authorization?: string,
+  ): Promise<void> {
+    await this.service.delete(assetId, authorization);
   }
 }

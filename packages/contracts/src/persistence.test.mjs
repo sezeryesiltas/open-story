@@ -13,6 +13,7 @@ test('story platform tables cover auth, content roots, revisions and composition
   assert.deepEqual(storyPlatformTableNames, [
     'clients',
     'staticTokens',
+    'adminApiKeys',
     'adminUsers',
     'adminSessions',
     'placements',

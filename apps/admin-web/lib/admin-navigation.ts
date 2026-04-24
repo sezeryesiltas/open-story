@@ -3,6 +3,7 @@ import {
   Database,
   Eye,
   Home,
+  Images,
   KeyRound,
   Layers3,
   ShieldCheck,
@@ -61,6 +62,12 @@ export const adminNavSections: AdminNavSection[] = [
         description: 'Story içeriklerini yönetin.',
         href: '/stories',
         icon: Clapperboard
+      },
+      {
+        title: 'Assets',
+        description: 'Medya dosyalarını yönetin.',
+        href: '/assets',
+        icon: Images
       },
       {
         title: 'Preview',

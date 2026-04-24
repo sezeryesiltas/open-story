@@ -51,6 +51,22 @@ CREATE TABLE admin_user (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE admin_api_key (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_name TEXT NOT NULL,
+  key_prefix TEXT NOT NULL,
+  client_secret_hash TEXT NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  revoked_at TIMESTAMPTZ,
+  last_used_at TIMESTAMPTZ,
+  created_by_admin_user_id UUID REFERENCES admin_user(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT admin_api_key_revoked_implies_inactive CHECK ((revoked_at IS NULL) OR (is_active = FALSE))
+);
+
+CREATE INDEX idx_admin_api_key_active ON admin_api_key (is_active, created_at DESC);
+
 CREATE TABLE placement (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   placement_key TEXT NOT NULL UNIQUE,

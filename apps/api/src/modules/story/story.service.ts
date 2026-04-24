@@ -49,7 +49,7 @@ export class StoryService {
   }
 
   async create(payload: CreateStoryDto, authorization?: string): Promise<StoryDto> {
-    const { user } = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireAdminAccess(authorization);
     const parsedPayload = adminStory.createStoryDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -83,13 +83,13 @@ export class StoryService {
       imageDurationMs: normalizedPayload.imageDurationMs,
       cta: normalizedPayload.cta,
       status: 'draft',
-      createdByAdminUserId: user.id,
+      createdByAdminUserId: access.adminUserId,
       createdAt: now,
     };
 
     this.repository.createStoryRoot(root);
     this.repository.createStoryRevision(draftRevision);
-    this.appendStoryToGroupDraft(targetGroup, storyId, user.id, now);
+    this.appendStoryToGroupDraft(targetGroup, storyId, access.adminUserId, now);
 
     return this.toDto(root);
   }
@@ -99,7 +99,7 @@ export class StoryService {
     payload: UpdateStoryDto,
     authorization?: string,
   ): Promise<StoryDto> {
-    const { user } = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireAdminAccess(authorization);
     const parsedPayload = adminStory.updateStoryDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -156,7 +156,7 @@ export class StoryService {
       imageDurationMs: normalizedPayload.imageDurationMs,
       cta: normalizedPayload.cta,
       status: 'draft',
-      createdByAdminUserId: user.id,
+      createdByAdminUserId: access.adminUserId,
       createdAt: now,
     };
 
@@ -229,7 +229,7 @@ export class StoryService {
   private appendStoryToGroupDraft(
     groupRoot: StoryGroupRootRecord,
     storyId: string,
-    adminUserId: string,
+    adminUserId: string | null,
     now: string,
   ): void {
     const draftRevision = this.getGroupDraftRevision(groupRoot);

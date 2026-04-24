@@ -39,9 +39,26 @@ type CreateStaticTokenResponse = {
   plainTextToken: string;
 };
 
+type AdminApiKeyApiRecord = {
+  id: string;
+  clientName: string;
+  keyPrefix: string;
+  isActive: boolean;
+  createdAt: string;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+};
+
+type CreateAdminApiKeyResponse = {
+  apiKey: AdminApiKeyApiRecord;
+  plainTextApiKey: string;
+  clientSecret: string;
+};
+
 type WorkspaceData = {
   client: ClientApiRecord;
   tokens: StaticTokenApiRecord[];
+  adminApiKeys: AdminApiKeyApiRecord[];
 };
 
 function formatDate(value: string | null): string {
@@ -70,19 +87,23 @@ export function ClientWorkspace() {
   const [name, setName] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [tokenLabel, setTokenLabel] = useState('');
+  const [apiClientName, setApiClientName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [revealedToken, setRevealedToken] = useState<CreateStaticTokenResponse | null>(null);
+  const [revealedApiKey, setRevealedApiKey] = useState<CreateAdminApiKeyResponse | null>(null);
 
   const workspaceQuery = useQuery({
     queryKey: ['client-workspace'],
     queryFn: async (): Promise<WorkspaceData> => {
-      const [client, tokens] = await Promise.all([
+      const [client, tokens, adminApiKeys] = await Promise.all([
         apiRequest<ClientApiRecord>('/api/client'),
         apiRequest<StaticTokenApiRecord[]>('/api/client-tokens'),
+        apiRequest<AdminApiKeyApiRecord[]>('/api/admin-api-keys'),
       ]);
 
-      return { client, tokens };
+      return { client, tokens, adminApiKeys };
     },
   });
 
@@ -98,6 +119,11 @@ export function ClientWorkspace() {
   const activeTokenCount = useMemo(
     () => (workspaceQuery.data?.tokens ?? []).filter((token) => token.isActive).length,
     [workspaceQuery.data?.tokens],
+  );
+
+  const activeAdminApiKeyCount = useMemo(
+    () => (workspaceQuery.data?.adminApiKeys ?? []).filter((apiKey) => apiKey.isActive).length,
+    [workspaceQuery.data?.adminApiKeys],
   );
 
   const updateClientMutation = useMutation({
@@ -142,6 +168,54 @@ export function ClientWorkspace() {
     },
   });
 
+  const createAdminApiKeyMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<CreateAdminApiKeyResponse>('/api/admin-api-keys', {
+        method: 'POST',
+        body: JSON.stringify({
+          clientName: apiClientName.trim(),
+        }),
+    }),
+    onSuccess: async (response) => {
+      queryClient.setQueryData<WorkspaceData>(['client-workspace'], (currentData) =>
+        currentData
+          ? {
+              ...currentData,
+              adminApiKeys: [
+                response.apiKey,
+                ...currentData.adminApiKeys.filter((apiKey) => apiKey.id !== response.apiKey.id),
+              ],
+            }
+          : currentData,
+      );
+      await queryClient.invalidateQueries({ queryKey: ['client-workspace'] });
+      setRevealedApiKey(response);
+      setApiClientName('');
+      setApiKeyError(null);
+    },
+  });
+
+  const revokeAdminApiKeyMutation = useMutation({
+    mutationFn: (keyId: string) =>
+      apiRequest<AdminApiKeyApiRecord>(`/api/admin-api-keys/${keyId}/revoke`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }),
+    onSuccess: async (response) => {
+      queryClient.setQueryData<WorkspaceData>(['client-workspace'], (currentData) =>
+        currentData
+          ? {
+              ...currentData,
+              adminApiKeys: currentData.adminApiKeys.map((apiKey) =>
+                apiKey.id === response.id ? response : apiKey,
+              ),
+            }
+          : currentData,
+      );
+      await queryClient.invalidateQueries({ queryKey: ['client-workspace'] });
+    },
+  });
+
   const handleSaveClient = async () => {
     setFormError(null);
 
@@ -172,15 +246,26 @@ export function ClientWorkspace() {
     }
   };
 
-  const handleCopyToken = async () => {
-    if (!revealedToken?.plainTextToken) {
+  const handleCreateAdminApiKey = async () => {
+    setApiKeyError(null);
+
+    if (!apiClientName.trim()) {
+      setApiKeyError('Client name zorunludur.');
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(revealedToken.plainTextToken);
+      await createAdminApiKeyMutation.mutateAsync();
+    } catch (error) {
+      setApiKeyError(error instanceof Error ? error.message : 'Admin API key oluşturulamadı.');
+    }
+  };
+
+  const handleCopyValue = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
     } catch {
-      // Clipboard failure is non-blocking for the reveal card.
+      // Clipboard failure is non-blocking for reveal cards.
     }
   };
 
@@ -216,9 +301,9 @@ export function ClientWorkspace() {
         <>
           {revealedToken ? (
             <Card className="border-primary/30 bg-primary/5">
-            <CardHeader>
-              <CardTitle>Yeni static token</CardTitle>
-              <CardDescription>
+              <CardHeader>
+                <CardTitle>Yeni static token</CardTitle>
+                <CardDescription>
                   Bu değer yalnızca şimdi gösterilir. Gerekirse kopyalayın.
                 </CardDescription>
               </CardHeader>
@@ -227,11 +312,49 @@ export function ClientWorkspace() {
                   {revealedToken.plainTextToken}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button className="gap-2" onClick={handleCopyToken} type="button" variant="outline">
+                  <Button className="gap-2" onClick={() => handleCopyValue(revealedToken.plainTextToken)} type="button" variant="outline">
                     <Copy className="h-4 w-4" />
                     Kopyala
                   </Button>
                   <Button onClick={() => setRevealedToken(null)} type="button" variant="ghost">
+                    Kapat
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {revealedApiKey ? (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader>
+                <CardTitle>Yeni admin API key</CardTitle>
+                <CardDescription>
+                  API key ve client secret yalnızca şimdi gösterilir.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">API Key</p>
+                  <div className="rounded-lg border border-border/60 bg-background px-4 py-3 break-all font-mono text-sm">
+                    {revealedApiKey.plainTextApiKey}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Client Secret</p>
+                  <div className="rounded-lg border border-border/60 bg-background px-4 py-3 break-all font-mono text-sm">
+                    {revealedApiKey.clientSecret}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button className="gap-2" onClick={() => handleCopyValue(revealedApiKey.plainTextApiKey)} type="button" variant="outline">
+                    <Copy className="h-4 w-4" />
+                    API key kopyala
+                  </Button>
+                  <Button className="gap-2" onClick={() => handleCopyValue(revealedApiKey.clientSecret)} type="button" variant="outline">
+                    <Copy className="h-4 w-4" />
+                    Secret kopyala
+                  </Button>
+                  <Button onClick={() => setRevealedApiKey(null)} type="button" variant="ghost">
                     Kapat
                   </Button>
                 </div>
@@ -284,40 +407,74 @@ export function ClientWorkspace() {
                     {updateClientMutation.isPending ? 'Kaydediliyor...' : 'Client güncelle'}
                   </Button>
                   <Badge variant="secondary">{activeTokenCount} aktif token</Badge>
+                  <Badge variant="secondary">{activeAdminApiKeyCount} aktif admin key</Badge>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 bg-card/80">
-              <CardHeader>
-                <CardTitle>Yeni token</CardTitle>
-                <CardDescription>
-                  Yeni bir erişim tokenı oluşturun.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="tokenLabel">Token adı</Label>
-                  <Input
-                    id="tokenLabel"
-                    onChange={(event) => setTokenLabel(event.target.value)}
-                    placeholder="Android production"
-                    value={tokenLabel}
-                  />
-                </div>
-
-                {tokenError ? (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {tokenError}
+            <div className="flex flex-col gap-6">
+              <Card className="border-border/60 bg-card/80">
+                <CardHeader>
+                  <CardTitle>Yeni token</CardTitle>
+                  <CardDescription>
+                    Yeni bir erişim tokenı oluşturun.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tokenLabel">Token adı</Label>
+                    <Input
+                      id="tokenLabel"
+                      onChange={(event) => setTokenLabel(event.target.value)}
+                      placeholder="Android production"
+                      value={tokenLabel}
+                    />
                   </div>
-                ) : null}
 
-                <Button className="gap-2" disabled={createTokenMutation.isPending} onClick={handleCreateToken} type="button">
-                  <KeyRound className="h-4 w-4" />
-                  {createTokenMutation.isPending ? 'Üretiliyor...' : 'Static token üret'}
-                </Button>
-              </CardContent>
-            </Card>
+                  {tokenError ? (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                      {tokenError}
+                    </div>
+                  ) : null}
+
+                  <Button className="gap-2" disabled={createTokenMutation.isPending} onClick={handleCreateToken} type="button">
+                    <KeyRound className="h-4 w-4" />
+                    {createTokenMutation.isPending ? 'Üretiliyor...' : 'Static token üret'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60 bg-card/80">
+                <CardHeader>
+                  <CardTitle>Yeni admin API key</CardTitle>
+                  <CardDescription>
+                    Backend-to-backend admin API erişimi için key oluşturun.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="apiClientName">Client name</Label>
+                    <Input
+                      id="apiClientName"
+                      onChange={(event) => setApiClientName(event.target.value)}
+                      placeholder="Content service production"
+                      value={apiClientName}
+                    />
+                  </div>
+
+                  {apiKeyError ? (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                      {apiKeyError}
+                    </div>
+                  ) : null}
+
+                  <Button className="gap-2" disabled={createAdminApiKeyMutation.isPending} onClick={handleCreateAdminApiKey} type="button">
+                    <KeyRound className="h-4 w-4" />
+                    {createAdminApiKeyMutation.isPending ? 'Üretiliyor...' : 'Admin API key üret'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           <Card className="border-border/60 bg-card/80">
@@ -358,6 +515,61 @@ export function ClientWorkspace() {
                           <Button
                             disabled={!token.isActive || revokeTokenMutation.isPending}
                             onClick={() => revokeTokenMutation.mutate(token.id)}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            Revoke
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 bg-card/80">
+            <CardHeader>
+              <CardTitle>Admin API key listesi</CardTitle>
+              <CardDescription>Backend-to-backend admin erişimlerini buradan takip edebilirsiniz.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(workspaceQuery.data.adminApiKeys ?? []).length === 0 ? (
+                <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
+                  Henüz admin API key yok. İlk key&apos;i yukarıdaki formdan oluşturabilirsiniz.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Client name</TableHead>
+                      <TableHead>Prefix</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Last used</TableHead>
+                      <TableHead>Revoked</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {workspaceQuery.data.adminApiKeys.map((apiKey) => (
+                      <TableRow key={apiKey.id}>
+                        <TableCell className="font-medium">{apiKey.clientName}</TableCell>
+                        <TableCell className="font-mono text-xs">{apiKey.keyPrefix}</TableCell>
+                        <TableCell>
+                          <Badge variant={apiKey.isActive ? 'default' : 'secondary'}>
+                            {apiKey.isActive ? 'Active' : 'Revoked'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatDate(apiKey.createdAt)}</TableCell>
+                        <TableCell>{formatDate(apiKey.lastUsedAt)}</TableCell>
+                        <TableCell>{formatDate(apiKey.revokedAt)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            disabled={!apiKey.isActive || revokeAdminApiKeyMutation.isPending}
+                            onClick={() => revokeAdminApiKeyMutation.mutate(apiKey.id)}
                             size="sm"
                             type="button"
                             variant="outline"
