@@ -1,0 +1,13 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story:$COMMIT_SHA'
+      - '.'
+
+images:
+  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
