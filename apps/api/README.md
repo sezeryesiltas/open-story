@@ -15,3 +15,15 @@ Backend API module scaffold.
 - `file:///absolute/path/open-story.sqlite`
 - `sqlite:///absolute/path/open-story.sqlite`
 - `/absolute/path/open-story.sqlite`
+
+## Admin API keys
+
+Admin API keys are for backend-to-backend access to admin APIs. They are separate from SDK static tokens.
+
+- Create/list/revoke keys with an admin session token:
+  - `GET /v1/admin-api-keys`
+  - `POST /v1/admin-api-keys` with `{ "clientName": "Content service production" }`
+  - `POST /v1/admin-api-keys/:keyId/revoke`
+- The create response returns `plainTextApiKey` and `clientSecret` once.
+- Use the generated API key on admin API calls as `Authorization: Bearer <plainTextApiKey>`.
+- Revoked admin API keys return `403` and cannot render admin API access.

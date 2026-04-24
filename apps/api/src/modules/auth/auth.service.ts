@@ -57,7 +57,7 @@ export class AuthService {
   }
 
   async me(authorization?: string): Promise<AuthSessionResponseDto> {
-    const { user, session } = await this.adminAccessService.requireAdminAccess(authorization);
+    const { user, session } = await this.adminAccessService.requireAdminSession(authorization);
 
     return {
       user: toAuthUserDto(user),
@@ -69,7 +69,7 @@ export class AuthService {
     payload: AuthChangePasswordDto,
     authorization?: string,
   ): Promise<AuthSessionResponseDto> {
-    const { user, session } = await this.adminAccessService.requireAdminAccess(authorization);
+    const { user, session } = await this.adminAccessService.requireAdminSession(authorization);
 
     const currentPassword = payload.currentPassword?.trim();
     const newPassword = payload.newPassword?.trim();
@@ -98,7 +98,7 @@ export class AuthService {
   }
 
   async logout(authorization?: string): Promise<void> {
-    const { session } = await this.adminAccessService.requireAdminAccess(authorization);
+    const { session } = await this.adminAccessService.requireAdminSession(authorization);
     this.repository.revokeAdminSession(session.id);
   }
 }

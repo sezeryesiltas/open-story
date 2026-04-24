@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 
 import type {
+  AdminApiKeyRecord,
   AdminSessionRecord,
   AdminUserRecord,
   ClientRecord,
@@ -194,6 +195,73 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
         isActive: false,
         revokedAt: revokedAt.toISOString(),
         updatedAt: revokedAt.toISOString(),
+      }) ?? null
+    );
+  }
+
+  listAdminApiKeys(): AdminApiKeyRecord[] {
+    this.ensureBootstrapState();
+
+    return this.db
+      .list<AdminApiKeyRecord>('adminApiKeys')
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  findAdminApiKeyById(apiKeyId: string): AdminApiKeyRecord | null {
+    this.ensureBootstrapState();
+    return this.db.findById<AdminApiKeyRecord>('adminApiKeys', apiKeyId) ?? null;
+  }
+
+  createAdminApiKey(params: {
+    id: string;
+    clientName: string;
+    keyPrefix: string;
+    clientSecretHash: string;
+    createdByAdminUserId: string | null;
+  }): AdminApiKeyRecord {
+    this.ensureBootstrapState();
+
+    const now = new Date().toISOString();
+    const record: AdminApiKeyRecord = {
+      id: params.id,
+      clientName: params.clientName,
+      keyPrefix: params.keyPrefix,
+      clientSecretHash: params.clientSecretHash,
+      isActive: true,
+      revokedAt: null,
+      lastUsedAt: null,
+      createdByAdminUserId: params.createdByAdminUserId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    return this.db.insert<AdminApiKeyRecord>('adminApiKeys', record);
+  }
+
+  revokeAdminApiKey(apiKeyId: string, revokedAt = new Date()): AdminApiKeyRecord | null {
+    this.ensureBootstrapState();
+
+    const apiKey = this.findAdminApiKeyById(apiKeyId);
+    if (!apiKey) {
+      return null;
+    }
+
+    return (
+      this.db.updateById<AdminApiKeyRecord>('adminApiKeys', apiKeyId, {
+        isActive: false,
+        revokedAt: revokedAt.toISOString(),
+        updatedAt: revokedAt.toISOString(),
+      }) ?? null
+    );
+  }
+
+  markAdminApiKeyUsed(apiKeyId: string, usedAt = new Date()): AdminApiKeyRecord | null {
+    this.ensureBootstrapState();
+
+    return (
+      this.db.updateById<AdminApiKeyRecord>('adminApiKeys', apiKeyId, {
+        lastUsedAt: usedAt.toISOString(),
+        updatedAt: usedAt.toISOString(),
       }) ?? null
     );
   }

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, extname, resolve } from 'node:path';
 
 import type { AssetRecord } from '@open-story/contracts';
@@ -113,6 +113,17 @@ export async function createAssetRecordFromUrlImport(input: AssetImportFromUrlIn
     source: 'url',
     publicUrl: finalUrl,
   });
+}
+
+export function deleteAssetBinary(record: AssetRecord): void {
+  if (record.source !== 'upload') {
+    return;
+  }
+
+  const filePath = resolveAssetFilePath(record.storageKey);
+  if (existsSync(filePath)) {
+    unlinkSync(filePath);
+  }
 }
 
 function createAssetRecordFromBuffer(input: {

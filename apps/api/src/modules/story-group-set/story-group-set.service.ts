@@ -51,7 +51,7 @@ export class StoryGroupSetService {
   }
 
   async create(payload: CreateStoryGroupSetDto, authorization?: string): Promise<StoryGroupSetDto> {
-    const { user } = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireAdminAccess(authorization);
     const parsedPayload = adminSet.createStoryGroupSetDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -83,7 +83,7 @@ export class StoryGroupSetService {
       status: 'draft',
       platformTargets: normalizedPayload.targets,
       userSegments: normalizedPayload.segments,
-      createdByAdminUserId: user.id,
+      createdByAdminUserId: access.adminUserId,
       createdAt: now,
     };
 
@@ -99,7 +99,7 @@ export class StoryGroupSetService {
     payload: UpdateStoryGroupSetDto,
     authorization?: string,
   ): Promise<StoryGroupSetDto> {
-    const { user } = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireAdminAccess(authorization);
     const parsedPayload = adminSet.updateStoryGroupSetDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -160,7 +160,7 @@ export class StoryGroupSetService {
         status: 'draft',
         platformTargets: normalizedPayload.targets,
         userSegments: normalizedPayload.segments,
-        createdByAdminUserId: user.id,
+        createdByAdminUserId: access.adminUserId,
         createdAt: now,
       };
 

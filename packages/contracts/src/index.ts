@@ -11,6 +11,7 @@ export * from './persistence.ts';
 export * as adminClient from './admin/client.ts';
 export * as adminPlacement from './admin/placement.ts';
 export * as adminToken from './admin/token.ts';
+export * as adminApiKey from './admin/api-key.ts';
 export * as adminSet from './admin/set.ts';
 export * as adminGroup from './admin/group.ts';
 export * as adminStory from './admin/story.ts';

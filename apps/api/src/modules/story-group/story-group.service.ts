@@ -47,7 +47,7 @@ export class StoryGroupService {
   }
 
   async create(payload: CreateStoryGroupDto, authorization?: string): Promise<StoryGroupDto> {
-    const { user } = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireAdminAccess(authorization);
     const parsedPayload = adminGroup.createStoryGroupDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -78,7 +78,7 @@ export class StoryGroupService {
       logoAssetId: normalizedPayload.logoAssetId,
       badge: normalizedPayload.badge,
       status: 'draft',
-      createdByAdminUserId: user.id,
+      createdByAdminUserId: access.adminUserId,
       createdAt: now,
     };
 
@@ -94,7 +94,7 @@ export class StoryGroupService {
     payload: UpdateStoryGroupDto,
     authorization?: string,
   ): Promise<StoryGroupDto> {
-    const { user } = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireAdminAccess(authorization);
     const parsedPayload = adminGroup.updateStoryGroupDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -144,7 +144,7 @@ export class StoryGroupService {
       logoAssetId: normalizedPayload.logoAssetId,
       badge: normalizedPayload.badge,
       status: 'draft',
-      createdByAdminUserId: user.id,
+      createdByAdminUserId: access.adminUserId,
       createdAt: now,
     };
 

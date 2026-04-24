@@ -1,4 +1,6 @@
 import type {
+  AdminApiKeyDto,
+  AdminApiKeyRecord,
   AdminUserDto,
   AuthSessionDto,
   AuthUserDto,
@@ -51,4 +53,14 @@ export const toStaticTokenDto = (
   isActive: record.isActive,
   createdAt: record.createdAt,
   revokedAt: record.revokedAt,
+});
+
+export const toAdminApiKeyDto = (record: AdminApiKeyRecord): AdminApiKeyDto => ({
+  id: record.id,
+  clientName: record.clientName,
+  keyPrefix: record.keyPrefix,
+  isActive: record.isActive,
+  createdAt: record.createdAt,
+  revokedAt: record.revokedAt,
+  lastUsedAt: record.lastUsedAt ?? null,
 });

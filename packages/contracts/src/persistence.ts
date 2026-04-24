@@ -18,6 +18,7 @@ const badgeRecordSchema = z
 export const storyPlatformTableNameSchema = z.enum([
   'clients',
   'staticTokens',
+  'adminApiKeys',
   'adminUsers',
   'adminSessions',
   'placements',
@@ -63,6 +64,21 @@ export const staticTokenRecordSchema = z
     revokedAt: nullableTimestampSchema,
     expiresAt: nullableTimestampSchema,
     lastUsedAt: nullableTimestampSchema.optional(),
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema,
+  })
+  .strict();
+
+export const adminApiKeyRecordSchema = z
+  .object({
+    id: rootIdSchema,
+    clientName: z.string().trim().min(1).max(128),
+    keyPrefix: z.string().trim().min(6).max(64),
+    clientSecretHash: z.string().trim().min(1),
+    isActive: z.boolean(),
+    revokedAt: nullableTimestampSchema,
+    lastUsedAt: nullableTimestampSchema.optional(),
+    createdByAdminUserId: rootIdSchema.nullable(),
     createdAt: timestampSchema,
     updatedAt: timestampSchema,
   })
@@ -231,6 +247,7 @@ export type StoryPlatformTableName = z.infer<typeof storyPlatformTableNameSchema
 export type PlatformTargetRecord = z.infer<typeof platformTargetRecordSchema>;
 export type ClientRecord = z.infer<typeof clientRecordSchema>;
 export type StaticTokenRecord = z.infer<typeof staticTokenRecordSchema>;
+export type AdminApiKeyRecord = z.infer<typeof adminApiKeyRecordSchema>;
 export type AdminUserRecord = z.infer<typeof adminUserRecordSchema>;
 export type AdminSessionRecord = z.infer<typeof adminSessionRecordSchema>;
 export type PlacementRecord = z.infer<typeof placementRecordSchema>;

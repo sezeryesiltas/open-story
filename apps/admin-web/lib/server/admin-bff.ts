@@ -1,7 +1,10 @@
 import type {
+  AdminApiKeyDto,
   AdminUserDto,
   AssetDto,
   ClientDto,
+  CreateAdminApiKeyDto,
+  CreateAdminApiKeyResponseDto,
   CreateStoryDto,
   CreateStoryGroupDto,
   CreateStoryGroupSetDto,
@@ -12,6 +15,7 @@ import type {
   PublishStoryGroupDto,
   PublishStoryGroupSetDto,
   ResetAdminUserPasswordDto,
+  RevokeAdminApiKeyDto,
   RevokeStaticTokenDto,
   StaticTokenDto,
   StoryDto,
@@ -41,6 +45,8 @@ export type AdminAssetRecord = {
   durationMs: number | null;
   sizeBytes: number | null;
   source: 'upload' | 'url';
+  usageCount: number;
+  usageReferences: AssetDto['usageReferences'];
   createdAt: string;
   updatedAt: string;
 };
@@ -151,6 +157,13 @@ export async function listAssets(type?: string, authToken?: string | null): Prom
   return assets.map((asset) => ({
     ...asset,
   }));
+}
+
+export async function deleteAsset(assetId: string, authToken?: string | null): Promise<void> {
+  await backendApiRequest<void>(`/v1/assets/${assetId}`, {
+    method: 'DELETE',
+    authToken,
+  });
 }
 
 export async function listStoryGroupSets(authToken?: string | null): Promise<AdminStoryGroupSetRecord[]> {
@@ -361,6 +374,26 @@ export async function createStaticToken(payload: CreateStaticTokenDto, authToken
 
 export async function revokeStaticToken(tokenId: string, payload: RevokeStaticTokenDto, authToken?: string | null): Promise<StaticTokenDto> {
   return backendApiRequest<StaticTokenDto>(`/v1/client-tokens/${tokenId}/revoke`, {
+    method: 'POST',
+    authToken,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listAdminApiKeys(authToken?: string | null): Promise<AdminApiKeyDto[]> {
+  return backendApiRequest<AdminApiKeyDto[]>('/v1/admin-api-keys', { authToken });
+}
+
+export async function createAdminApiKey(payload: CreateAdminApiKeyDto, authToken?: string | null): Promise<CreateAdminApiKeyResponseDto> {
+  return backendApiRequest<CreateAdminApiKeyResponseDto>('/v1/admin-api-keys', {
+    method: 'POST',
+    authToken,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function revokeAdminApiKey(keyId: string, payload: RevokeAdminApiKeyDto, authToken?: string | null): Promise<AdminApiKeyDto> {
+  return backendApiRequest<AdminApiKeyDto>(`/v1/admin-api-keys/${keyId}/revoke`, {
     method: 'POST',
     authToken,
     body: JSON.stringify(payload),

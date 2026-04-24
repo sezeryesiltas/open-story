@@ -129,6 +129,30 @@ export interface RevokeStaticTokenDto {
   reason?: string;
 }
 
+export interface AdminApiKeyDto {
+  id: string;
+  clientName: string;
+  keyPrefix: string;
+  isActive: boolean;
+  createdAt: string;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+}
+
+export interface CreateAdminApiKeyDto {
+  clientName: string;
+}
+
+export interface CreateAdminApiKeyResponseDto {
+  apiKey: AdminApiKeyDto;
+  plainTextApiKey: string;
+  clientSecret: string;
+}
+
+export interface RevokeAdminApiKeyDto {
+  reason?: string;
+}
+
 export interface CreatePlacementDto {
   key: string;
   name: string;
@@ -169,6 +193,15 @@ export type StoryDto = AdminStory;
 
 export type AssetTypeDto = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 
+export interface AssetUsageReferenceDto {
+  entityType: 'story_group' | 'story';
+  entityId: string;
+  revisionId: string;
+  revisionStatus: 'draft' | 'published';
+  field: 'logo' | 'media' | 'poster';
+  name: string;
+}
+
 export interface AssetDto {
   id: string;
   type: AssetTypeDto;
@@ -180,6 +213,8 @@ export interface AssetDto {
   durationMs: number | null;
   sizeBytes: number | null;
   source: 'upload' | 'url';
+  usageCount: number;
+  usageReferences: AssetUsageReferenceDto[];
   createdAt: string;
   updatedAt: string;
 }

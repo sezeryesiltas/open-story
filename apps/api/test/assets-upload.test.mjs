@@ -11,6 +11,10 @@ import { SimpleJwtService } from '../src/admin-auth/simple-jwt.ts';
 import { AssetsRepository } from '../src/modules/assets/assets.repository.ts';
 import { AssetsService } from '../src/modules/assets/assets.service.ts';
 import { AuthService } from '../src/modules/auth/auth.service.ts';
+import { StoryGroupService } from '../src/modules/story-group/story-group.service.ts';
+import { PublishResolutionRepository } from '../src/publish/publish-resolution.repository.ts';
+import { PublishResolutionService } from '../src/publish/publish-resolution.service.ts';
+import { StoryContentRepository } from '../src/story-content/story-content.repository.ts';
 import { ApiServiceError } from '../src/common/filters/api-error.ts';
 import { StoryPlatformRepository } from '../src/story-platform/story-platform.repository.ts';
 
@@ -31,10 +35,13 @@ function createHarness() {
   });
   const jwtService = new SimpleJwtService('test-admin-jwt-secret');
   const adminAccessService = new AdminAccessService(repository, jwtService);
+  const contentRepository = new StoryContentRepository(db);
+  const publishResolutionService = new PublishResolutionService(new PublishResolutionRepository(db));
 
   return {
     authService: new AuthService(repository, jwtService, adminAccessService),
     assetsService: new AssetsService(new AssetsRepository(db), adminAccessService),
+    groupService: new StoryGroupService(contentRepository, publishResolutionService, adminAccessService),
   };
 }
 
@@ -93,6 +100,63 @@ test('asset upload stores square logos and 9:16 media with extracted metadata', 
 
   const listedAssets = await assetsService.list({}, authorization);
   assert.equal(listedAssets.length, 3);
+});
+
+test('asset list exposes current usage and only unused assets can be deleted', async () => {
+  const { authService, assetsService, groupService } = createHarness();
+  const loginResponse = await authService.login({
+    email: 'admin@openstory.local',
+    password: 'admin12345',
+  });
+  const authorization = `Bearer ${loginResponse.accessToken}`;
+
+  const logoAsset = await assetsService.upload(
+    {
+      type: 'group_logo',
+      fileName: 'logo.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"></svg>'),
+    },
+    authorization,
+  );
+  const unusedAsset = await assetsService.upload(
+    {
+      type: 'story_image',
+      fileName: 'unused.png',
+      mimeType: 'image/png',
+      buffer: createPngBuffer(1080, 1920),
+    },
+    authorization,
+  );
+
+  await groupService.create(
+    {
+      name: 'Used Logo Group',
+      bottom_label: null,
+      logo_asset_id: logoAsset.id,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+
+  const listedAssets = await assetsService.list({}, authorization);
+  const listedLogo = listedAssets.find((asset) => asset.id === logoAsset.id);
+  const listedUnusedAsset = listedAssets.find((asset) => asset.id === unusedAsset.id);
+
+  assert.equal(listedLogo?.usageCount, 1);
+  assert.equal(listedLogo?.usageReferences[0]?.entityType, 'story_group');
+  assert.equal(listedUnusedAsset?.usageCount, 0);
+
+  await assert.rejects(
+    () => assetsService.delete(logoAsset.id, authorization),
+    (error) => error instanceof ApiServiceError && error.statusCode === 409,
+  );
+
+  await assetsService.delete(unusedAsset.id, authorization);
+
+  const listedAfterDelete = await assetsService.list({}, authorization);
+  assert.equal(listedAfterDelete.some((asset) => asset.id === unusedAsset.id), false);
 });
 
 test('asset upload rejects invalid image ratios and overlong videos', async () => {
