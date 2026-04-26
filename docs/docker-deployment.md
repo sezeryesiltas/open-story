@@ -62,9 +62,11 @@ Gerekirse `.env` içeriğini düzenleyin:
 ```env
 OPEN_STORY_HOST_DATA_DIR=/opt/open-story/data
 OPEN_STORY_HOST_ASSETS_DIR=/opt/open-story/assets
+OPEN_STORY_BUILD_NUMBER=local
 ```
 
 Bu dosya container içine girmez; sadece Compose tarafından okunur.
+`OPEN_STORY_BUILD_NUMBER`, admin sidebar footer'ında gösterilen build bilgisidir. Cloud Build bunu `$SHORT_SHA` ile otomatik verir; Docker Compose ile deploy ederken bu değeri güncel commit kısa SHA'sı veya release numarasıyla değiştirin.
 
 ## 4. Runtime Env
 
@@ -150,7 +152,7 @@ curl http://127.0.0.1/healthz
 
 ```bash
 git pull
-docker compose build --no-cache
+OPEN_STORY_BUILD_NUMBER=$(git rev-parse --short HEAD) docker compose build --no-cache
 docker compose up -d --force-recreate
 ```
 

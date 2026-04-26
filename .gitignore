@@ -12,6 +12,7 @@ apps/api/data/
 .env
 .env.*
 !.env.example
+!.env.compose.example
 !.env.production.example
 sdk/android/.gradle/
 sdk/android/local.properties

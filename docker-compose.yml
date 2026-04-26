@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: api-runner
+      args:
+        NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER: ${OPEN_STORY_BUILD_NUMBER:-local}
     volumes:
       - ${OPEN_STORY_HOST_DATA_DIR:-./data}:/data/db
       - ${OPEN_STORY_HOST_ASSETS_DIR:-./assets}:/data/assets
@@ -18,6 +20,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: admin-web-runner
+      args:
+        NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER: ${OPEN_STORY_BUILD_NUMBER:-local}
     env_file:
       - .env.production
     depends_on:

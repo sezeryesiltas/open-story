@@ -20,6 +20,9 @@ RUN pnpm install --frozen-lockfile
 # ---- Stage 2: Builder ----
 FROM deps AS builder
 
+ARG NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER=local
+ENV NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER=${NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER}
+
 # Copy all source files
 COPY turbo.json ./
 COPY apps/ ./apps/
