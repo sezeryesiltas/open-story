@@ -10,6 +10,8 @@ steps:
       - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$COMMIT_SHA'
       - '-t'
       - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:latest'
       - '.'
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -22,13 +24,17 @@ steps:
       - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$COMMIT_SHA'
       - '-t'
       - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:latest'
       - '.'
 
 images:
   - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$COMMIT_SHA'
   - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$SHORT_SHA'
+  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:latest'
   - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$COMMIT_SHA'
   - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$SHORT_SHA'
+  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
