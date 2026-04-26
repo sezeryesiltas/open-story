@@ -76,6 +76,8 @@ OPEN_STORY_API_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-stor
 OPEN_STORY_ADMIN_WEB_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:<tag>
 ```
 
+İsterseniz burada `:latest` de kullanabilirsiniz. Daha deterministik deploy için yine de SHA tag'leri önerilir.
+
 ## 4. Runtime Env
 
 ```bash
@@ -126,8 +128,10 @@ Build tamamlandığında aynı commit için şu tag'ler push edilir:
 
 - `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$COMMIT_SHA`
 - `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$SHORT_SHA`
+- `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:latest`
 - `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$COMMIT_SHA`
 - `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$SHORT_SHA`
+- `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:latest`
 
 VM üstünde `.env` dosyasındaki image ref'lerini güncelleyin, sonra prebuilt image deploy compose dosyasını kullanın:
 
