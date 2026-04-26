@@ -19,6 +19,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutPanelTop, ShieldCheck } from 'lucide-react';
 
 import { adminNavSections } from '@/lib/admin-navigation';
+import { adminBuildInfo, adminBuildLabel } from '@/lib/build-info';
 
 function isActive(pathname: string, href: string) {
   if (href === '/') {
@@ -95,6 +96,12 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <div
+          className="flex min-w-0 flex-col px-2 pb-1 text-[11px] leading-4 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
+          title={`Build ${adminBuildInfo.buildNumber}`}
+        >
+          <span className="truncate">{adminBuildLabel}</span>
+        </div>
       </SidebarFooter>
 
       <SidebarRail />

@@ -2,6 +2,8 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER=$SHORT_SHA'
       - '-t'
       - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story:$COMMIT_SHA'
       - '.'
