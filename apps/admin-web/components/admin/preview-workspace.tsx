@@ -35,6 +35,7 @@ import type {
 } from '@/lib/server/preview-store';
 
 const NO_SELECTION = '__none';
+const DEFAULT_STORY_ASPECT_RATIO = '9 / 16';
 
 function buildPreviewQueryPath(placementId: string | null, setId: string | null) {
   const searchParams = new URLSearchParams();
@@ -167,18 +168,27 @@ function formatBadgeValue(group: SdkFeedGroup) {
   return 'SVG';
 }
 
+function mediaAspectRatio(asset: SdkFeedStory['asset'] | undefined) {
+  if (!asset?.width || !asset.height) {
+    return DEFAULT_STORY_ASPECT_RATIO;
+  }
+
+  return `${asset.width} / ${asset.height}`;
+}
+
 function StoryMedia({ story }: { story: SdkFeedStory }) {
   if (story.media_type === 'video') {
     return (
       <div className="relative aspect-[1/2] w-full overflow-hidden bg-black">
         <video
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute left-1/2 top-1/2 block w-full max-w-none -translate-x-1/2 -translate-y-1/2"
           autoPlay
           loop
           muted
           playsInline
           poster={story.poster_asset?.url}
           src={story.asset.url}
+          style={{ aspectRatio: mediaAspectRatio(story.asset) }}
         />
       </div>
     );
@@ -187,7 +197,14 @@ function StoryMedia({ story }: { story: SdkFeedStory }) {
   return (
     <div className="relative aspect-[1/2] w-full overflow-hidden bg-black">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt={story.title} className="absolute inset-0 h-full w-full object-contain object-top" src={story.asset.url} />
+      <img
+        alt={story.title}
+        className="absolute left-1/2 top-1/2 block h-auto w-full max-w-none -translate-x-1/2 -translate-y-1/2"
+        height={story.asset.height}
+        src={story.asset.url}
+        width={story.asset.width}
+        style={{ aspectRatio: mediaAspectRatio(story.asset) }}
+      />
     </div>
   );
 }

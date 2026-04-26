@@ -207,8 +207,6 @@ function validateUpload(
       if (detectedAsset.mediaType !== 'image') {
         throw ApiServiceError.badRequest('Story image/poster için yalnızca görsel yüklenebilir.');
       }
-
-      validateStoryRatio(detectedAsset.width, detectedAsset.height);
       break;
     case 'story_video':
       if (detectedAsset.mediaType !== 'video') {
@@ -219,20 +217,12 @@ function validateUpload(
         throw ApiServiceError.badRequest('Video dosyası 50 MB sınırını aşamaz.');
       }
 
-      validateStoryRatio(detectedAsset.width, detectedAsset.height);
-
       if (detectedAsset.durationMs > 30_000) {
         throw ApiServiceError.badRequest('Video süresi en fazla 30 saniye olabilir.');
       }
       break;
     default:
       throw ApiServiceError.badRequest('Geçerli bir asset tipi seçin.');
-  }
-}
-
-function validateStoryRatio(width: number, height: number): void {
-  if (Math.abs(width / height - 9 / 16) > 0.03) {
-    throw ApiServiceError.badRequest('Story asset oranı 9:16 olmalıdır.');
   }
 }
 

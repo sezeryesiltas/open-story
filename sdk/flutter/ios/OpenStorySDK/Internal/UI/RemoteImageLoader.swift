@@ -10,7 +10,8 @@ internal enum RemoteImageLoader {
 
     static func loadImage(
         from urlString: String?,
-        into imageView: UIImageView
+        into imageView: UIImageView,
+        onImageSet: (@MainActor @Sendable (UIImage?) -> Void)? = nil
     ) {
         objc_setAssociatedObject(
             imageView,
@@ -24,12 +25,14 @@ internal enum RemoteImageLoader {
             let url = URL(string: urlString)
         else {
             imageView.image = nil
+            onImageSet?(nil)
             return
         }
 
         let cacheKey = url as NSURL
         if let cachedImage = cache.object(forKey: cacheKey) {
             imageView.image = cachedImage
+            onImageSet?(cachedImage)
             return
         }
 
@@ -48,6 +51,7 @@ internal enum RemoteImageLoader {
                     return
                 }
                 imageView.image = image
+                onImageSet?(image)
             }
         }.resume()
     }

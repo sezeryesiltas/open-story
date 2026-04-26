@@ -8,9 +8,11 @@ import android.app.Dialog
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Outline
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.SystemClock
 import android.text.TextUtils
@@ -638,7 +640,7 @@ internal class StoryViewerDialog private constructor(
 
             val playerView = PlayerView(context).apply {
                 useController = false
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                 setShutterBackgroundColor(Color.TRANSPARENT)
                 this.player = player
                 layoutParams = FrameLayout.LayoutParams(
@@ -653,8 +655,7 @@ internal class StoryViewerDialog private constructor(
             return
         }
 
-        val imageView = ImageView(context).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
+        val imageView = WidthFitImageView(context).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -678,8 +679,7 @@ internal class StoryViewerDialog private constructor(
             imageUrl = story.viewerBackdropImageUrl,
         )
 
-        val imageView = ImageView(context).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
+        val imageView = WidthFitImageView(context).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -1510,6 +1510,42 @@ internal class StoryViewerDialog private constructor(
     private enum class GroupDirection {
         FORWARD,
         BACKWARD,
+    }
+}
+
+private class WidthFitImageView(context: Context) : ImageView(context) {
+    private val widthFitMatrix = Matrix()
+
+    init {
+        scaleType = ScaleType.MATRIX
+    }
+
+    override fun setImageDrawable(drawable: Drawable?) {
+        super.setImageDrawable(drawable)
+        updateWidthFitMatrix()
+    }
+
+    override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
+        super.onSizeChanged(width, height, oldWidth, oldHeight)
+        updateWidthFitMatrix()
+    }
+
+    private fun updateWidthFitMatrix() {
+        val currentDrawable = drawable ?: return
+        val drawableWidth = currentDrawable.intrinsicWidth
+        val drawableHeight = currentDrawable.intrinsicHeight
+        if (drawableWidth <= 0 || drawableHeight <= 0 || width <= 0) {
+            return
+        }
+
+        val scale = width.toFloat() / drawableWidth.toFloat()
+        val scaledHeight = drawableHeight * scale
+        val topOffset = (height - scaledHeight) / 2f
+
+        widthFitMatrix.reset()
+        widthFitMatrix.setScale(scale, scale)
+        widthFitMatrix.postTranslate(0f, topOffset)
+        imageMatrix = widthFitMatrix
     }
 }
 

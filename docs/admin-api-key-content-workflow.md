@@ -41,7 +41,7 @@ If you add a Story to an already published group, publish the Story and then pub
 
 ## 1. Create Or Reuse Assets
 
-A Story Group requires a square `group_logo` asset. Image stories require a 9:16 `story_image` asset. Video stories require a `story_video` asset and a `story_poster` asset.
+A Story Group requires a square `group_logo` asset. Image stories require a `story_image` asset. Video stories require a `story_video` asset and a `story_poster` asset. A 9:16 aspect ratio is recommended for story media and posters, but other aspect ratios are accepted.
 
 Import assets by URL:
 

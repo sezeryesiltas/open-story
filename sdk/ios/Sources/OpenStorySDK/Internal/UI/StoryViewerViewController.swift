@@ -264,14 +264,13 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             let playerSurfaceView = PlayerSurfaceView()
             playerSurfaceView.translatesAutoresizingMaskIntoConstraints = false
             playerSurfaceView.player = player
-            playerSurfaceView.playerLayer.videoGravity = .resizeAspectFill
-            activeStage.mediaHost.addSubview(playerSurfaceView)
-            NSLayoutConstraint.activate([
-                playerSurfaceView.topAnchor.constraint(equalTo: activeStage.mediaHost.topAnchor),
-                playerSurfaceView.leadingAnchor.constraint(equalTo: activeStage.mediaHost.leadingAnchor),
-                playerSurfaceView.trailingAnchor.constraint(equalTo: activeStage.mediaHost.trailingAnchor),
-                playerSurfaceView.bottomAnchor.constraint(equalTo: activeStage.mediaHost.bottomAnchor),
-            ])
+            playerSurfaceView.playerLayer.videoGravity = .resizeAspect
+            activateWidthFittedMediaConstraints(
+                for: playerSurfaceView,
+                in: activeStage.mediaHost,
+                width: story.asset.width,
+                height: story.asset.height
+            )
 
             currentPlayer = player
             currentPlayerSurfaceView = playerSurfaceView
@@ -296,17 +295,11 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
             return
         }
 
-        let imageView = UIImageView()
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.contentMode = .scaleAspectFill
-        activeStage.mediaHost.addSubview(imageView)
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: activeStage.mediaHost.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: activeStage.mediaHost.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: activeStage.mediaHost.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: activeStage.mediaHost.bottomAnchor),
-        ])
-        RemoteImageLoader.loadImage(from: story.asset.url, into: imageView)
+        addWidthFittedImageView(
+            to: activeStage.mediaHost,
+            imageURL: story.asset.url,
+            asset: story.asset
+        )
 
         activeStage.soundButton.isHidden = true
         imageProgressState = StoryPlaybackProgressState.started(story.imageDurationMs ?? Self.defaultImageDurationMs)
@@ -330,29 +323,112 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
 
         if let cachedPreview = RemoteImageLoader.cachedImage(from: previewURL) {
             imageView.image = cachedPreview
-        } else if let fallback = snapshotImage(of: activeStage.mediaHost) {
-            imageView.image = fallback
         }
-
-        stage.mediaHost.addSubview(imageView)
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: stage.mediaHost.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: stage.mediaHost.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: stage.mediaHost.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: stage.mediaHost.bottomAnchor),
-        ])
-        RemoteImageLoader.loadImage(from: previewURL, into: imageView)
+        addWidthFittedImageView(
+            imageView,
+            to: stage.mediaHost,
+            imageURL: previewURL,
+            asset: story.posterAsset ?? story.asset
+        )
     }
 
-    private func snapshotImage(of view: UIView) -> UIImage? {
-        guard view.bounds.width > 1, view.bounds.height > 1 else {
+    private func addWidthFittedImageView(
+        to mediaHost: UIView,
+        imageURL: String?,
+        asset: SdkFeedAssetPayload
+    ) {
+        addWidthFittedImageView(
+            UIImageView(),
+            to: mediaHost,
+            imageURL: imageURL,
+            asset: asset
+        )
+    }
+
+    private func addWidthFittedImageView(
+        _ imageView: UIImageView,
+        to mediaHost: UIView,
+        imageURL: String?,
+        asset: SdkFeedAssetPayload
+    ) {
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+
+        var heightConstraint = activateWidthFittedMediaConstraints(
+            for: imageView,
+            in: mediaHost,
+            width: asset.width,
+            height: asset.height
+        )
+        let hasAssetAspect = Self.aspectMultiplier(width: asset.width, height: asset.height) != nil
+
+        func applyImageAspect(_ image: UIImage?) {
+            guard
+                !hasAssetAspect,
+                let image,
+                image.size.width > 0,
+                image.size.height > 0
+            else {
+                return
+            }
+
+            heightConstraint.isActive = false
+            heightConstraint = imageView.heightAnchor.constraint(
+                equalTo: imageView.widthAnchor,
+                multiplier: image.size.height / image.size.width
+            )
+            heightConstraint.isActive = true
+        }
+
+        applyImageAspect(imageView.image)
+        RemoteImageLoader.loadImage(
+            from: imageURL,
+            into: imageView,
+            onImageSet: applyImageAspect
+        )
+    }
+
+    @discardableResult
+    private func activateWidthFittedMediaConstraints(
+        for mediaView: UIView,
+        in mediaHost: UIView,
+        width: Int?,
+        height: Int?
+    ) -> NSLayoutConstraint {
+        mediaHost.addSubview(mediaView)
+
+        let heightConstraint: NSLayoutConstraint
+        if let aspectMultiplier = Self.aspectMultiplier(width: width, height: height) {
+            heightConstraint = mediaView.heightAnchor.constraint(
+                equalTo: mediaView.widthAnchor,
+                multiplier: aspectMultiplier
+            )
+        } else {
+            heightConstraint = mediaView.heightAnchor.constraint(equalTo: mediaHost.heightAnchor)
+        }
+
+        NSLayoutConstraint.activate([
+            mediaView.leadingAnchor.constraint(equalTo: mediaHost.leadingAnchor),
+            mediaView.trailingAnchor.constraint(equalTo: mediaHost.trailingAnchor),
+            mediaView.centerYAnchor.constraint(equalTo: mediaHost.centerYAnchor),
+            heightConstraint,
+        ])
+
+        return heightConstraint
+    }
+
+    private static func aspectMultiplier(width: Int?, height: Int?) -> CGFloat? {
+        guard
+            let width,
+            let height,
+            width > 0,
+            height > 0
+        else {
             return nil
         }
 
-        let renderer = UIGraphicsImageRenderer(bounds: view.bounds)
-        return renderer.image { context in
-            view.layer.render(in: context.cgContext)
-        }
+        return CGFloat(height) / CGFloat(width)
     }
 
     private func bindCTA(
