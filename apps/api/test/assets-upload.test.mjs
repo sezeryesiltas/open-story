@@ -45,7 +45,7 @@ function createHarness() {
   };
 }
 
-test('asset upload stores square logos and 9:16 media with extracted metadata', async () => {
+test('asset upload stores square logos and story media with extracted metadata', async () => {
   const { authService, assetsService } = createHarness();
   const loginResponse = await authService.login({
     email: 'admin@openstory.local',
@@ -73,33 +73,47 @@ test('asset upload stores square logos and 9:16 media with extracted metadata', 
       type: 'story_image',
       fileName: 'story.png',
       mimeType: 'image/png',
-      buffer: createPngBuffer(1080, 1920),
+      buffer: createPngBuffer(1200, 900),
     },
     authorization,
   );
 
   assert.equal(imageAsset.type, 'story_image');
-  assert.equal(imageAsset.width, 1080);
-  assert.equal(imageAsset.height, 1920);
+  assert.equal(imageAsset.width, 1200);
+  assert.equal(imageAsset.height, 900);
   assert.equal(imageAsset.durationMs, null);
+
+  const posterAsset = await assetsService.upload(
+    {
+      type: 'story_poster',
+      fileName: 'poster.png',
+      mimeType: 'image/png',
+      buffer: createPngBuffer(640, 480),
+    },
+    authorization,
+  );
+
+  assert.equal(posterAsset.type, 'story_poster');
+  assert.equal(posterAsset.width, 640);
+  assert.equal(posterAsset.height, 480);
 
   const videoAsset = await assetsService.upload(
     {
       type: 'story_video',
       fileName: 'story.mp4',
       mimeType: 'video/mp4',
-      buffer: createMp4Buffer({ width: 1080, height: 1920, durationMs: 15_000 }),
+      buffer: createMp4Buffer({ width: 1920, height: 1080, durationMs: 15_000 }),
     },
     authorization,
   );
 
   assert.equal(videoAsset.type, 'story_video');
   assert.equal(videoAsset.durationMs, 15_000);
-  assert.equal(videoAsset.width, 1080);
-  assert.equal(videoAsset.height, 1920);
+  assert.equal(videoAsset.width, 1920);
+  assert.equal(videoAsset.height, 1080);
 
   const listedAssets = await assetsService.list({}, authorization);
-  assert.equal(listedAssets.length, 3);
+  assert.equal(listedAssets.length, 4);
 });
 
 test('asset list exposes current usage and only unused assets can be deleted', async () => {
@@ -159,7 +173,7 @@ test('asset list exposes current usage and only unused assets can be deleted', a
   assert.equal(listedAfterDelete.some((asset) => asset.id === unusedAsset.id), false);
 });
 
-test('asset upload rejects invalid image ratios and overlong videos', async () => {
+test('asset upload rejects non-square logos and overlong videos', async () => {
   const { authService, assetsService } = createHarness();
   const loginResponse = await authService.login({
     email: 'admin@openstory.local',
@@ -205,7 +219,7 @@ test('asset upload rejects invalid image ratios and overlong videos', async () =
 test('asset URL import validates remote image and preserves url source', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () =>
-    new Response(createPngBuffer(1080, 1920), {
+    new Response(createPngBuffer(1200, 900), {
       status: 200,
       headers: {
         'content-type': 'image/png',
@@ -231,8 +245,8 @@ test('asset URL import validates remote image and preserves url source', async (
     assert.equal(importedAsset.type, 'story_image');
     assert.equal(importedAsset.url, 'https://cdn.example.com/story.png');
     assert.equal(importedAsset.source, 'url');
-    assert.equal(importedAsset.width, 1080);
-    assert.equal(importedAsset.height, 1920);
+    assert.equal(importedAsset.width, 1200);
+    assert.equal(importedAsset.height, 900);
   } finally {
     globalThis.fetch = originalFetch;
   }

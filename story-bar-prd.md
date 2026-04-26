@@ -866,18 +866,22 @@ Admin panelden dosya upload edilir; sistem asset’i kendi object storage’ınd
 
 ### Story image
 - `jpg`, `png`, `webp`
-- zorunlu aspect ratio: `9:16`
+- önerilen aspect ratio: `9:16`
+- farklı aspect ratio kabul edilir
 
 ### Story video
 - `mp4`
 - codec: `H.264 + AAC`
-- zorunlu aspect ratio: `9:16`
+- önerilen aspect ratio: `9:16`
+- farklı aspect ratio kabul edilir
 - maksimum süre: `30 saniye`
 - maksimum boyut: `50 MB`
 
 ### Video poster
 - `jpg`, `png`, `webp`
 - zorunlu
+- önerilen aspect ratio: `9:16`
+- farklı aspect ratio kabul edilir
 
 ## 12.3 Video pipeline
 

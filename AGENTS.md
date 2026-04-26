@@ -538,15 +538,19 @@ Do not build a reporting UI in v1.
 
 ### Story image
 - allowed: `jpg`, `png`, `webp`
-- required ratio: `9:16`
+- recommended ratio: `9:16`
+- other aspect ratios are accepted
 
 ### Story video
 - allowed: `mp4`
 - codec: `H.264 + AAC`
-- required ratio: `9:16`
+- recommended ratio: `9:16`
+- other aspect ratios are accepted
 - max duration: `30s`
 - max size: `50MB`
 - poster image is required
+- poster recommended ratio: `9:16`
+- other poster aspect ratios are accepted
 
 ### Pipeline
 No transcoding in v1.

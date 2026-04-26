@@ -54,11 +54,11 @@ const ASSET_TYPE_CONFIG: Record<
     title: 'Story görseli',
     buttonLabel: 'Story görseli seç',
     emptyLabel: 'Henüz story görseli seçilmedi',
-    emptyDescription: '9:16 oranlı JPG, PNG veya WEBP görsel seçin ya da yükleyin.',
+    emptyDescription: 'JPG, PNG veya WEBP görsel seçin ya da yükleyin. 9:16 oran önerilir, farklı oranlar kabul edilir.',
     dialogTitle: 'Story görseli seç',
     dialogDescription: 'Mevcut görselleri seçin veya yeni bir görsel yükleyin.',
-    existingDescription: 'Yalnızca uygun story görselleri listelenir.',
-    uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 görsel yükleyin.',
+    existingDescription: 'Kayıtlı story görselleri listelenir.',
+    uploadDescription: 'JPG, PNG veya WEBP formatında görsel yükleyin. 9:16 oran önerilir.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
   },
@@ -66,11 +66,11 @@ const ASSET_TYPE_CONFIG: Record<
     title: 'Story videosu',
     buttonLabel: 'Story videosu seç',
     emptyLabel: 'Henüz story videosu seçilmedi',
-    emptyDescription: '9:16 oranlı MP4 video seçin. Maksimum süre 30 saniye, maksimum boyut 50 MB olmalıdır.',
+    emptyDescription: 'MP4 video seçin. 9:16 oran önerilir; maksimum süre 30 saniye, maksimum boyut 50 MB olmalıdır.',
     dialogTitle: 'Story videosu seç',
     dialogDescription: 'Mevcut videoları seçin veya yeni bir video yükleyin.',
-    existingDescription: 'Yalnızca uygun story videoları listelenir.',
-    uploadDescription: 'MP4 formatında, 9:16 oranlı ve 30 saniyeyi aşmayan video yükleyin.',
+    existingDescription: 'Kayıtlı story videoları listelenir.',
+    uploadDescription: 'MP4 formatında ve 30 saniyeyi aşmayan video yükleyin. 9:16 oran önerilir.',
     accepts: 'video/mp4',
     previewKind: 'video',
   },
@@ -78,11 +78,11 @@ const ASSET_TYPE_CONFIG: Record<
     title: 'Poster',
     buttonLabel: 'Poster seç',
     emptyLabel: 'Henüz poster seçilmedi',
-    emptyDescription: 'Video story için 9:16 poster zorunludur. JPG, PNG veya WEBP poster seçin.',
+    emptyDescription: 'Video story için poster zorunludur. JPG, PNG veya WEBP poster seçin; 9:16 oran önerilir.',
     dialogTitle: 'Poster seç',
     dialogDescription: 'Mevcut posterleri seçin veya yeni bir poster yükleyin.',
-    existingDescription: 'Yalnızca uygun posterler listelenir.',
-    uploadDescription: 'JPG, PNG veya WEBP formatında 9:16 video poster yükleyin.',
+    existingDescription: 'Kayıtlı posterler listelenir.',
+    uploadDescription: 'JPG, PNG veya WEBP formatında video poster yükleyin. 9:16 oran önerilir.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
   },
@@ -98,10 +98,6 @@ function formatFileSize(sizeBytes: number | null): string {
   }
 
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function isAspectRatioMatch(width: number, height: number, targetWidth: number, targetHeight: number): boolean {
-  return Math.abs(width / height - targetWidth / targetHeight) <= 0.03;
 }
 
 function readImageMetaFromFile(file: File): Promise<{ width: number; height: number; objectUrl: string }> {
@@ -174,15 +170,7 @@ async function readVideoMetaFromFile(file: File): Promise<{
   }
 }
 
-function validateImageLikeAsset(width: number, height: number): void {
-  if (!isAspectRatioMatch(width, height, 9, 16)) {
-    throw new Error('Story asset oranı 9:16 olmalıdır.');
-  }
-}
-
-function validateVideoMetadata(width: number, height: number, durationMs: number): void {
-  validateImageLikeAsset(width, height);
-
+function validateVideoMetadata(durationMs: number): void {
   if (durationMs > 30_000) {
     throw new Error('Video süresi en fazla 30 saniye olabilir.');
   }
@@ -344,8 +332,6 @@ export function StoryAssetPicker({
         const { width, height, objectUrl } = await readImageMetaFromFile(file);
 
         try {
-          validateImageLikeAsset(width, height);
-
           await uploadAssetMutation.mutateAsync({
             file,
             width,
@@ -366,7 +352,7 @@ export function StoryAssetPicker({
             throw new Error('Yalnızca MP4 video yüklenebilir.');
           }
 
-          validateVideoMetadata(width, height, durationMs);
+          validateVideoMetadata(durationMs);
 
           await uploadAssetMutation.mutateAsync({
             file,
