@@ -34,12 +34,13 @@ Bu yapı tek VM üzerinde çalışır. Ayrı Docker service kullanılır, ayrı 
 - En az 2 GB RAM
 - En az 10 GB disk
 
-## 1. Repo ve Branch
+## 1. Repo
 
 ```bash
 git clone https://github.com/sezeryesiltas/open-story.git
 cd open-story
-git checkout codex/admin-web-prod-ready
+git switch main
+git pull --ff-only origin main
 ```
 
 ## 2. Host Dizinleri
@@ -151,7 +152,8 @@ curl http://127.0.0.1/healthz
 ## Güncelleme
 
 ```bash
-git pull
+git switch main
+git pull --ff-only origin main
 OPEN_STORY_BUILD_NUMBER=$(git rev-parse --short HEAD) docker compose build --no-cache
 docker compose up -d --force-recreate
 ```
