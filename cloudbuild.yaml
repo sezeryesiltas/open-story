@@ -2,14 +2,33 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--target'
+      - 'api-runner'
       - '--build-arg'
       - 'NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER=$SHORT_SHA'
       - '-t'
-      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story:$COMMIT_SHA'
+      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$SHORT_SHA'
+      - '.'
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--target'
+      - 'admin-web-runner'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_OPEN_STORY_BUILD_NUMBER=$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$SHORT_SHA'
       - '.'
 
 images:
-  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story:$COMMIT_SHA'
+  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$COMMIT_SHA'
+  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$SHORT_SHA'
+  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$COMMIT_SHA'
+  - 'gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$SHORT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY

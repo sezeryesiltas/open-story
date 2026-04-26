@@ -69,6 +69,13 @@ OPEN_STORY_BUILD_NUMBER=local
 Bu dosya container içine girmez; sadece Compose tarafından okunur.
 `OPEN_STORY_BUILD_NUMBER`, admin sidebar footer'ında gösterilen build bilgisidir. Cloud Build bunu `$SHORT_SHA` ile otomatik verir; Docker Compose ile deploy ederken bu değeri güncel commit kısa SHA'sı veya release numarasıyla değiştirin.
 
+Cloud Build ile üretilmiş image'ları pull ederek deploy edecekseniz aynı `.env` dosyasına image referanslarını da ekleyin:
+
+```env
+OPEN_STORY_API_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:<tag>
+OPEN_STORY_ADMIN_WEB_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:<tag>
+```
+
 ## 4. Runtime Env
 
 ```bash
@@ -95,20 +102,53 @@ Notlar:
 - Sadece düz HTTP ile test ediyorsanız `OPEN_STORY_COOKIE_SECURE=false` yapın.
 - Load balancer SSL terminate ettiği için container tarafında ayrıca `443` dinlemeyin.
 
-## 5. Build ve Başlat
+## 5. Local Build ve Başlat
 
 ```bash
 docker compose build --no-cache
 docker compose up -d
 ```
 
-## 6. Durum Kontrolü
+## 6. Cloud Build ile Image Üretip VM'de Pull Etme
+
+Cloud Build artık iki ayrı runnable image üretir:
+
+- `open-story-api`
+- `open-story-admin-web`
+
+Build:
 
 ```bash
-docker compose ps
-docker compose logs -f api
-docker compose logs -f admin-web
-docker compose logs -f nginx
+gcloud builds submit --config cloudbuild.yaml
+```
+
+Build tamamlandığında aynı commit için şu tag'ler push edilir:
+
+- `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$COMMIT_SHA`
+- `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:$SHORT_SHA`
+- `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$COMMIT_SHA`
+- `gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:$SHORT_SHA`
+
+VM üstünde `.env` dosyasındaki image ref'lerini güncelleyin, sonra prebuilt image deploy compose dosyasını kullanın:
+
+```bash
+docker compose -f docker-compose.deploy.yml pull
+docker compose -f docker-compose.deploy.yml up -d
+```
+
+Bu akışta:
+
+- `OPEN_STORY_HOST_DATA_DIR` ve `OPEN_STORY_HOST_ASSETS_DIR` sadece VM tarafında gerekir.
+- `.env.production` içindeki runtime env'ler aynen kullanılmaya devam eder.
+- Cloud Build'e host path env vermen gerekmez; build konteyneri bu mount'ları kullanmaz.
+
+## 7. Durum Kontrolü
+
+```bash
+docker compose -f docker-compose.deploy.yml ps
+docker compose -f docker-compose.deploy.yml logs -f api
+docker compose -f docker-compose.deploy.yml logs -f admin-web
+docker compose -f docker-compose.deploy.yml logs -f nginx
 ```
 
 Servislerin `Up` durumda görünmesi gerekir:
@@ -117,7 +157,9 @@ Servislerin `Up` durumda görünmesi gerekir:
 - `admin-web`
 - `nginx`
 
-## 7. Test
+Local build ile devam ediyorsanız aynı komutları `docker compose ...` olarak da çalıştırabilirsiniz.
+
+## 8. Test
 
 Admin:
 
@@ -158,12 +200,22 @@ OPEN_STORY_BUILD_NUMBER=$(git rev-parse --short HEAD) docker compose build --no-
 docker compose up -d --force-recreate
 ```
 
+Cloud Build tabanlı güncelleme için:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml
+
+# VM üzerinde .env içindeki image tag'lerini yeni SHA ile güncelleyin.
+docker compose -f docker-compose.deploy.yml pull
+docker compose -f docker-compose.deploy.yml up -d
+```
+
 ## Sorun Giderme
 
 Login hatası:
 
-- `docker compose logs -f admin-web`
-- `docker compose logs -f api`
+- `docker compose -f docker-compose.deploy.yml logs -f admin-web`
+- `docker compose -f docker-compose.deploy.yml logs -f api`
 - Browser Network tab'da `/api/auth/login` response body
 - GCP backend service protocol/port ayarı `HTTP :80` olmalı
 - GCP health check `HTTP :80` ve path `/healthz` olmalı
@@ -172,15 +224,17 @@ Login hatası:
 Asset görünmüyor:
 
 - `OPEN_STORY_PUBLIC_ASSET_BASE_URL` doğru domain olmalı
-- `docker compose logs -f api`
+- `docker compose -f docker-compose.deploy.yml logs -f api`
 
 Veritabanını sıfırlama:
 
 ```bash
 rm -f /opt/open-story/data/open-story.sqlite
 rm -f /opt/open-story/data/database-config.json
-docker compose restart api
+docker compose -f docker-compose.deploy.yml restart api
 ```
+
+Local build compose dosyasıyla çalışıyorsanız son komutu `docker compose restart api` olarak kullanın.
 
 ## Dosyalar
 
@@ -189,6 +243,7 @@ open-story/
 ├── .env.compose.example
 ├── .env.production.example
 ├── docker-compose.yml
+├── docker-compose.deploy.yml
 ├── Dockerfile
 └── nginx/default.conf
 ```

@@ -1,0 +1,32 @@
+services:
+  api:
+    image: ${OPEN_STORY_API_IMAGE:?OPEN_STORY_API_IMAGE must be set}
+    volumes:
+      - ${OPEN_STORY_HOST_DATA_DIR:-./data}:/data/db
+      - ${OPEN_STORY_HOST_ASSETS_DIR:-./assets}:/data/assets
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    expose:
+      - "3001"
+
+  admin-web:
+    image: ${OPEN_STORY_ADMIN_WEB_IMAGE:?OPEN_STORY_ADMIN_WEB_IMAGE must be set}
+    env_file:
+      - .env.production
+    depends_on:
+      - api
+    restart: unless-stopped
+    expose:
+      - "3000"
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+      - admin-web
+    restart: unless-stopped
