@@ -21,6 +21,8 @@ import {
 } from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@open-story/ui/components/tooltip';
+import { cn } from '@open-story/ui/lib/utils';
 import Link from 'next/link';
 import {
   Archive,
@@ -29,13 +31,14 @@ import {
   CheckCircle2,
   CircleSlash,
   Copy,
+  GripVertical,
   ListFilter,
   MoreHorizontal,
   PencilLine,
   Plus,
   SquareStack,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { type DragEvent, useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
 import { RecordId } from '@/components/admin/record-id';
@@ -51,6 +54,7 @@ import { ApiRequestError, apiRequest } from '@/lib/api';
 type StoryGroupSetApiRecord = {
   id: string;
   name: string;
+  groupIds: string[];
 };
 
 type AssetApiRecord = {
@@ -218,6 +222,8 @@ export function StoryGroupsWorkspace() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<'create' | 'edit' | 'copy'>('create');
   const [activeStoryGroupId, setActiveStoryGroupId] = useState<string | null>(null);
+  const [draggedStoryGroupId, setDraggedStoryGroupId] = useState<string | null>(null);
+  const [dragOverStoryGroupId, setDragOverStoryGroupId] = useState<string | null>(null);
   const [sheetInitialValues, setSheetInitialValues] = useState<StoryGroupFormValues>(emptyStoryGroupFormValues);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -245,13 +251,18 @@ export function StoryGroupsWorkspace() {
     () => [...storyGroupSets].sort((left, right) => left.name.localeCompare(right.name, 'tr')),
     [storyGroupSets],
   );
+  const selectedStoryGroupSet = useMemo(
+    () => storyGroupSets.find((storyGroupSet) => storyGroupSet.id === selectedStoryGroupSetId) ?? null,
+    [selectedStoryGroupSetId, storyGroupSets],
+  );
+  const canReorderStoryGroups = Boolean(selectedStoryGroupSet);
   const groupLogoAssetById = useMemo(
     () => new Map((workspaceQuery.data?.groupLogoAssets ?? emptyAssetRecords).map((asset) => [asset.id, asset])),
     [workspaceQuery.data?.groupLogoAssets],
   );
 
   const filteredStoryGroups = useMemo(() => {
-    return storyGroups.filter((storyGroup) => {
+    const nextStoryGroups = storyGroups.filter((storyGroup) => {
       if (selectedStoryGroupSetId === 'unassigned') {
         if (storyGroup.storyGroupSets.length > 0) {
           return false;
@@ -273,7 +284,18 @@ export function StoryGroupsWorkspace() {
 
       return true;
     });
-  }, [archiveFilter, publishFilter, selectedStoryGroupSetId, storyGroups]);
+
+    if (!selectedStoryGroupSet) {
+      return nextStoryGroups;
+    }
+
+    const groupOrder = new Map(selectedStoryGroupSet.groupIds.map((groupId, index) => [groupId, index]));
+    return [...nextStoryGroups].sort(
+      (left, right) =>
+        (groupOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+        (groupOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }, [archiveFilter, publishFilter, selectedStoryGroupSet, selectedStoryGroupSetId, storyGroups]);
 
   const archiveCount = useMemo(
     () => storyGroups.filter((storyGroup) => storyGroup.archiveState === 'archived').length,
@@ -330,6 +352,26 @@ export function StoryGroupsWorkspace() {
       apiRequest<StoryGroupApiRecord>(`/api/story-groups/${storyGroupId}`, {
         method: 'PATCH',
         body: JSON.stringify({ action }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
+    },
+  });
+
+  const reorderStoryGroupsMutation = useMutation({
+    mutationFn: ({
+      storyGroupSetId,
+      groupIds,
+    }: {
+      storyGroupSetId: string;
+      groupIds: string[];
+    }) =>
+      apiRequest<StoryGroupSetApiRecord>(`/api/story-group-sets/${storyGroupSetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: 'reorder_story_groups',
+          group_ids: groupIds,
+        }),
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
@@ -481,6 +523,90 @@ export function StoryGroupsWorkspace() {
     }
   };
 
+  function buildNextStoryGroupSetOrder(activeId: string, overId: string): string[] | null {
+    if (!selectedStoryGroupSet) {
+      return null;
+    }
+
+    const visibleIds = filteredStoryGroups.map((storyGroup) => storyGroup.id);
+    const activeIndex = visibleIds.indexOf(activeId);
+    const overIndex = visibleIds.indexOf(overId);
+
+    if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
+      return null;
+    }
+
+    const reorderedVisibleIds = [...visibleIds];
+    const [movedId] = reorderedVisibleIds.splice(activeIndex, 1);
+    reorderedVisibleIds.splice(overIndex, 0, movedId);
+
+    const visibleIdSet = new Set(visibleIds);
+    let visibleIndex = 0;
+
+    return selectedStoryGroupSet.groupIds.map((groupId) => {
+      if (!visibleIdSet.has(groupId)) {
+        return groupId;
+      }
+
+      const nextVisibleId = reorderedVisibleIds[visibleIndex];
+      visibleIndex += 1;
+      return nextVisibleId;
+    });
+  }
+
+  const handleDragStart = (event: DragEvent<HTMLTableRowElement>, storyGroupId: string) => {
+    if (!canReorderStoryGroups) {
+      event.preventDefault();
+      return;
+    }
+
+    setActionError(null);
+    setDraggedStoryGroupId(storyGroupId);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', storyGroupId);
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLTableRowElement>, storyGroupId: string) => {
+    if (!canReorderStoryGroups || !draggedStoryGroupId || draggedStoryGroupId === storyGroupId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDragOverStoryGroupId(storyGroupId);
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLTableRowElement>, storyGroupId: string) => {
+    event.preventDefault();
+
+    const activeId = draggedStoryGroupId ?? event.dataTransfer.getData('text/plain');
+    setDraggedStoryGroupId(null);
+    setDragOverStoryGroupId(null);
+
+    if (!selectedStoryGroupSet || !activeId || activeId === storyGroupId) {
+      return;
+    }
+
+    const nextGroupIds = buildNextStoryGroupSetOrder(activeId, storyGroupId);
+    if (!nextGroupIds) {
+      return;
+    }
+
+    try {
+      await reorderStoryGroupsMutation.mutateAsync({
+        storyGroupSetId: selectedStoryGroupSet.id,
+        groupIds: nextGroupIds,
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Story Group sırası güncellenemedi.');
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedStoryGroupId(null);
+    setDragOverStoryGroupId(null);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -598,6 +724,7 @@ export function StoryGroupsWorkspace() {
                     </Button>
                   ) : null}
                   <Badge variant="secondary">{filteredStoryGroups.length} görünür satır</Badge>
+                  {canReorderStoryGroups ? <Badge variant="outline">Sürükle-bırak sıralama açık</Badge> : null}
                 </div>
               </div>
             </CardHeader>
@@ -643,6 +770,9 @@ export function StoryGroupsWorkspace() {
               <Table className="min-w-[980px]">
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12 border-b border-border/60">
+                      <span className="sr-only">Sıra</span>
+                    </TableHead>
                     <TableHead className="border-b border-border/60">Group</TableHead>
                     <TableHead className="border-b border-border/60">Story Bars</TableHead>
                     <TableHead className="border-b border-border/60">Archive</TableHead>
@@ -664,9 +794,46 @@ export function StoryGroupsWorkspace() {
                     const draftChangesPending = hasUnpublishedChanges(storyGroup);
                     const canPublishDraft = canPublish(storyGroup) && storyGroup.archiveState !== 'archived';
                     const publishLabel = publishActionLabel(storyGroup);
+                    const isDragging = draggedStoryGroupId === storyGroup.id;
+                    const isDragOver = dragOverStoryGroupId === storyGroup.id;
 
                     return (
-                      <TableRow key={storyGroup.id} className="align-top">
+                      <TableRow
+                        className={cn(
+                          'align-top',
+                          canReorderStoryGroups ? 'cursor-grab active:cursor-grabbing' : undefined,
+                          isDragging ? 'opacity-50' : undefined,
+                          isDragOver ? 'bg-muted/40' : undefined,
+                        )}
+                        draggable={canReorderStoryGroups}
+                        key={storyGroup.id}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(event) => handleDragOver(event, storyGroup.id)}
+                        onDragStart={(event) => handleDragStart(event, storyGroup.id)}
+                        onDrop={(event) => handleDrop(event, storyGroup.id)}
+                      >
+                        <TableCell className="border-b border-border/60 py-4 align-top">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  aria-label="Story Group sırasını değiştir"
+                                  className="cursor-grab active:cursor-grabbing"
+                                  disabled={!canReorderStoryGroups || reorderStoryGroupsMutation.isPending}
+                                  size="icon"
+                                  variant="ghost"
+                                >
+                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {canReorderStoryGroups
+                                  ? 'Bu Story Bar içindeki sırayı değiştirmek için satırı sürükleyin.'
+                                  : 'Sıralama için önce spesifik bir Story Bar seçin.'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
                         <TableCell className="border-b border-border/60 py-4 align-top">
                           <div className="flex items-center gap-3">
                             <StoryGroupLogo

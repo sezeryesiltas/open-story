@@ -53,12 +53,28 @@ export async function PATCH(
   context: { params: Promise<{ storyGroupSetId: string }> },
 ) {
   try {
-    const payload = (await request.json()) as { action?: string };
+    const payload = (await request.json()) as { action?: string; group_ids?: string[] };
     const { storyGroupSetId } = await context.params;
     const authToken = getAdminAuthTokenFromRequest(request);
 
     if (payload.action === 'publish') {
       return NextResponse.json(await publishStoryGroupSet(storyGroupSetId, {}, authToken));
+    }
+
+    if (payload.action === 'reorder_story_groups') {
+      if (!Array.isArray(payload.group_ids)) {
+        return jsonError('Story Group sırası geçersiz.', 400, 'validation_error');
+      }
+
+      return NextResponse.json(
+        await updateStoryGroupSet(
+          storyGroupSetId,
+          {
+            group_ids: payload.group_ids,
+          },
+          authToken,
+        ),
+      );
     }
 
     return jsonError('Geçersiz Story Bar aksiyonu.', 400, 'validation_error');
