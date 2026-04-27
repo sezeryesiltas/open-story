@@ -38,6 +38,7 @@ import {
 import { useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
+import { RecordId } from '@/components/admin/record-id';
 import { StoryGroupLogo } from '@/components/admin/story-group-logo';
 import {
   StoryGroupFormSubmitResult,
@@ -676,10 +677,9 @@ export function StoryGroupsWorkspace() {
                               size="lg"
                               src={groupLogoAsset?.url}
                             />
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold">{storyGroup.name}</p>
-                              </div>
+                            <div className="flex flex-col gap-1">
+                              <p className="font-semibold">{storyGroup.name}</p>
+                              <RecordId label="Group ID" value={storyGroup.id} />
                             </div>
                           </div>
                         </TableCell>
@@ -690,9 +690,15 @@ export function StoryGroupsWorkspace() {
                           ) : (
                             <div className="flex flex-wrap gap-2">
                               {storyGroup.storyGroupSets.map((storyGroupSet) => (
-                                <Badge key={storyGroupSet.id} variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
-                                  {storyGroupSet.name}
-                                </Badge>
+                                <div
+                                  className="flex max-w-80 flex-col gap-1 rounded-md border border-border/60 px-2.5 py-2"
+                                  key={storyGroupSet.id}
+                                >
+                                  <Badge className="w-fit" variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
+                                    {storyGroupSet.name}
+                                  </Badge>
+                                  <RecordId label="Group Set ID" value={storyGroupSet.id} />
+                                </div>
                               ))}
                             </div>
                           )}

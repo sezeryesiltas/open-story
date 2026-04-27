@@ -16,6 +16,7 @@ import {
 } from '@/components/admin/story-group-set-form';
 import { StoryGroupSetSheet } from '@/components/admin/story-group-set-sheet';
 import { PageHeader } from '@/components/admin/page-header';
+import { RecordId } from '@/components/admin/record-id';
 import { ApiRequestError, apiRequest } from '@/lib/api';
 
 type PlacementApiRecord = {
@@ -470,6 +471,7 @@ export function StoryGroupSetsWorkspace() {
                         </div>
                         <div className="space-y-2">
                           <CardTitle className="text-xl">{storyGroupSet.name}</CardTitle>
+                          <RecordId label="Group Set ID" value={storyGroupSet.id} />
                           <CardDescription className="leading-6">
                             {placement ? `Placement: ${placement.name}` : 'Bağlı placement bulunamadı.'}
                           </CardDescription>
@@ -543,7 +545,17 @@ export function StoryGroupSetsWorkspace() {
                         Bağlı Group
                       </p>
                       <p className="mt-3 text-2xl font-semibold">{storyGroupSet.groupIds.length}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">Bu Story Bar&apos;da yer alan group sayısı.</p>
+                      {storyGroupSet.groupIds.length > 0 ? (
+                        <div className="mt-2 flex flex-col gap-1">
+                          {storyGroupSet.groupIds.map((groupId) => (
+                            <RecordId key={groupId} label="Group ID" value={groupId} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                          Bu Story Bar&apos;da henüz group yok.
+                        </p>
+                      )}
                     </div>
 
                     <div className="rounded-lg border border-border/60 bg-muted/30 p-4">

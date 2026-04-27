@@ -334,6 +334,36 @@ test('group draft update blocks removing an unpublished story from its only grou
   );
 });
 
+test('story group draft update can clear nullable display fields', async () => {
+  const { db, authService, groupService } = createHarness();
+  seedAsset(db, { id: ASSET_LOGO_DRAFT_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo.png' });
+
+  const authorization = await loginAsAdmin(authService);
+  const group = await groupService.create(
+    {
+      name: 'Display Group',
+      bottom_label: 'Featured',
+      logo_asset_id: ASSET_LOGO_DRAFT_ID,
+      badge: { type: 'svg', value: '<svg></svg>' },
+      story_ids: [],
+    },
+    authorization,
+  );
+
+  const updatedGroup = await groupService.update(
+    group.id,
+    {
+      bottom_label: null,
+      badge: null,
+    },
+    authorization,
+  );
+
+  assert.equal(updatedGroup.bottom_label, null);
+  assert.equal(updatedGroup.badge, null);
+  assert.notEqual(updatedGroup.current_draft_revision_id, group.current_draft_revision_id);
+});
+
 async function createPublishedGroup(services, authorization, params) {
   const group = await services.groupService.create(
     {
