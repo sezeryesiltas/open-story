@@ -113,9 +113,15 @@ export class StoryGroupService {
 
     const normalizedPayload = this.normalizeDraftPayload({
       name: parsedPayload.data.name ?? existingDraftRevision.name,
-      bottom_label: parsedPayload.data.bottom_label ?? existingDraftRevision.bottomLabel,
+      bottom_label:
+        parsedPayload.data.bottom_label === undefined
+          ? existingDraftRevision.bottomLabel
+          : parsedPayload.data.bottom_label,
       logo_asset_id: parsedPayload.data.logo_asset_id ?? existingDraftRevision.logoAssetId,
-      badge: parsedPayload.data.badge ?? existingDraftRevision.badge,
+      badge:
+        parsedPayload.data.badge === undefined
+          ? existingDraftRevision.badge
+          : parsedPayload.data.badge,
       story_ids: parsedPayload.data.story_ids ?? existingStoryIds,
     });
 
