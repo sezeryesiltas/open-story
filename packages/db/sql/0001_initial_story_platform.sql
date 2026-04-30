@@ -11,6 +11,7 @@ CREATE TYPE platform_type AS ENUM ('ios', 'android');
 CREATE TYPE media_type AS ENUM ('image', 'video');
 CREATE TYPE cta_type AS ENUM ('url', 'deeplink');
 CREATE TYPE asset_kind AS ENUM ('group_logo', 'group_badge_svg', 'story_image', 'story_video', 'story_video_poster');
+CREATE TYPE asset_source AS ENUM ('upload', 'url', 'cloud_upload');
 CREATE TYPE badge_kind AS ENUM ('emoji', 'svg');
 
 -- ------------------------------------------------------------
@@ -79,9 +80,11 @@ CREATE TABLE placement (
 CREATE TABLE asset (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   kind asset_kind NOT NULL,
+  source asset_source NOT NULL,
   media_type media_type NOT NULL,
   storage_key TEXT NOT NULL UNIQUE,
   public_url TEXT NOT NULL UNIQUE,
+  source_file_name TEXT,
   mime_type TEXT NOT NULL,
   bytes BIGINT NOT NULL CHECK (bytes > 0),
   width INTEGER CHECK (width IS NULL OR width > 0),
@@ -89,7 +92,8 @@ CREATE TABLE asset (
   duration_ms INTEGER CHECK (duration_ms IS NULL OR duration_ms > 0),
   checksum_sha256 TEXT NOT NULL,
   created_by_admin_user_id UUID REFERENCES admin_user(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_asset_kind_created_at ON asset (kind, created_at DESC);

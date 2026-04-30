@@ -13,5 +13,8 @@
     "lint": "echo \"db lint scaffold pending\"",
     "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/**/*.test.mjs",
     "check": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/**/*.test.mjs"
+  },
+  "dependencies": {
+    "mysql2": "^3.22.3"
   }
 }

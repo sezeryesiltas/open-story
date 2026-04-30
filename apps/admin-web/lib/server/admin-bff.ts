@@ -44,7 +44,7 @@ export type AdminAssetRecord = {
   height: number | null;
   durationMs: number | null;
   sizeBytes: number | null;
-  source: 'upload' | 'url';
+  source: AssetDto['source'];
   usageCount: number;
   usageReferences: AssetDto['usageReferences'];
   createdAt: string;

@@ -1095,7 +1095,11 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         }
 
         let point = recognizer.location(in: stageSurface)
-        if point.x < stageSurface.bounds.midX {
+        let direction = storyViewerTapDirection(
+            tapX: Double(point.x),
+            width: Double(stageSurface.bounds.width)
+        )
+        if direction == .backward {
             navigateBackward()
         } else {
             navigateForward(manual: true)

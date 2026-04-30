@@ -1,22 +1,34 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, isAbsolute, normalize, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { storyPlatformTableNames, type StoryPlatformTableName } from '../../contracts/src/persistence.ts';
 
 const require = createRequire(import.meta.url);
 
 export type TableName = StoryPlatformTableName;
+export type DatabaseProvider = 'sqlite' | 'mysql';
 
 type DbRecord = {
   id: string;
   [key: string]: unknown;
 };
 
+type MysqlExternalDatabaseConfig = {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+};
+
 type BootstrapConfig = {
-  version: 1;
+  version: 2;
+  activeProvider: DatabaseProvider;
   localDatabaseUrl: string;
   externalDatabaseUrl: string | null;
+  externalMysqlDatabase: MysqlExternalDatabaseConfig | null;
   migratedAt: string | null;
   updatedAt: string;
 };
@@ -33,10 +45,80 @@ type SqliteDatabase = {
   close: () => void;
 };
 
+type SqliteDatabaseTarget = {
+  provider: 'sqlite';
+  key: string;
+  url: string;
+  path: string;
+};
+
+type MysqlDatabaseTarget = {
+  provider: 'mysql';
+  key: string;
+  url: string;
+  config: MysqlExternalDatabaseConfig;
+};
+
+type DatabaseTarget = SqliteDatabaseTarget | MysqlDatabaseTarget;
+
+type ActiveDatabaseConnection =
+  | {
+      target: SqliteDatabaseTarget;
+      sqlite: SqliteDatabase;
+    }
+  | {
+      target: MysqlDatabaseTarget;
+      sqlite: null;
+    };
+
+type StoredRecord = {
+  tableName: string;
+  id: string;
+  payload: string;
+  updatedAt: string;
+};
+
+type MysqlStatement = {
+  sql: string;
+  params?: unknown[];
+};
+
+export type MysqlDatabaseSettingsSnapshot = {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  passwordConfigured: boolean;
+};
+
+export type UpdateMysqlDatabaseSettingsInput = {
+  host?: string | null;
+  port?: string | number | null;
+  database?: string | null;
+  username?: string | null;
+  password?: string | null;
+};
+
+export interface UpdateDatabaseSettingsInput {
+  externalDatabaseUrl?: string | null;
+  mysql?: UpdateMysqlDatabaseSettingsInput | null;
+}
+
+export interface TestDatabaseConnectionInput extends UpdateDatabaseSettingsInput {}
+
+export interface DatabaseConnectionTestResult {
+  ok: boolean;
+  provider: DatabaseProvider | null;
+  message: string;
+  resolvedDatabaseUrl: string | null;
+}
+
 export interface DatabaseSettingsSnapshot {
   defaultSqliteUrl: string;
+  activeProvider: DatabaseProvider;
   activeDatabaseUrl: string;
   externalDatabaseUrl: string | null;
+  mysqlDatabase: MysqlDatabaseSettingsSnapshot | null;
   isUsingExternalDatabase: boolean;
   migratedAt: string | null;
   tableCounts: Record<string, number>;
@@ -48,6 +130,9 @@ const SQLITE_FILENAME = 'open-story.sqlite';
 const CONFIG_FILENAME = 'database-config.json';
 const SQLITE_PATH_ENV = 'OPEN_STORY_SQLITE_PATH';
 const CONFIG_PATH_ENV = 'OPEN_STORY_DB_CONFIG_PATH';
+const MYSQL_DEFAULT_PORT = 3306;
+const MYSQL_RUNNER_PATH = fileURLToPath(new URL('./mysql-query-runner.mjs', import.meta.url));
+const MYSQL_MAX_BUFFER_BYTES = 50 * 1024 * 1024;
 
 const STORAGE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS records (
@@ -60,6 +145,19 @@ const STORAGE_SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_records_table_name
     ON records (table_name, updated_at DESC);
+`;
+
+const MYSQL_STORAGE_SCHEMA = `
+  CREATE TABLE IF NOT EXISTS records (
+    sequence_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    table_name VARCHAR(128) NOT NULL,
+    id VARCHAR(191) NOT NULL,
+    payload LONGTEXT NOT NULL,
+    updated_at VARCHAR(64) NOT NULL,
+    PRIMARY KEY (table_name, id),
+    UNIQUE KEY idx_records_sequence_id (sequence_id),
+    KEY idx_records_table_name (table_name, updated_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 `;
 
 function getSqliteDriver(): { DatabaseSync: new (location: string) => SqliteDatabase } {
@@ -121,7 +219,7 @@ function resolveSqlitePath(input: string): string {
   }
 
   if (/^[a-zA-Z]+:\/\//.test(normalizedInput)) {
-    throw new Error('Bu sürümde sadece sqlite/file tabanlı database URL formatları desteklenir.');
+    throw new Error('Bu sürümde sqlite için sadece sqlite/file tabanlı database URL formatları desteklenir.');
   }
 
   return normalize(isAbsolute(normalizedInput) ? normalizedInput : resolve(process.cwd(), normalizedInput));
@@ -153,20 +251,54 @@ function createDefaultConfig(): BootstrapConfig {
   const now = new Date().toISOString();
 
   return {
-    version: 1,
+    version: 2,
+    activeProvider: 'sqlite',
     localDatabaseUrl: toFileUrl(resolveLocalDatabasePath()),
     externalDatabaseUrl: null,
+    externalMysqlDatabase: null,
     migratedAt: null,
     updatedAt: now,
+  };
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function parseMysqlDatabaseConfig(value: unknown): MysqlExternalDatabaseConfig | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const parsed = value as Partial<MysqlExternalDatabaseConfig>;
+  const host = readString(parsed.host);
+  const database = readString(parsed.database);
+  const username = readString(parsed.username);
+  const port = Number(parsed.port);
+
+  if (!host || !database || !username || !Number.isInteger(port) || port < 1 || port > 65535) {
+    return null;
+  }
+
+  return {
+    host,
+    port,
+    database,
+    username,
+    password: typeof parsed.password === 'string' ? parsed.password : '',
   };
 }
 
 function parseConfig(rawValue: string): BootstrapConfig {
   const parsed = JSON.parse(rawValue) as Partial<BootstrapConfig>;
   const defaults = createDefaultConfig();
+  const externalMysqlDatabase = parseMysqlDatabaseConfig(parsed.externalMysqlDatabase);
+  const activeProvider: DatabaseProvider =
+    parsed.activeProvider === 'mysql' && externalMysqlDatabase ? 'mysql' : 'sqlite';
 
   return {
-    version: 1,
+    version: 2,
+    activeProvider,
     localDatabaseUrl:
       typeof parsed.localDatabaseUrl === 'string' && parsed.localDatabaseUrl.trim()
         ? toFileUrl(resolveSqlitePath(parsed.localDatabaseUrl))
@@ -175,6 +307,7 @@ function parseConfig(rawValue: string): BootstrapConfig {
       typeof parsed.externalDatabaseUrl === 'string' && parsed.externalDatabaseUrl.trim()
         ? toFileUrl(resolveSqlitePath(parsed.externalDatabaseUrl))
         : null,
+    externalMysqlDatabase,
     migratedAt: typeof parsed.migratedAt === 'string' ? parsed.migratedAt : null,
     updatedAt:
       typeof parsed.updatedAt === 'string' && parsed.updatedAt.trim() ? parsed.updatedAt : defaults.updatedAt,
@@ -213,8 +346,60 @@ function ensureSqliteFile(filePath: string): void {
   database.close();
 }
 
-function getActiveDatabasePath(config: BootstrapConfig): string {
-  return resolveSqlitePath(config.externalDatabaseUrl ?? config.localDatabaseUrl);
+function testSqliteConnection(filePath: string): void {
+  ensureParentDirectory(filePath);
+  const { DatabaseSync } = getSqliteDriver();
+  const database = new DatabaseSync(filePath);
+
+  try {
+    database.prepare('SELECT 1 AS ok').get();
+  } finally {
+    database.close();
+  }
+}
+
+function toMysqlDisplayUrl(config: MysqlExternalDatabaseConfig): string {
+  const username = encodeURIComponent(config.username);
+  const database = encodeURIComponent(config.database);
+  return `mysql://${username}@${config.host}:${config.port}/${database}`;
+}
+
+function toMysqlConnectionKey(config: MysqlExternalDatabaseConfig): string {
+  return JSON.stringify({
+    host: config.host,
+    port: config.port,
+    database: config.database,
+    username: config.username,
+    password: config.password,
+  });
+}
+
+function getSqliteTarget(databaseUrl: string): SqliteDatabaseTarget {
+  const path = resolveSqlitePath(databaseUrl);
+
+  return {
+    provider: 'sqlite',
+    key: `sqlite:${path}`,
+    url: toFileUrl(path),
+    path,
+  };
+}
+
+function getActiveDatabaseTarget(config: BootstrapConfig): DatabaseTarget {
+  if (config.activeProvider === 'mysql' && config.externalMysqlDatabase) {
+    return {
+      provider: 'mysql',
+      key: `mysql:${toMysqlConnectionKey(config.externalMysqlDatabase)}`,
+      url: toMysqlDisplayUrl(config.externalMysqlDatabase),
+      config: config.externalMysqlDatabase,
+    };
+  }
+
+  return getSqliteTarget(config.externalDatabaseUrl ?? config.localDatabaseUrl);
+}
+
+function targetsEqual(left: DatabaseTarget, right: DatabaseTarget): boolean {
+  return left.key === right.key;
 }
 
 function normalizeExternalDatabaseUrl(externalDatabaseUrl: string | null | undefined, localDatabaseUrl: string): string | null {
@@ -232,12 +417,361 @@ function normalizeExternalDatabaseUrl(externalDatabaseUrl: string | null | undef
   return toFileUrl(resolvedExternalPath);
 }
 
+function hasMysqlSettingsInput(input: UpdateMysqlDatabaseSettingsInput | null | undefined): input is UpdateMysqlDatabaseSettingsInput {
+  if (!input) {
+    return false;
+  }
+
+  return [input.host, input.port, input.database, input.username, input.password].some((value) =>
+    String(value ?? '').trim().length > 0,
+  );
+}
+
+function normalizeMysqlPort(value: string | number | null | undefined): number {
+  const normalizedValue =
+    typeof value === 'string'
+      ? Number(value.trim() || MYSQL_DEFAULT_PORT)
+      : value === null || value === undefined
+        ? MYSQL_DEFAULT_PORT
+        : Number(value);
+  if (!Number.isInteger(normalizedValue) || normalizedValue < 1 || normalizedValue > 65535) {
+    throw new Error('MySQL port 1 ile 65535 arasında bir tam sayı olmalıdır.');
+  }
+
+  return normalizedValue;
+}
+
+function normalizeRequiredMysqlField(value: string | null | undefined, label: string, maxLength: number): string {
+  const normalizedValue = value?.trim();
+  if (!normalizedValue) {
+    throw new Error(`${label} boş bırakılamaz.`);
+  }
+
+  if (normalizedValue.length > maxLength) {
+    throw new Error(`${label} en fazla ${maxLength} karakter olabilir.`);
+  }
+
+  return normalizedValue;
+}
+
+function mysqlIdentityMatches(left: MysqlExternalDatabaseConfig, right: MysqlExternalDatabaseConfig): boolean {
+  return (
+    left.host === right.host &&
+    left.port === right.port &&
+    left.database === right.database &&
+    left.username === right.username
+  );
+}
+
+function normalizeMysqlDatabaseSettings(
+  input: UpdateMysqlDatabaseSettingsInput | null | undefined,
+  currentConfig: BootstrapConfig,
+): MysqlExternalDatabaseConfig | null {
+  if (!hasMysqlSettingsInput(input)) {
+    return null;
+  }
+
+  const nextWithoutPassword: MysqlExternalDatabaseConfig = {
+    host: normalizeRequiredMysqlField(input.host, 'MySQL host', 255),
+    port: normalizeMysqlPort(input.port),
+    database: normalizeRequiredMysqlField(input.database, 'MySQL database adı', 128),
+    username: normalizeRequiredMysqlField(input.username, 'MySQL kullanıcı adı', 128),
+    password: '',
+  };
+
+  const password = typeof input.password === 'string' ? input.password : '';
+  if (password.length > 1024) {
+    throw new Error('MySQL password en fazla 1024 karakter olabilir.');
+  }
+
+  return {
+    ...nextWithoutPassword,
+    password:
+      password || (currentConfig.externalMysqlDatabase && mysqlIdentityMatches(nextWithoutPassword, currentConfig.externalMysqlDatabase)
+        ? currentConfig.externalMysqlDatabase.password
+        : ''),
+  };
+}
+
+function normalizeUpdateInput(
+  input: string | UpdateDatabaseSettingsInput | null | undefined,
+): UpdateDatabaseSettingsInput {
+  if (typeof input === 'string' || input === null || input === undefined) {
+    return {
+      externalDatabaseUrl: input ?? null,
+      mysql: null,
+    };
+  }
+
+  return input;
+}
+
+function toMysqlSnapshot(config: MysqlExternalDatabaseConfig | null): MysqlDatabaseSettingsSnapshot | null {
+  if (!config) {
+    return null;
+  }
+
+  return {
+    host: config.host,
+    port: config.port,
+    database: config.database,
+    username: config.username,
+    passwordConfigured: config.password.length > 0,
+  };
+}
+
+function runMysqlStatements(config: MysqlExternalDatabaseConfig, statements: MysqlStatement[]): unknown[] {
+  const result = spawnSync(process.execPath, [MYSQL_RUNNER_PATH], {
+    input: JSON.stringify({ config, statements }),
+    encoding: 'utf8',
+    maxBuffer: MYSQL_MAX_BUFFER_BYTES,
+  });
+
+  if (result.error) {
+    throw new Error(`MySQL işlemi başlatılamadı: ${result.error.message}`);
+  }
+
+  if (result.status !== 0) {
+    const message = (result.stderr || result.stdout || `exit code ${result.status}`).trim();
+    throw new Error(`MySQL bağlantısı veya sorgusu başarısız: ${message}`);
+  }
+
+  try {
+    const parsed = JSON.parse(result.stdout || '{}') as { results?: unknown[] };
+    return parsed.results ?? [];
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? `MySQL sorgu sonucu okunamadı: ${error.message}` : 'MySQL sorgu sonucu okunamadı.',
+    );
+  }
+}
+
+function initializeMysqlDatabase(config: MysqlExternalDatabaseConfig): void {
+  runMysqlStatements(config, [{ sql: MYSQL_STORAGE_SCHEMA }]);
+}
+
+function testMysqlConnection(config: MysqlExternalDatabaseConfig): void {
+  runMysqlStatements(config, [{ sql: 'SELECT 1 AS ok' }]);
+}
+
+function mysqlRows(result: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(result) ? (result as Array<Record<string, unknown>>) : [];
+}
+
+function mysqlListPayloads(config: MysqlExternalDatabaseConfig, table: TableName): Array<Record<string, unknown>> {
+  const [rows] = runMysqlStatements(config, [
+    {
+      sql: 'SELECT payload FROM records WHERE table_name = ? ORDER BY sequence_id ASC',
+      params: [table],
+    },
+  ]);
+
+  return mysqlRows(rows);
+}
+
+function mysqlFindPayload(config: MysqlExternalDatabaseConfig, table: TableName, id: string): Record<string, unknown> | undefined {
+  const [rows] = runMysqlStatements(config, [
+    {
+      sql: 'SELECT payload FROM records WHERE table_name = ? AND id = ? LIMIT 1',
+      params: [table, id],
+    },
+  ]);
+
+  return mysqlRows(rows)[0];
+}
+
+function mysqlInsertRecord(config: MysqlExternalDatabaseConfig, table: TableName, row: DbRecord, updatedAt: string): void {
+  runMysqlStatements(config, [
+    {
+      sql: `
+        INSERT INTO records (table_name, id, payload, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          payload = VALUES(payload),
+          updated_at = VALUES(updated_at)
+      `,
+      params: [table, row.id, JSON.stringify(row), updatedAt],
+    },
+  ]);
+}
+
+function mysqlDeleteRecord(config: MysqlExternalDatabaseConfig, table: TableName, id: string): boolean {
+  const [result] = runMysqlStatements(config, [
+    {
+      sql: 'DELETE FROM records WHERE table_name = ? AND id = ?',
+      params: [table, id],
+    },
+  ]);
+  const header = result as { affectedRows?: number | string } | undefined;
+
+  return Number(header?.affectedRows ?? 0) > 0;
+}
+
+function mysqlCountRows(config: MysqlExternalDatabaseConfig): Record<string, number> {
+  const [rows] = runMysqlStatements(config, [
+    {
+      sql: 'SELECT table_name AS tableName, COUNT(*) AS count FROM records GROUP BY table_name',
+    },
+  ]);
+  const counts = Object.fromEntries(TABLE_NAMES.map((table) => [table, 0]));
+
+  for (const row of mysqlRows(rows)) {
+    const tableName = String(row.tableName ?? '');
+    if (tableName in counts) {
+      counts[tableName] = Number(row.count ?? 0);
+    }
+  }
+
+  return counts;
+}
+
+function mysqlListAllRecords(config: MysqlExternalDatabaseConfig): StoredRecord[] {
+  const [rows] = runMysqlStatements(config, [
+    {
+      sql: `
+        SELECT table_name AS tableName, id, payload, updated_at AS updatedAt
+        FROM records
+        ORDER BY sequence_id ASC
+      `,
+    },
+  ]);
+
+  return mysqlRows(rows).map((row) => ({
+    tableName: String(row.tableName),
+    id: String(row.id),
+    payload: String(row.payload),
+    updatedAt: String(row.updatedAt),
+  }));
+}
+
+function mysqlReplaceAllRecords(config: MysqlExternalDatabaseConfig, records: StoredRecord[]): void {
+  runMysqlStatements(config, [
+    { sql: 'START TRANSACTION' },
+    { sql: 'DELETE FROM records' },
+    ...records.map((record) => ({
+      sql: `
+        INSERT INTO records (table_name, id, payload, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          payload = VALUES(payload),
+          updated_at = VALUES(updated_at)
+      `,
+      params: [record.tableName, record.id, record.payload, record.updatedAt],
+    })),
+    { sql: 'COMMIT' },
+  ]);
+}
+
+function sqliteListAllRecords(filePath: string): StoredRecord[] {
+  const database = openSqliteDatabase(filePath);
+  try {
+    return database
+      .prepare(
+        `
+          SELECT table_name AS tableName, id, payload, updated_at AS updatedAt
+          FROM records
+          ORDER BY rowid ASC
+        `,
+      )
+      .all()
+      .map((row) => ({
+        tableName: String(row.tableName),
+        id: String(row.id),
+        payload: String(row.payload),
+        updatedAt: String(row.updatedAt),
+      }));
+  } finally {
+    database.close();
+  }
+}
+
+function sqliteReplaceAllRecords(filePath: string, records: StoredRecord[]): void {
+  const database = openSqliteDatabase(filePath);
+  try {
+    database.exec('BEGIN IMMEDIATE');
+    database.prepare('DELETE FROM records').run();
+
+    const insertStatement = database.prepare(
+      `
+        INSERT INTO records (table_name, id, payload, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(table_name, id) DO UPDATE
+        SET payload = excluded.payload,
+            updated_at = excluded.updated_at
+      `,
+    );
+
+    for (const record of records) {
+      insertStatement.run(record.tableName, record.id, record.payload, record.updatedAt);
+    }
+
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  } finally {
+    database.close();
+  }
+}
+
+function listAllRecordsFromTarget(target: DatabaseTarget): StoredRecord[] {
+  if (target.provider === 'mysql') {
+    initializeMysqlDatabase(target.config);
+    return mysqlListAllRecords(target.config);
+  }
+
+  ensureSqliteFile(target.path);
+  return sqliteListAllRecords(target.path);
+}
+
+function replaceAllRecordsInTarget(target: DatabaseTarget, records: StoredRecord[]): void {
+  if (target.provider === 'mysql') {
+    initializeMysqlDatabase(target.config);
+    mysqlReplaceAllRecords(target.config, records);
+    return;
+  }
+
+  sqliteReplaceAllRecords(target.path, records);
+}
+
+function migrateRecordsBetweenTargets(currentTarget: DatabaseTarget, nextTarget: DatabaseTarget): void {
+  replaceAllRecordsInTarget(nextTarget, listAllRecordsFromTarget(currentTarget));
+}
+
+function sqliteCountRows(database: SqliteDatabase): Record<string, number> {
+  const rows = database
+    .prepare('SELECT table_name AS tableName, COUNT(*) AS count FROM records GROUP BY table_name')
+    .all();
+  const counts = Object.fromEntries(TABLE_NAMES.map((table) => [table, 0]));
+
+  for (const row of rows) {
+    const tableName = String(row.tableName ?? '');
+    if (tableName in counts) {
+      counts[tableName] = Number(row.count ?? 0);
+    }
+  }
+
+  return counts;
+}
+
 export class DbService {
-  private static activeDatabasePath: string | null = null;
-  private static database: SqliteDatabase | null = null;
+  private static activeConnection: ActiveDatabaseConnection | null = null;
 
   list<T>(table: TableName): T[] {
-    const rows = this.database()
+    const activeConnection = this.database();
+
+    if (activeConnection.target.provider === 'mysql') {
+      return mysqlListPayloads(activeConnection.target.config, table).map((row) =>
+        JSON.parse(String(row.payload)) as T,
+      );
+    }
+
+    const sqlite = activeConnection.sqlite;
+    if (!sqlite) {
+      throw new Error('SQLite bağlantısı açılamadı.');
+    }
+
+    const rows = sqlite
       .prepare('SELECT payload FROM records WHERE table_name = ? ORDER BY rowid ASC')
       .all(table);
 
@@ -249,7 +783,20 @@ export class DbService {
       throw new Error(`Table "${table}" için geçerli bir id gereklidir.`);
     }
 
-    this.database()
+    const activeConnection = this.database();
+    const updatedAt = new Date().toISOString();
+
+    if (activeConnection.target.provider === 'mysql') {
+      mysqlInsertRecord(activeConnection.target.config, table, row, updatedAt);
+      return row;
+    }
+
+    const sqlite = activeConnection.sqlite;
+    if (!sqlite) {
+      throw new Error('SQLite bağlantısı açılamadı.');
+    }
+
+    sqlite
       .prepare(
         `
           INSERT INTO records (table_name, id, payload, updated_at)
@@ -259,15 +806,26 @@ export class DbService {
               updated_at = excluded.updated_at
         `,
       )
-      .run(table, row.id, JSON.stringify(row), new Date().toISOString());
+      .run(table, row.id, JSON.stringify(row), updatedAt);
 
     return row;
   }
 
   findById<T extends { id: string }>(table: TableName, id: string): T | undefined {
-    const row = this.database()
-      .prepare('SELECT payload FROM records WHERE table_name = ? AND id = ?')
-      .get(table, id);
+    const activeConnection = this.database();
+    const row =
+      activeConnection.target.provider === 'mysql'
+        ? mysqlFindPayload(activeConnection.target.config, table, id)
+        : (() => {
+            const sqlite = activeConnection.sqlite;
+            if (!sqlite) {
+              throw new Error('SQLite bağlantısı açılamadı.');
+            }
+
+            return sqlite
+              .prepare('SELECT payload FROM records WHERE table_name = ? AND id = ?')
+              .get(table, id);
+          })();
 
     if (!row) {
       return undefined;
@@ -290,7 +848,18 @@ export class DbService {
   }
 
   deleteById(table: TableName, id: string): boolean {
-    const result = this.database()
+    const activeConnection = this.database();
+
+    if (activeConnection.target.provider === 'mysql') {
+      return mysqlDeleteRecord(activeConnection.target.config, table, id);
+    }
+
+    const sqlite = activeConnection.sqlite;
+    if (!sqlite) {
+      throw new Error('SQLite bağlantısı açılamadı.');
+    }
+
+    const result = sqlite
       .prepare('DELETE FROM records WHERE table_name = ? AND id = ?')
       .run(table, id) as { changes?: number | bigint };
 
@@ -299,43 +868,53 @@ export class DbService {
 
   getDatabaseSettings(): DatabaseSettingsSnapshot {
     const config = readBootstrapConfig();
-    const activeDatabasePath = getActiveDatabasePath(config);
-    const tableCounts = Object.fromEntries(
-      TABLE_NAMES.map((table) => [table, this.countRows(table)]),
-    );
+    const activeTarget = getActiveDatabaseTarget(config);
+    const tableCounts = this.getTableCounts();
 
     return {
       defaultSqliteUrl: config.localDatabaseUrl,
-      activeDatabaseUrl: toFileUrl(activeDatabasePath),
+      activeProvider: activeTarget.provider,
+      activeDatabaseUrl: activeTarget.url,
       externalDatabaseUrl: config.externalDatabaseUrl,
-      isUsingExternalDatabase: Boolean(config.externalDatabaseUrl),
+      mysqlDatabase: toMysqlSnapshot(config.externalMysqlDatabase),
+      isUsingExternalDatabase: activeTarget.provider === 'mysql' || Boolean(config.externalDatabaseUrl),
       migratedAt: config.migratedAt,
       tableCounts,
     };
   }
 
-  updateDatabaseSettings(externalDatabaseUrl: string | null | undefined): DatabaseSettingsSnapshot {
+  updateDatabaseSettings(input: string | UpdateDatabaseSettingsInput | null | undefined): DatabaseSettingsSnapshot {
+    const payload = normalizeUpdateInput(input);
     const currentConfig = readBootstrapConfig();
     const now = new Date().toISOString();
     const localDatabasePath = resolveSqlitePath(currentConfig.localDatabaseUrl);
-    const currentActiveDatabasePath = getActiveDatabasePath(currentConfig);
+    const currentActiveTarget = getActiveDatabaseTarget(currentConfig);
 
     ensureSqliteFile(localDatabasePath);
     this.database();
 
+    const mysqlDatabase = normalizeMysqlDatabaseSettings(payload.mysql, currentConfig);
     const nextConfig: BootstrapConfig = {
       ...currentConfig,
-      externalDatabaseUrl: normalizeExternalDatabaseUrl(externalDatabaseUrl, currentConfig.localDatabaseUrl),
+      activeProvider: mysqlDatabase ? 'mysql' : 'sqlite',
+      externalDatabaseUrl: normalizeExternalDatabaseUrl(payload.externalDatabaseUrl, currentConfig.localDatabaseUrl),
+      externalMysqlDatabase: mysqlDatabase,
       updatedAt: now,
       migratedAt: currentConfig.migratedAt,
     };
 
-    const nextActiveDatabasePath = getActiveDatabasePath(nextConfig);
+    const nextActiveTarget = getActiveDatabaseTarget(nextConfig);
 
-    if (currentActiveDatabasePath !== nextActiveDatabasePath) {
+    if (!targetsEqual(currentActiveTarget, nextActiveTarget)) {
       DbService.closeDatabase();
-      ensureParentDirectory(nextActiveDatabasePath);
-      copyFileSync(currentActiveDatabasePath, nextActiveDatabasePath);
+
+      if (currentActiveTarget.provider === 'sqlite' && nextActiveTarget.provider === 'sqlite') {
+        ensureParentDirectory(nextActiveTarget.path);
+        copyFileSync(currentActiveTarget.path, nextActiveTarget.path);
+      } else {
+        migrateRecordsBetweenTargets(currentActiveTarget, nextActiveTarget);
+      }
+
       nextConfig.migratedAt = now;
     }
 
@@ -345,41 +924,114 @@ export class DbService {
     return this.getDatabaseSettings();
   }
 
-  private countRows(table: TableName): number {
-    const result = this.database()
-      .prepare('SELECT COUNT(*) AS count FROM records WHERE table_name = ?')
-      .get(table) as { count?: number } | undefined;
+  testDatabaseConnection(input: TestDatabaseConnectionInput): DatabaseConnectionTestResult {
+    const payload = normalizeUpdateInput(input);
+    const currentConfig = readBootstrapConfig();
+    const mysqlDatabase = normalizeMysqlDatabaseSettings(payload.mysql, currentConfig);
 
-    return result?.count ?? 0;
+    if (mysqlDatabase) {
+      try {
+        testMysqlConnection(mysqlDatabase);
+        return {
+          ok: true,
+          provider: 'mysql',
+          message: 'MySQL bağlantısı başarılı.',
+          resolvedDatabaseUrl: toMysqlDisplayUrl(mysqlDatabase),
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          provider: 'mysql',
+          message: error instanceof Error ? error.message : 'MySQL bağlantısı test edilemedi.',
+          resolvedDatabaseUrl: toMysqlDisplayUrl(mysqlDatabase),
+        };
+      }
+    }
+
+    const externalDatabaseUrl = payload.externalDatabaseUrl?.trim();
+    if (!externalDatabaseUrl) {
+      return {
+        ok: false,
+        provider: null,
+        message: 'Test için harici SQLite path veya MySQL bağlantı bilgisi girin.',
+        resolvedDatabaseUrl: null,
+      };
+    }
+
+    const sqliteTarget = getSqliteTarget(externalDatabaseUrl);
+    try {
+      testSqliteConnection(sqliteTarget.path);
+      return {
+        ok: true,
+        provider: 'sqlite',
+        message: 'SQLite bağlantısı başarılı.',
+        resolvedDatabaseUrl: sqliteTarget.url,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        provider: 'sqlite',
+        message: error instanceof Error ? error.message : 'SQLite bağlantısı test edilemedi.',
+        resolvedDatabaseUrl: sqliteTarget.url,
+      };
+    }
   }
 
-  private database(): SqliteDatabase {
+  private getTableCounts(): Record<string, number> {
+    const activeConnection = this.database();
+
+    if (activeConnection.target.provider === 'mysql') {
+      return mysqlCountRows(activeConnection.target.config);
+    }
+
+    const sqlite = activeConnection.sqlite;
+    if (!sqlite) {
+      throw new Error('SQLite bağlantısı açılamadı.');
+    }
+
+    return sqliteCountRows(sqlite);
+  }
+
+  private database(): ActiveDatabaseConnection {
     const config = readBootstrapConfig();
     const localDatabasePath = resolveSqlitePath(config.localDatabaseUrl);
-    const activeDatabasePath = getActiveDatabasePath(config);
+    const activeTarget = getActiveDatabaseTarget(config);
 
     ensureSqliteFile(localDatabasePath);
 
-    if (config.externalDatabaseUrl && !existsSync(activeDatabasePath)) {
-      ensureParentDirectory(activeDatabasePath);
-      copyFileSync(localDatabasePath, activeDatabasePath);
+    if (activeTarget.provider === 'sqlite' && config.externalDatabaseUrl && !existsSync(activeTarget.path)) {
+      ensureParentDirectory(activeTarget.path);
+      copyFileSync(localDatabasePath, activeTarget.path);
     }
 
-    if (!DbService.database || DbService.activeDatabasePath !== activeDatabasePath) {
-      DbService.closeDatabase();
-      DbService.database = openSqliteDatabase(activeDatabasePath);
-      DbService.activeDatabasePath = activeDatabasePath;
+    if (DbService.activeConnection && targetsEqual(DbService.activeConnection.target, activeTarget)) {
+      return DbService.activeConnection;
     }
 
-    return DbService.database;
+    DbService.closeDatabase();
+
+    if (activeTarget.provider === 'mysql') {
+      initializeMysqlDatabase(activeTarget.config);
+      DbService.activeConnection = {
+        target: activeTarget,
+        sqlite: null,
+      };
+      return DbService.activeConnection;
+    }
+
+    DbService.activeConnection = {
+      target: activeTarget,
+      sqlite: openSqliteDatabase(activeTarget.path),
+    };
+
+    return DbService.activeConnection;
   }
 
   private static closeDatabase(): void {
-    if (DbService.database) {
-      DbService.database.close();
+    if (DbService.activeConnection?.sqlite) {
+      DbService.activeConnection.sqlite.close();
     }
 
-    DbService.database = null;
-    DbService.activeDatabasePath = null;
+    DbService.activeConnection = null;
   }
 }

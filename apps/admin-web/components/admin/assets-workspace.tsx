@@ -32,6 +32,7 @@ import {
 } from '@open-story/ui/components/table';
 import {
   Clapperboard,
+  CloudUpload,
   Eye,
   ImagePlus,
   LinkIcon,
@@ -47,8 +48,9 @@ import { ApiRequestError, apiRequest } from '@/lib/api';
 
 type AssetType = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 type UsageFilter = 'all' | 'used' | 'unused';
-type SourceFilter = 'all' | 'upload' | 'url';
-type CreateMode = 'upload' | 'url';
+type AssetSource = 'upload' | 'url' | 'cloud_upload';
+type SourceFilter = 'all' | AssetSource;
+type CreateMode = 'upload' | 'url' | 'cloud_upload';
 
 type AssetUsageReference = {
   entityType: 'story_group' | 'story';
@@ -69,7 +71,7 @@ type AssetApiRecord = {
   height: number | null;
   durationMs: number | null;
   sizeBytes: number | null;
-  source: 'url' | 'upload';
+  source: AssetSource;
   usageCount: number;
   usageReferences: AssetUsageReference[];
   createdAt: string;
@@ -91,6 +93,14 @@ function getAssetTypeLabel(type: AssetType): string {
 
 function getAssetAccept(type: AssetType): string {
   return ASSET_TYPES.find((item) => item.value === type)?.accept ?? '';
+}
+
+function getAssetSourceLabel(source: AssetSource): string {
+  if (source === 'cloud_upload') {
+    return 'Cloud Upload';
+  }
+
+  return source === 'upload' ? 'Server Upload' : 'URL';
 }
 
 function formatFileSize(sizeBytes: number | null): string {
@@ -168,6 +178,7 @@ function AssetStats({ assets }: { assets: AssetApiRecord[] }) {
   const usedCount = assets.filter((asset) => asset.usageCount > 0).length;
   const unusedCount = assets.length - usedCount;
   const uploadCount = assets.filter((asset) => asset.source === 'upload').length;
+  const cloudUploadCount = assets.filter((asset) => asset.source === 'cloud_upload').length;
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
@@ -185,9 +196,9 @@ function AssetStats({ assets }: { assets: AssetApiRecord[] }) {
       </Card>
       <Card className="border-border/60 bg-card/80">
         <CardHeader className="pb-2">
-          <CardDescription>Kullanılmayan / Upload</CardDescription>
+          <CardDescription>Kullanılmayan / Upload / Cloud</CardDescription>
           <CardTitle className="text-2xl">
-            {unusedCount} / {uploadCount}
+            {unusedCount} / {uploadCount} / {cloudUploadCount}
           </CardTitle>
         </CardHeader>
       </Card>
@@ -268,12 +279,12 @@ export function AssetsWorkspace() {
   }, [assets, searchValue, sourceFilter, typeFilter, usageFilter]);
 
   const uploadAssetMutation = useMutation({
-    mutationFn: async (payload: { type: AssetType; file: File }) => {
+    mutationFn: async (payload: { type: AssetType; file: File; storage: 'local' | 'cloud' }) => {
       const formData = new FormData();
       formData.set('type', payload.type);
       formData.set('file', payload.file);
 
-      const response = await fetch('/api/assets', {
+      const response = await fetch(payload.storage === 'cloud' ? '/api/assets?storage=cloud' : '/api/assets', {
         method: 'POST',
         body: formData,
       });
@@ -339,13 +350,17 @@ export function AssetsWorkspace() {
     setCreateError(null);
 
     try {
-      if (createMode === 'upload') {
+      if (createMode === 'upload' || createMode === 'cloud_upload') {
         if (!selectedFile) {
           setCreateError('Upload için dosya seçin.');
           return;
         }
 
-        await uploadAssetMutation.mutateAsync({ type: createType, file: selectedFile });
+        await uploadAssetMutation.mutateAsync({
+          type: createType,
+          file: selectedFile,
+          storage: createMode === 'cloud_upload' ? 'cloud' : 'local',
+        });
         return;
       }
 
@@ -462,7 +477,8 @@ export function AssetsWorkspace() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tüm kaynaklar</SelectItem>
-                  <SelectItem value="upload">Upload</SelectItem>
+                  <SelectItem value="upload">Server Upload</SelectItem>
+                  <SelectItem value="cloud_upload">Cloud Upload</SelectItem>
                   <SelectItem value="url">URL</SelectItem>
                 </SelectContent>
               </Select>
@@ -530,7 +546,7 @@ export function AssetsWorkspace() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{asset.source === 'upload' ? 'Upload' : 'URL'}</Badge>
+                      <Badge variant="outline">{getAssetSourceLabel(asset.source)}</Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{formatDate(asset.createdAt)}</TableCell>
                     <TableCell>
@@ -557,7 +573,7 @@ export function AssetsWorkspace() {
                                   {asset.width && asset.height ? `${asset.width}x${asset.height}` : 'Boyut bilinmiyor'}
                                 </Badge>
                                 <Badge variant="secondary">{formatFileSize(asset.sizeBytes)}</Badge>
-                                <Badge variant="secondary">{asset.source === 'upload' ? 'Upload' : 'URL'}</Badge>
+                                <Badge variant="secondary">{getAssetSourceLabel(asset.source)}</Badge>
                                 <Badge variant={asset.usageCount > 0 ? 'default' : 'outline'}>
                                   {asset.usageCount > 0 ? `${asset.usageCount} referans` : 'Kullanılmıyor'}
                                 </Badge>
@@ -613,7 +629,7 @@ export function AssetsWorkspace() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 rounded-lg border border-border/60 bg-muted/20 p-1">
+                <div className="grid grid-cols-3 gap-2 rounded-lg border border-border/60 bg-muted/20 p-1">
                   <Button
                     onClick={() => setCreateMode('upload')}
                     size="sm"
@@ -621,7 +637,16 @@ export function AssetsWorkspace() {
                     variant={createMode === 'upload' ? 'default' : 'ghost'}
                   >
                     <Upload className="mr-2 h-4 w-4" />
-                    Upload
+                    Server
+                  </Button>
+                  <Button
+                    onClick={() => setCreateMode('cloud_upload')}
+                    size="sm"
+                    type="button"
+                    variant={createMode === 'cloud_upload' ? 'default' : 'ghost'}
+                  >
+                    <CloudUpload className="mr-2 h-4 w-4" />
+                    Cloud
                   </Button>
                   <Button
                     onClick={() => setCreateMode('url')}
@@ -636,7 +661,7 @@ export function AssetsWorkspace() {
               </div>
 
               <div className="flex flex-col gap-3">
-                {createMode === 'upload' ? (
+                {createMode === 'upload' || createMode === 'cloud_upload' ? (
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="asset-upload">Dosya</Label>
                     <Input
@@ -650,6 +675,15 @@ export function AssetsWorkspace() {
                         {selectedFile.name} / {formatFileSize(selectedFile.size)}
                       </p>
                     ) : null}
+                    {createMode === 'cloud_upload' ? (
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        Production için önerilen yol. Görseller optimize edilir; medya Google Cloud Storage/CDN hedefinde saklanır.
+                      </p>
+                    ) : (
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        Local geliştirme ve küçük kurulumlar için. Production ortamında Cloud Upload önerilir.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">

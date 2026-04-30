@@ -122,7 +122,7 @@ export const assetRecordSchema = z
   .object({
     id: rootIdSchema,
     kind: z.enum(['group_logo', 'group_badge_svg', 'story_image', 'story_video', 'story_video_poster']),
-    source: z.enum(['upload', 'url']),
+    source: z.enum(['upload', 'url', 'cloud_upload']),
     mediaType: z.enum(['image', 'video']),
     storageKey: z.string().trim().min(1).max(1024),
     publicUrl: z.string().url(),

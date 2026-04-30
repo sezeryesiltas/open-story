@@ -1119,10 +1119,9 @@ internal class StoryViewerDialog private constructor(
 
                     else -> {
                         if (abs(deltaX) <= touchSlop && abs(deltaY) <= touchSlop) {
-                            if (event.x < gestureOverlay.width / 2f) {
-                                navigateBackward()
-                            } else {
-                                navigateForward(manual = true)
+                            when (storyViewerTapDirection(event.x, gestureOverlay.width)) {
+                                StoryViewerTapDirection.BACKWARD -> navigateBackward()
+                                StoryViewerTapDirection.FORWARD -> navigateForward(manual = true)
                             }
                         }
                         true

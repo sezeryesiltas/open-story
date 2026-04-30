@@ -79,17 +79,47 @@ export interface ResetAdminUserPasswordDto {
   temporaryPassword: string;
 }
 
+export type DatabaseProvider = 'sqlite' | 'mysql';
+
+export interface MysqlDatabaseSettingsDto {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  passwordConfigured: boolean;
+}
+
 export interface DatabaseSettingsDto {
   defaultSqliteUrl: string;
+  activeProvider: DatabaseProvider;
   activeDatabaseUrl: string;
   externalDatabaseUrl: string | null;
+  mysqlDatabase: MysqlDatabaseSettingsDto | null;
   isUsingExternalDatabase: boolean;
   migratedAt: string | null;
   tableCounts: Record<string, number>;
 }
 
+export interface UpdateMysqlDatabaseSettingsDto {
+  host?: string | null;
+  port?: string | number | null;
+  database?: string | null;
+  username?: string | null;
+  password?: string | null;
+}
+
 export interface UpdateDatabaseSettingsDto {
   externalDatabaseUrl?: string | null;
+  mysql?: UpdateMysqlDatabaseSettingsDto | null;
+}
+
+export interface TestDatabaseConnectionDto extends UpdateDatabaseSettingsDto {}
+
+export interface TestDatabaseConnectionResponseDto {
+  ok: boolean;
+  provider: DatabaseProvider | null;
+  message: string;
+  resolvedDatabaseUrl: string | null;
 }
 
 export interface ClientDto {
@@ -192,6 +222,8 @@ export type ArchiveStoryDto = AdminArchiveStoryDto;
 export type StoryDto = AdminStory;
 
 export type AssetTypeDto = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
+export type AssetSourceDto = 'upload' | 'url' | 'cloud_upload';
+export type AssetStorageProviderDto = 'local' | 'gcs';
 
 export interface AssetUsageReferenceDto {
   entityType: 'story_group' | 'story';
@@ -212,7 +244,7 @@ export interface AssetDto {
   height: number | null;
   durationMs: number | null;
   sizeBytes: number | null;
-  source: 'upload' | 'url';
+  source: AssetSourceDto;
   usageCount: number;
   usageReferences: AssetUsageReferenceDto[];
   createdAt: string;
@@ -226,6 +258,46 @@ export interface ListAssetsQueryDto {
 export interface CreateAssetFromUrlDto {
   type: AssetTypeDto;
   url: string;
+}
+
+export interface GcsAssetStorageSettingsDto {
+  projectId: string | null;
+  bucketName: string | null;
+  objectPrefix: string;
+  publicAssetBaseUrl: string | null;
+  cacheControl: string;
+  credentialsSource: 'application_default_credentials';
+}
+
+export interface AssetStorageSettingsDto {
+  activeProvider: AssetStorageProviderDto;
+  localPublicAssetBaseUrl: string;
+  gcs: GcsAssetStorageSettingsDto;
+  recommendedProductionProvider: 'gcs';
+  updatedAt: string | null;
+}
+
+export interface UpdateGcsAssetStorageSettingsDto {
+  projectId?: string | null;
+  bucketName?: string | null;
+  objectPrefix?: string | null;
+  publicAssetBaseUrl?: string | null;
+  cacheControl?: string | null;
+}
+
+export interface UpdateAssetStorageSettingsDto {
+  activeProvider?: AssetStorageProviderDto;
+  gcs?: UpdateGcsAssetStorageSettingsDto | null;
+}
+
+export interface TestAssetStorageSettingsDto extends UpdateAssetStorageSettingsDto {}
+
+export interface TestAssetStorageConnectionResponseDto {
+  ok: boolean;
+  provider: AssetStorageProviderDto | null;
+  message: string;
+  bucketName: string | null;
+  publicAssetBaseUrl: string | null;
 }
 
 export type SdkFeedRequestDto = SdkFeedRequest;

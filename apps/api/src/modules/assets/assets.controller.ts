@@ -59,6 +59,28 @@ export class AssetsController {
     );
   }
 
+  @Post('cloud-upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async cloudUpload(
+    @UploadedFile() uploadedFile?: MultipartUploadFile,
+    @Body('type') typeValue?: string,
+    @Headers('authorization') authorization?: string,
+  ): Promise<AssetDto> {
+    if (!uploadedFile?.originalname || !uploadedFile.buffer || typeof typeValue !== 'string') {
+      throw new BadRequestException('Multipart cloud upload body `type` ve `file` alanlarını içermelidir.');
+    }
+
+    return this.service.cloudUpload(
+      {
+        type: typeValue as AssetTypeDto,
+        fileName: uploadedFile.originalname,
+        mimeType: uploadedFile.mimetype ?? null,
+        buffer: uploadedFile.buffer,
+      },
+      authorization,
+    );
+  }
+
   @Post('import')
   async importFromUrl(
     @Body() body?: Partial<CreateAssetFromUrlDto>,

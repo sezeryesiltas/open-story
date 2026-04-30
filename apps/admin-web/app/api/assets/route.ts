@@ -29,8 +29,11 @@ export async function POST(request: NextRequest) {
         return jsonError('Upload isteği boş gövde ile geldi.', 400, 'validation_error');
       }
 
+      const uploadTarget =
+        request.nextUrl.searchParams.get('storage') === 'cloud' ? '/v1/assets/cloud-upload' : '/v1/assets/upload';
+
       return NextResponse.json(
-        await backendApiRequest('/v1/assets/upload', {
+        await backendApiRequest(uploadTarget, {
           method: 'POST',
           authToken: getAdminAuthTokenFromRequest(request),
           body: requestBody,

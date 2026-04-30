@@ -16,7 +16,7 @@ export type AssetRecord = {
   width: number | null;
   height: number | null;
   sizeBytes: number | null;
-  source: 'url' | 'upload';
+  source: 'url' | 'upload' | 'cloud_upload';
   createdAt: string;
   updatedAt: string;
 };
@@ -90,7 +90,12 @@ function normalizeAsset(rawRecord: { id: string; [key: string]: unknown }): Asse
     width: parseNullableNumber(rawRecord.width),
     height: parseNullableNumber(rawRecord.height),
     sizeBytes: parseNullableNumber(rawRecord.sizeBytes ?? rawRecord.size_bytes),
-    source: parseString(rawRecord.source) === 'upload' ? 'upload' : 'url',
+    source:
+      parseString(rawRecord.source) === 'cloud_upload'
+        ? 'cloud_upload'
+        : parseString(rawRecord.source) === 'upload'
+          ? 'upload'
+          : 'url',
     createdAt,
     updatedAt,
   };

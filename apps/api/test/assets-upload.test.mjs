@@ -5,11 +5,14 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { DbService } from '@open-story/db';
+import sharp from 'sharp';
 
 import { AdminAccessService } from '../src/admin-auth/admin-access.service.ts';
 import { SimpleJwtService } from '../src/admin-auth/simple-jwt.ts';
+import { createAssetRecordFromCloudUpload } from '../src/modules/assets/asset-upload.ts';
 import { AssetsRepository } from '../src/modules/assets/assets.repository.ts';
 import { AssetsService } from '../src/modules/assets/assets.service.ts';
+import { AssetStorageSettingsStore } from '../src/modules/settings/asset-storage-settings.store.ts';
 import { AuthService } from '../src/modules/auth/auth.service.ts';
 import { StoryGroupService } from '../src/modules/story-group/story-group.service.ts';
 import { PublishResolutionRepository } from '../src/publish/publish-resolution.repository.ts';
@@ -23,6 +26,7 @@ function createHarness() {
 
   process.env.OPEN_STORY_SQLITE_PATH = join(tempDir, 'open-story.sqlite');
   process.env.OPEN_STORY_DB_CONFIG_PATH = join(tempDir, 'database-config.json');
+  process.env.OPEN_STORY_ASSET_STORAGE_CONFIG_PATH = join(tempDir, 'asset-storage-config.json');
   process.env.OPEN_STORY_ASSET_STORAGE_DIR = join(tempDir, 'asset-storage');
   process.env.OPEN_STORY_PUBLIC_ASSET_BASE_URL = 'http://localhost:3001/uploads/assets';
 
@@ -40,7 +44,7 @@ function createHarness() {
 
   return {
     authService: new AuthService(repository, jwtService, adminAccessService),
-    assetsService: new AssetsService(new AssetsRepository(db), adminAccessService),
+    assetsService: new AssetsService(new AssetsRepository(db), adminAccessService, new AssetStorageSettingsStore()),
     groupService: new StoryGroupService(contentRepository, publishResolutionService, adminAccessService),
   };
 }
@@ -73,7 +77,7 @@ test('asset upload stores square logos and story media with extracted metadata',
       type: 'story_image',
       fileName: 'story.png',
       mimeType: 'image/png',
-      buffer: createPngBuffer(1200, 900),
+      buffer: await createPngBuffer(1200, 900),
     },
     authorization,
   );
@@ -88,7 +92,7 @@ test('asset upload stores square logos and story media with extracted metadata',
       type: 'story_poster',
       fileName: 'poster.png',
       mimeType: 'image/png',
-      buffer: createPngBuffer(640, 480),
+      buffer: await createPngBuffer(640, 480),
     },
     authorization,
   );
@@ -138,7 +142,7 @@ test('asset list exposes current usage and only unused assets can be deleted', a
       type: 'story_image',
       fileName: 'unused.png',
       mimeType: 'image/png',
-      buffer: createPngBuffer(1080, 1920),
+      buffer: await createPngBuffer(1080, 1920),
     },
     authorization,
   );
@@ -180,6 +184,7 @@ test('asset upload rejects non-square logos and overlong videos', async () => {
     password: 'admin12345',
   });
   const authorization = `Bearer ${loginResponse.accessToken}`;
+  const nonSquareLogoBuffer = await createPngBuffer(128, 256);
 
   await assert.rejects(
     () =>
@@ -188,7 +193,7 @@ test('asset upload rejects non-square logos and overlong videos', async () => {
           type: 'group_logo',
           fileName: 'logo.png',
           mimeType: 'image/png',
-          buffer: createPngBuffer(128, 256),
+          buffer: nonSquareLogoBuffer,
         },
         authorization,
       ),
@@ -219,7 +224,7 @@ test('asset upload rejects non-square logos and overlong videos', async () => {
 test('asset URL import validates remote image and preserves url source', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () =>
-    new Response(createPngBuffer(1200, 900), {
+    new Response(await createPngBuffer(1200, 900), {
       status: 200,
       headers: {
         'content-type': 'image/png',
@@ -252,26 +257,84 @@ test('asset URL import validates remote image and preserves url source', async (
   }
 });
 
-function createPngBuffer(width, height) {
-  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  const ihdrData = Buffer.alloc(13);
-  ihdrData.writeUInt32BE(width, 0);
-  ihdrData.writeUInt32BE(height, 4);
-  ihdrData[8] = 8;
-  ihdrData[9] = 6;
-  const ihdr = Buffer.concat([
-    uint32(13),
-    Buffer.from('IHDR'),
-    ihdrData,
-    Buffer.from([0, 0, 0, 0]),
-  ]);
-  const iend = Buffer.concat([
-    uint32(0),
-    Buffer.from('IEND'),
-    Buffer.from([0, 0, 0, 0]),
-  ]);
+test('server upload optimizes PNG images before storing asset records', async () => {
+  const { authService, assetsService } = createHarness();
+  const loginResponse = await authService.login({
+    email: 'admin@openstory.local',
+    password: 'admin12345',
+  });
+  const authorization = `Bearer ${loginResponse.accessToken}`;
 
-  return Buffer.concat([signature, ihdr, iend]);
+  const logoAsset = await assetsService.upload(
+    {
+      type: 'group_logo',
+      fileName: 'logo.png',
+      mimeType: 'image/png',
+      buffer: await createPngBuffer(900, 900),
+    },
+    authorization,
+  );
+
+  assert.equal(logoAsset.mimeType, 'image/jpeg');
+  assert.equal(logoAsset.width, 500);
+  assert.equal(logoAsset.height, 500);
+  assert.equal(logoAsset.name.endsWith('.jpg'), true);
+
+  const storyAsset = await assetsService.upload(
+    {
+      type: 'story_image',
+      fileName: 'story.png',
+      mimeType: 'image/png',
+      buffer: await createPngBuffer(1200, 2400),
+    },
+    authorization,
+  );
+
+  assert.equal(storyAsset.mimeType, 'image/jpeg');
+  assert.equal(storyAsset.height, 1600);
+  assert.equal(storyAsset.width, 800);
+});
+
+test('cloud upload prepares optimized asset records and delegates binary storage', async () => {
+  const writes = [];
+
+  const record = await createAssetRecordFromCloudUpload(
+    {
+      type: 'story_image',
+      fileName: 'cloud-story.png',
+      mimeType: 'image/png',
+      buffer: await createPngBuffer(1200, 2400),
+      createdByAdminUserId: null,
+    },
+    {
+      storageKeyPrefix: 'assets',
+      publicAssetBaseUrl: 'https://assets.example.com',
+      write: async (write) => {
+        writes.push(write);
+      },
+    },
+  );
+
+  assert.equal(record.source, 'cloud_upload');
+  assert.equal(record.mimeType, 'image/jpeg');
+  assert.equal(record.width, 800);
+  assert.equal(record.height, 1600);
+  assert.equal(record.publicUrl.startsWith('https://assets.example.com/assets/story_image/'), true);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].mimeType, 'image/jpeg');
+});
+
+async function createPngBuffer(width, height) {
+  return sharp({
+    create: {
+      width,
+      height,
+      channels: 4,
+      background: { r: 255, g: 0, b: 0, alpha: 1 },
+    },
+  })
+    .png()
+    .toBuffer();
 }
 
 function createMp4Buffer({ width, height, durationMs }) {

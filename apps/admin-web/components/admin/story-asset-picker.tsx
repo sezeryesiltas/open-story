@@ -13,7 +13,7 @@ import {
 } from '@open-story/ui/components/dialog';
 import { Input } from '@open-story/ui/components/input';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { Clapperboard, ImagePlus, RefreshCcw, Upload, X } from 'lucide-react';
+import { Clapperboard, CloudUpload, ImagePlus, RefreshCcw, Upload, X } from 'lucide-react';
 import { ChangeEvent, useMemo, useState } from 'react';
 
 import { ApiRequestError, apiRequest } from '@/lib/api';
@@ -27,12 +27,13 @@ type AssetApiRecord = {
   width: number | null;
   height: number | null;
   sizeBytes: number | null;
-  source: 'url' | 'upload';
+  source: AssetSource;
   createdAt: string;
   updatedAt: string;
 };
 
-type PickerMode = 'existing' | 'upload' | 'url';
+type AssetSource = 'upload' | 'url' | 'cloud_upload';
+type PickerMode = 'existing' | 'upload' | 'cloud_upload' | 'url';
 type StoryAssetType = 'story_image' | 'story_video' | 'story_poster';
 
 const ASSET_TYPE_CONFIG: Record<
@@ -98,6 +99,14 @@ function formatFileSize(sizeBytes: number | null): string {
   }
 
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getAssetSourceLabel(source: AssetSource): string {
+  if (source === 'cloud_upload') {
+    return 'Cloud Upload';
+  }
+
+  return source === 'upload' ? 'Server Upload' : 'URL';
 }
 
 function readImageMetaFromFile(file: File): Promise<{ width: number; height: number; objectUrl: string }> {
@@ -213,7 +222,7 @@ function AssetCard({
           <p className="font-medium">{asset.name}</p>
           <p className="mt-1 truncate text-xs text-muted-foreground">{asset.id}</p>
         </div>
-        <Badge variant={selected ? 'default' : 'secondary'}>{asset.source === 'upload' ? 'Upload' : 'URL'}</Badge>
+        <Badge variant={selected ? 'default' : 'secondary'}>{getAssetSourceLabel(asset.source)}</Badge>
       </div>
 
       <div className="flex items-center gap-3">
@@ -259,7 +268,7 @@ export function StoryAssetPicker({
   );
 
   const uploadAssetMutation = useMutation({
-    mutationFn: async (payload: { file: File; width: number | null; height: number | null }) => {
+    mutationFn: async (payload: { file: File; width: number | null; height: number | null; storage: 'local' | 'cloud' }) => {
       const formData = new FormData();
       formData.set('type', assetType);
       formData.set('file', payload.file);
@@ -272,7 +281,7 @@ export function StoryAssetPicker({
         formData.set('height', String(payload.height));
       }
 
-      const response = await fetch('/api/assets', {
+      const response = await fetch(payload.storage === 'cloud' ? '/api/assets?storage=cloud' : '/api/assets', {
         method: 'POST',
         body: formData,
       });
@@ -336,6 +345,7 @@ export function StoryAssetPicker({
             file,
             width,
             height,
+            storage: mode === 'cloud_upload' ? 'cloud' : 'local',
           });
         } finally {
           URL.revokeObjectURL(objectUrl);
@@ -358,6 +368,7 @@ export function StoryAssetPicker({
             file,
             width,
             height,
+            storage: mode === 'cloud_upload' ? 'cloud' : 'local',
           });
         } finally {
           URL.revokeObjectURL(objectUrl);
@@ -406,7 +417,7 @@ export function StoryAssetPicker({
                       : 'Boyut bilinmiyor'}
                   </Badge>
                   <Badge variant="secondary">{formatFileSize(selectedAsset.sizeBytes)}</Badge>
-                  <Badge variant="secondary">{selectedAsset.source === 'upload' ? 'Upload' : 'URL'}</Badge>
+                  <Badge variant="secondary">{getAssetSourceLabel(selectedAsset.source)}</Badge>
                 </div>
               </div>
             </div>
@@ -446,6 +457,13 @@ export function StoryAssetPicker({
           </Button>
           <Button onClick={() => setMode('upload')} type="button" variant={mode === 'upload' ? 'default' : 'outline'}>
             Bilgisayardan yükle
+          </Button>
+          <Button
+            onClick={() => setMode('cloud_upload')}
+            type="button"
+            variant={mode === 'cloud_upload' ? 'default' : 'outline'}
+          >
+            CDN&apos;e yükle
           </Button>
           <Button onClick={() => setMode('url')} type="button" variant={mode === 'url' ? 'default' : 'outline'}>
             URL ile içe al
@@ -500,15 +518,25 @@ export function StoryAssetPicker({
           </div>
         ) : null}
 
-        {mode === 'upload' ? (
+        {mode === 'upload' || mode === 'cloud_upload' ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border/60 border-dashed bg-muted/20 p-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                  <p className="font-medium">{config.title} yükle</p>
+                  {mode === 'cloud_upload' ? (
+                    <CloudUpload className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <p className="font-medium">
+                    {mode === 'cloud_upload' ? `${config.title} CDN'e yükle` : `${config.title} yükle`}
+                  </p>
                 </div>
-                <p className="text-sm leading-6 text-muted-foreground">{config.uploadDescription}</p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {mode === 'cloud_upload'
+                    ? 'Production için önerilir. Görseller optimize edilir; medya Google Cloud Storage/CDN hedefinde saklanır.'
+                    : config.uploadDescription}
+                </p>
                 <Input accept={config.accepts} onChange={handleFileChange} type="file" />
                 {selectedFileName ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
