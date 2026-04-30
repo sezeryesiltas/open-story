@@ -1,5 +1,6 @@
 import {
   Clapperboard,
+  Cloud,
   Database,
   Eye,
   Home,
@@ -97,6 +98,12 @@ export const adminNavSections: AdminNavSection[] = [
         description: 'Bağlantı ayarlarını yönetin.',
         href: '/settings',
         icon: Database
+      },
+      {
+        title: 'Storage & CDN',
+        description: 'Asset storage ayarlarını yönetin.',
+        href: '/settings/storage',
+        icon: Cloud
       },
       {
         title: 'Change Password',

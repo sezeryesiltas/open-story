@@ -26,6 +26,10 @@ function isActive(pathname: string, href: string) {
     return pathname === '/';
   }
 
+  if (href === '/settings') {
+    return pathname === href;
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

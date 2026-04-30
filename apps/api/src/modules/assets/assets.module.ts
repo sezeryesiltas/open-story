@@ -3,6 +3,7 @@ import { DbService } from '@open-story/db';
 
 import { AdminAccessService } from '../../admin-auth/admin-access.service.ts';
 import { SimpleJwtService } from '../../admin-auth/simple-jwt.ts';
+import { AssetStorageSettingsStore } from '../settings/asset-storage-settings.store.ts';
 import { StoryPlatformRepository } from '../../story-platform/story-platform.repository.ts';
 import { AssetsController } from './assets.controller.ts';
 import { AssetsService } from './assets.service.ts';
@@ -12,6 +13,7 @@ import { AssetsRepository } from './assets.repository.ts';
   controllers: [AssetsController],
   providers: [
     DbService,
+    AssetStorageSettingsStore,
     {
       provide: StoryPlatformRepository,
       useFactory: (db: DbService) => new StoryPlatformRepository(db),
@@ -34,9 +36,12 @@ import { AssetsRepository } from './assets.repository.ts';
     },
     {
       provide: AssetsService,
-      useFactory: (repository: AssetsRepository, adminAccessService: AdminAccessService) =>
-        new AssetsService(repository, adminAccessService),
-      inject: [AssetsRepository, AdminAccessService],
+      useFactory: (
+        repository: AssetsRepository,
+        adminAccessService: AdminAccessService,
+        assetStorageSettingsStore: AssetStorageSettingsStore,
+      ) => new AssetsService(repository, adminAccessService, assetStorageSettingsStore),
+      inject: [AssetsRepository, AdminAccessService, AssetStorageSettingsStore],
     },
   ],
 })

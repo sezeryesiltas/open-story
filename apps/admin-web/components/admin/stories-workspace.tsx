@@ -87,7 +87,7 @@ type AssetApiRecord = {
   width: number | null;
   height: number | null;
   sizeBytes: number | null;
-  source: 'url' | 'upload';
+  source: 'url' | 'upload' | 'cloud_upload';
   createdAt: string;
   updatedAt: string;
 };

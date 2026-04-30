@@ -91,6 +91,7 @@ NODE_ENV=production
 OPEN_STORY_API_PORT=3001
 OPEN_STORY_SQLITE_PATH=/data/db/open-story.sqlite
 OPEN_STORY_DB_CONFIG_PATH=/data/db/database-config.json
+OPEN_STORY_ASSET_STORAGE_CONFIG_PATH=/data/db/asset-storage-config.json
 OPEN_STORY_ASSET_STORAGE_DIR=/data/assets
 OPEN_STORY_PUBLIC_ASSET_BASE_URL=https://openstory.cloud/uploads/assets
 OPEN_STORY_API_BASE_URL=http://api:3001
@@ -100,6 +101,9 @@ OPEN_STORY_COOKIE_SECURE=true
 Notlar:
 
 - `OPEN_STORY_PUBLIC_ASSET_BASE_URL` dışarıdan erişilen gerçek domain olmalı.
+- Production ortamında yüksek medya trafiği için Admin Console `Storage & CDN` ekranından Google Cloud Storage provider'ı etkinleştirin ve asset domainini `OPEN_STORY_GCS_PUBLIC_ASSET_BASE_URL` / CDN public URL olarak kullanın.
+- Google Cloud credential'larını admin ayarlarına yazmayın; API container'ına Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` ile verin.
+- Google Cloud VM, Managed Instance Group ve local ADC credential yönergeleri için `docs/gcs-asset-storage-credentials.md` dokümanını kullanın.
 - HTTPS load balancer arkasında `OPEN_STORY_COOKIE_SECURE=true` kullanın.
 - Sadece düz HTTP ile test ediyorsanız `OPEN_STORY_COOKIE_SECURE=false` yapın.
 - Load balancer SSL terminate ettiği için container tarafında ayrıca `443` dinlemeyin.

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, extname, resolve } from 'node:path';
 
 import type { AssetRecord } from '@open-story/contracts';
+import sharp from 'sharp';
 
 import { ApiServiceError } from '../../common/filters/api-error.ts';
 
@@ -23,6 +24,19 @@ export type AssetImportFromUrlInput = {
 };
 
 type AssetCreationSource = 'upload' | 'url';
+type UploadAssetCreationSource = 'upload' | 'cloud_upload';
+
+type AssetBufferWriter = (input: {
+  storageKey: string;
+  buffer: Buffer;
+  mimeType: string;
+}) => Promise<void> | void;
+
+export type CloudAssetUploadTarget = {
+  storageKeyPrefix: string;
+  publicAssetBaseUrl: string;
+  write: AssetBufferWriter;
+};
 
 type DetectedAsset =
   | {
@@ -58,8 +72,11 @@ type Atom = {
 
 const DEFAULT_PUBLIC_ASSET_BASE_URL = 'http://localhost:3001/uploads/assets';
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_GROUP_LOGO_DIMENSION = 500;
+const MAX_STORY_IMAGE_HEIGHT = 1600;
+const OPTIMIZED_JPEG_QUALITY = 82;
 
-export function createAssetRecordFromUpload(input: AssetUploadInput): AssetRecord {
+export async function createAssetRecordFromUpload(input: AssetUploadInput): Promise<AssetRecord> {
   return createAssetRecordFromBuffer({
     type: input.type,
     fileName: input.fileName,
@@ -68,6 +85,32 @@ export function createAssetRecordFromUpload(input: AssetUploadInput): AssetRecor
     createdByAdminUserId: input.createdByAdminUserId,
     source: 'upload',
     publicUrl: null,
+    storageKeyPrefix: null,
+    writer: ({ storageKey, buffer }) => {
+      const filePath = resolveAssetFilePath(storageKey);
+      mkdirSync(dirname(filePath), { recursive: true });
+      writeFileSync(filePath, buffer);
+    },
+    optimizeUpload: true,
+  });
+}
+
+export async function createAssetRecordFromCloudUpload(
+  input: AssetUploadInput,
+  target: CloudAssetUploadTarget,
+): Promise<AssetRecord> {
+  return createAssetRecordFromBuffer({
+    type: input.type,
+    fileName: input.fileName,
+    mimeType: input.mimeType ?? null,
+    buffer: input.buffer,
+    createdByAdminUserId: input.createdByAdminUserId,
+    source: 'cloud_upload',
+    publicUrl: null,
+    publicAssetBaseUrl: target.publicAssetBaseUrl,
+    storageKeyPrefix: target.storageKeyPrefix,
+    writer: target.write,
+    optimizeUpload: true,
   });
 }
 
@@ -112,6 +155,9 @@ export async function createAssetRecordFromUrlImport(input: AssetImportFromUrlIn
     createdByAdminUserId: input.createdByAdminUserId,
     source: 'url',
     publicUrl: finalUrl,
+    storageKeyPrefix: null,
+    writer: null,
+    optimizeUpload: false,
   });
 }
 
@@ -126,31 +172,41 @@ export function deleteAssetBinary(record: AssetRecord): void {
   }
 }
 
-function createAssetRecordFromBuffer(input: {
+async function createAssetRecordFromBuffer(input: {
   type: AssetType;
   fileName: string;
   mimeType: string | null;
   buffer: Buffer;
   createdByAdminUserId: string | null;
-  source: AssetCreationSource;
+  source: AssetCreationSource | UploadAssetCreationSource;
   publicUrl: string | null;
-}): AssetRecord {
+  publicAssetBaseUrl?: string | null;
+  storageKeyPrefix: string | null;
+  writer: AssetBufferWriter | null;
+  optimizeUpload: boolean;
+}): Promise<AssetRecord> {
   const normalizedFileName = normalizeFileName(input.fileName);
-  const detectedAsset = detectAsset(input.buffer);
-  validateUpload(input.type, normalizedFileName, input.mimeType ?? null, input.buffer.byteLength, detectedAsset);
+  const originalDetectedAsset = detectAsset(input.buffer);
+  validateUpload(input.type, normalizedFileName, input.mimeType ?? null, input.buffer.byteLength, originalDetectedAsset);
+  const preparedAsset = input.optimizeUpload
+    ? await prepareUploadedAssetForStorage(input.type, normalizedFileName, input.buffer, originalDetectedAsset)
+    : {
+        buffer: input.buffer,
+        fileName: normalizedFileName,
+      };
+  const detectedAsset = detectAsset(preparedAsset.buffer);
 
   const persistedKind = toPersistedKind(input.type);
   const now = new Date().toISOString();
-  const extension = extname(normalizedFileName) || detectedAsset.extension;
-  const storageKey =
-    input.source === 'upload'
-      ? `${persistedKind}/${randomUUID()}${extension.toLowerCase()}`
-      : `remote/${persistedKind}/${randomUUID()}${extension.toLowerCase()}`;
+  const extension = extname(preparedAsset.fileName) || detectedAsset.extension;
+  const storageKey = buildStorageKey(input.source, persistedKind, extension, input.storageKeyPrefix);
 
-  if (input.source === 'upload') {
-    const filePath = resolveAssetFilePath(storageKey);
-    mkdirSync(dirname(filePath), { recursive: true });
-    writeFileSync(filePath, input.buffer);
+  if (input.writer) {
+    await input.writer({
+      storageKey,
+      buffer: preparedAsset.buffer,
+      mimeType: detectedAsset.detectedMimeType,
+    });
   }
 
   return {
@@ -159,18 +215,108 @@ function createAssetRecordFromBuffer(input: {
     source: input.source,
     mediaType: detectedAsset.mediaType,
     storageKey,
-    publicUrl: input.publicUrl ?? buildPublicAssetUrl(storageKey),
-    sourceFileName: normalizedFileName,
+    publicUrl: input.publicUrl ?? buildPublicAssetUrl(storageKey, input.publicAssetBaseUrl),
+    sourceFileName: preparedAsset.fileName,
     mimeType: detectedAsset.detectedMimeType,
-    sizeBytes: input.buffer.byteLength,
+    sizeBytes: preparedAsset.buffer.byteLength,
     width: detectedAsset.width,
     height: detectedAsset.height,
     durationMs: detectedAsset.durationMs,
-    checksumSha256: createHash('sha256').update(input.buffer).digest('hex'),
+    checksumSha256: createHash('sha256').update(preparedAsset.buffer).digest('hex'),
     createdByAdminUserId: input.createdByAdminUserId,
     createdAt: now,
     updatedAt: now,
   };
+}
+
+async function prepareUploadedAssetForStorage(
+  assetType: AssetType,
+  fileName: string,
+  buffer: Buffer,
+  detectedAsset: DetectedAsset,
+): Promise<{ buffer: Buffer; fileName: string }> {
+  if (detectedAsset.mediaType !== 'image' || detectedAsset.detectedMimeType === 'image/svg+xml') {
+    return { buffer, fileName };
+  }
+
+  const resizeOptions = getImageResizeOptions(assetType, detectedAsset);
+  const shouldConvertPngToJpeg = detectedAsset.detectedMimeType === 'image/png';
+  const shouldReencodeJpeg = detectedAsset.detectedMimeType === 'image/jpeg' && resizeOptions !== null;
+  const shouldReencodeWebp = detectedAsset.detectedMimeType === 'image/webp' && resizeOptions !== null;
+
+  if (!resizeOptions && !shouldConvertPngToJpeg) {
+    return { buffer, fileName };
+  }
+
+  let pipeline = sharp(buffer, { failOn: 'warning' }).rotate();
+
+  if (resizeOptions) {
+    pipeline = pipeline.resize(resizeOptions);
+  }
+
+  if (shouldConvertPngToJpeg) {
+    pipeline = pipeline.flatten({ background: '#ffffff' }).jpeg({
+      quality: OPTIMIZED_JPEG_QUALITY,
+      mozjpeg: true,
+    });
+
+    return {
+      buffer: await pipeline.toBuffer(),
+      fileName: replaceFileExtension(fileName, '.jpg'),
+    };
+  }
+
+  if (shouldReencodeJpeg) {
+    pipeline = pipeline.jpeg({
+      quality: OPTIMIZED_JPEG_QUALITY,
+      mozjpeg: true,
+    });
+  } else if (shouldReencodeWebp) {
+    pipeline = pipeline.webp({
+      quality: OPTIMIZED_JPEG_QUALITY,
+    });
+  }
+
+  return {
+    buffer: await pipeline.toBuffer(),
+    fileName,
+  };
+}
+
+function getImageResizeOptions(
+  assetType: AssetType,
+  detectedAsset: Extract<DetectedAsset, { mediaType: 'image' }>,
+): sharp.ResizeOptions | null {
+  if (assetType === 'group_logo' && Math.max(detectedAsset.width, detectedAsset.height) > MAX_GROUP_LOGO_DIMENSION) {
+    return {
+      width: MAX_GROUP_LOGO_DIMENSION,
+      height: MAX_GROUP_LOGO_DIMENSION,
+      fit: 'inside',
+      withoutEnlargement: true,
+    };
+  }
+
+  if (
+    (assetType === 'story_image' || assetType === 'story_poster') &&
+    detectedAsset.height > MAX_STORY_IMAGE_HEIGHT
+  ) {
+    return {
+      height: MAX_STORY_IMAGE_HEIGHT,
+      fit: 'inside',
+      withoutEnlargement: true,
+    };
+  }
+
+  return null;
+}
+
+function replaceFileExtension(fileName: string, extension: string): string {
+  const currentExtension = extname(fileName);
+  if (!currentExtension) {
+    return `${fileName}${extension}`;
+  }
+
+  return `${fileName.slice(0, -currentExtension.length)}${extension}`;
 }
 
 function validateUpload(
@@ -234,8 +380,26 @@ function toPersistedKind(assetType: AssetType): AssetRecord['kind'] {
   return assetType;
 }
 
-function buildPublicAssetUrl(storageKey: string): string {
-  const baseUrl = normalizeBaseUrl(process.env.OPEN_STORY_PUBLIC_ASSET_BASE_URL?.trim() || DEFAULT_PUBLIC_ASSET_BASE_URL);
+function buildStorageKey(
+  source: AssetCreationSource | UploadAssetCreationSource,
+  kind: AssetRecord['kind'],
+  extension: string,
+  storageKeyPrefix: string | null,
+): string {
+  const normalizedExtension = extension.toLowerCase();
+  if (source === 'url') {
+    return `remote/${kind}/${randomUUID()}${normalizedExtension}`;
+  }
+
+  const baseKey = `${kind}/${randomUUID()}${normalizedExtension}`;
+  const normalizedPrefix = storageKeyPrefix?.replace(/^\/+|\/+$/g, '');
+  return normalizedPrefix ? `${normalizedPrefix}/${baseKey}` : baseKey;
+}
+
+function buildPublicAssetUrl(storageKey: string, configuredBaseUrl?: string | null): string {
+  const baseUrl = normalizeBaseUrl(
+    configuredBaseUrl?.trim() || process.env.OPEN_STORY_PUBLIC_ASSET_BASE_URL?.trim() || DEFAULT_PUBLIC_ASSET_BASE_URL,
+  );
   return `${baseUrl}/${storageKey}`;
 }
 

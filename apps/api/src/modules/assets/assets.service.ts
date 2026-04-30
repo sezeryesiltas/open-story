@@ -2,24 +2,30 @@ import type { AssetDto, AssetRecord, CreateAssetFromUrlDto, ListAssetsQueryDto }
 
 import { AdminAccessService } from '../../admin-auth/admin-access.service.ts';
 import { ApiServiceError } from '../../common/filters/api-error.ts';
+import { AssetStorageSettingsStore } from '../settings/asset-storage-settings.store.ts';
 import { AssetsRepository } from './assets.repository.ts';
 import {
+  createAssetRecordFromCloudUpload,
   createAssetRecordFromUpload,
   createAssetRecordFromUrlImport,
   deleteAssetBinary,
   type AssetUploadInput,
 } from './asset-upload.ts';
+import { createGcsAssetUploadTarget, deleteGcsAssetBinary } from './gcs-asset-storage.ts';
 
 export class AssetsService {
   private readonly repository: AssetsRepository;
   private readonly adminAccessService: AdminAccessService;
+  private readonly assetStorageSettingsStore: AssetStorageSettingsStore;
 
   constructor(
     repository: AssetsRepository,
     adminAccessService: AdminAccessService,
+    assetStorageSettingsStore: AssetStorageSettingsStore,
   ) {
     this.repository = repository;
     this.adminAccessService = adminAccessService;
+    this.assetStorageSettingsStore = assetStorageSettingsStore;
   }
 
   async list(query: ListAssetsQueryDto, authorization?: string): Promise<AssetDto[]> {
@@ -34,10 +40,25 @@ export class AssetsService {
   async upload(input: Omit<AssetUploadInput, 'createdByAdminUserId'>, authorization?: string): Promise<AssetDto> {
     const access = await this.adminAccessService.requireAdminAccess(authorization);
 
-    const record = createAssetRecordFromUpload({
+    const record = await createAssetRecordFromUpload({
       ...input,
       createdByAdminUserId: access.adminUserId,
     });
+
+    return toAssetDto(this.repository.create(record));
+  }
+
+  async cloudUpload(input: Omit<AssetUploadInput, 'createdByAdminUserId'>, authorization?: string): Promise<AssetDto> {
+    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const settings = this.assetStorageSettingsStore.getSettings();
+    const target = createGcsAssetUploadTarget(settings);
+    const record = await createAssetRecordFromCloudUpload(
+      {
+        ...input,
+        createdByAdminUserId: access.adminUserId,
+      },
+      target,
+    );
 
     return toAssetDto(this.repository.create(record));
   }
@@ -70,6 +91,7 @@ export class AssetsService {
     }
 
     deleteAssetBinary(asset);
+    await deleteGcsAssetBinary(asset, this.assetStorageSettingsStore.getSettings());
     this.repository.deleteById(assetId);
   }
 }

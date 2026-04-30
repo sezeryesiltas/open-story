@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DbService } from '@open-story/db';
+import { AssetStorageSettingsStore } from './asset-storage-settings.store.ts';
 import { SettingsController } from './settings.controller.ts';
 import { SettingsService } from './settings.service.ts';
 
@@ -7,10 +8,12 @@ import { SettingsService } from './settings.service.ts';
   controllers: [SettingsController],
   providers: [
     DbService,
+    AssetStorageSettingsStore,
     {
       provide: SettingsService,
-      useFactory: (db: DbService) => new SettingsService(db),
-      inject: [DbService],
+      useFactory: (db: DbService, assetStorageSettingsStore: AssetStorageSettingsStore) =>
+        new SettingsService(db, assetStorageSettingsStore),
+      inject: [DbService, AssetStorageSettingsStore],
     },
   ],
 })

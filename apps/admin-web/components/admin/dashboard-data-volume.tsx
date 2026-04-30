@@ -38,6 +38,14 @@ function getMetricBarWidth(count: number, maxCount: number): number {
   return Math.max(Math.round((count / maxCount) * 100), 12);
 }
 
+function getDatabaseProviderLabel(settings: DashboardDataVolumeSnapshot['settings']): string {
+  if (settings.activeProvider === 'mysql') {
+    return 'Harici MySQL aktif';
+  }
+
+  return settings.isUsingExternalDatabase ? 'Harici SQLite aktif' : 'Yerel SQLite aktif';
+}
+
 export function DashboardDataVolume({
   snapshot,
   errorMessage,
@@ -104,7 +112,7 @@ export function DashboardDataVolume({
               <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2">
                   <Badge variant={settings.isUsingExternalDatabase ? 'default' : 'secondary'}>
-                    {settings.isUsingExternalDatabase ? 'Harici veritabani aktif' : 'Yerel veritabani aktif'}
+                    {getDatabaseProviderLabel(settings)}
                   </Badge>
                   <Badge variant="outline">Placements: {formatMetricCount(placementsCount)}</Badge>
                   <Badge variant="outline">Son kopyalama: {formatDatabaseSettingsDate(settings.migratedAt)}</Badge>

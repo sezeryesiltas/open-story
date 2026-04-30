@@ -54,4 +54,10 @@ Feature implementation starts next in this order:
 
 - Varsayılan storage `apps/api/data/open-story.sqlite` dosyasıdır.
 - Aktif DB hedefi local bootstrap config ile saklanır.
-- Admin `Settings` ekranı üzerinden harici sqlite URL/path tanımlanabilir.
+- Admin `Settings` ekranı üzerinden harici SQLite URL/path veya MySQL bağlantı bilgileri tanımlanabilir.
+
+## Asset Storage
+
+- Admin asset akışında URL, Server Upload ve Cloud Upload seçenekleri bulunur.
+- Production için Cloud Upload önerilir; Google Cloud Storage bucket ve CDN public URL ayarı `Storage & CDN` ekranından yönetilir.
+- SDK feed sözleşmesi değişmez; mobil SDK'lar yine asset public URL alanını kullanır.
