@@ -6,17 +6,19 @@ Backend API module scaffold.
 
 - Varsayılan veri kaynağı `apps/api/data/open-story.sqlite` dosyasıdır.
 - Aktif DB bağlantı ayarı `apps/api/data/database-config.json` içinde tutulur.
-- `GET /v1/settings/database` aktif provider, local SQLite durumu, harici SQLite URL/path ve MySQL bağlantı özetini döner.
-- `PUT /v1/settings/database` ile harici SQLite dosya URL/path veya MySQL bağlantı bilgisi tanımlanabilir.
+- `GET /v1/settings/database` aktif provider, local SQLite durumu, harici SQLite URL/path, MySQL ve Postgres bağlantı özetini döner.
+- `PUT /v1/settings/database` ile harici SQLite dosya URL/path, MySQL veya Postgres bağlantı bilgisi tanımlanabilir.
 - Harici SQLite URL kaydedildiğinde mevcut aktif SQLite dosyası hedefe kopyalanır ve API o dosya üzerinden çalışmaya devam eder.
 - MySQL bağlantı bilgisi kaydedildiğinde aynı `records` snapshot semantiği MySQL `records` tablosuna taşınır ve aktif provider MySQL olur.
+- Postgres bağlantı bilgisi kaydedildiğinde aynı `records` snapshot semantiği Postgres `records` tablosuna taşınır ve aktif provider Postgres olur. Supabase Postgres için SSL mode varsayılanı `require` olmalıdır.
 
 ## Asset storage behavior
 
 - Local server upload `POST /v1/assets/upload` ile devam eder ve `OPEN_STORY_ASSET_STORAGE_DIR` altına yazar.
-- Cloud upload `POST /v1/assets/cloud-upload` ile Google Cloud Storage bucket hedefini kullanır.
+- Cloud upload `POST /v1/assets/cloud-upload` ile aktif Google Cloud Storage veya Supabase Storage S3 bucket hedefini kullanır.
 - Admin `Storage & CDN` ekranı `GET/PUT /v1/settings/storage` ve `POST /v1/settings/storage/test` üzerinden bucket, object prefix ve CDN public base URL ayarlarını yönetir.
 - Service account JSON/private key admin DB'ye yazılmaz; API runtime'ı Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` kullanır.
+- Supabase S3 access key bilgileri admin DB'ye değil `asset-storage-config.json` dosyasına yazılır ve yalnızca server-side kullanılır.
 - Upload edilen raster PNG görseller JPEG'e çevrilir. Group logo 500x500 sınırına, story image/poster ise yüksekliği en fazla 1600 px olacak şekilde aspect ratio korunarak optimize edilir.
 - URL import dış URL'yi korur; bu yol dosyayı Open Story storage hedefine yeniden yazmaz.
 
@@ -43,6 +45,47 @@ Backend API module scaffold.
 ```
 
 Password `GET` response içinde geri dönmez; aynı host/port/database/username için boş gönderilirse mevcut password korunur.
+
+## Supported Postgres settings
+
+`PUT /v1/settings/database` payload içinde `postgres` alanı doluysa Postgres hedefi aktif edilir:
+
+```json
+{
+  "postgres": {
+    "host": "db.project-ref.supabase.co",
+    "port": 5432,
+    "database": "postgres",
+    "username": "postgres",
+    "password": "secret",
+    "sslMode": "require"
+  }
+}
+```
+
+Password `GET` response içinde geri dönmez; aynı host/port/database/username/sslMode için boş gönderilirse mevcut Postgres password korunur.
+
+## Supported Supabase Storage S3 settings
+
+`PUT /v1/settings/storage` payload içinde `activeProvider: "supabase_s3"` ve `supabaseS3` alanı doluysa Supabase bucket hedefi aktif edilir:
+
+```json
+{
+  "activeProvider": "supabase_s3",
+  "supabaseS3": {
+    "endpoint": "https://project-ref.storage.supabase.co/storage/v1/s3",
+    "region": "project_region",
+    "bucketName": "open-story-assets",
+    "accessKeyId": "access-key-id",
+    "secretAccessKey": "secret-access-key",
+    "objectPrefix": "assets",
+    "publicAssetBaseUrl": "https://project-ref.supabase.co/storage/v1/object/public/open-story-assets",
+    "cacheControl": "public, max-age=31536000, immutable"
+  }
+}
+```
+
+Supabase S3 client `forcePathStyle: true` ile çalışır. Secret access key `GET` response içinde dönmez; aynı endpoint/region/bucket/access key için boş gönderilirse mevcut secret korunur.
 
 ## Admin API keys
 

@@ -79,7 +79,8 @@ export interface ResetAdminUserPasswordDto {
   temporaryPassword: string;
 }
 
-export type DatabaseProvider = 'sqlite' | 'mysql';
+export type DatabaseProvider = 'sqlite' | 'mysql' | 'postgres';
+export type PostgresSslModeDto = 'disable' | 'require';
 
 export interface MysqlDatabaseSettingsDto {
   host: string;
@@ -89,12 +90,22 @@ export interface MysqlDatabaseSettingsDto {
   passwordConfigured: boolean;
 }
 
+export interface PostgresDatabaseSettingsDto {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  sslMode: PostgresSslModeDto;
+  passwordConfigured: boolean;
+}
+
 export interface DatabaseSettingsDto {
   defaultSqliteUrl: string;
   activeProvider: DatabaseProvider;
   activeDatabaseUrl: string;
   externalDatabaseUrl: string | null;
   mysqlDatabase: MysqlDatabaseSettingsDto | null;
+  postgresDatabase: PostgresDatabaseSettingsDto | null;
   isUsingExternalDatabase: boolean;
   migratedAt: string | null;
   tableCounts: Record<string, number>;
@@ -108,9 +119,19 @@ export interface UpdateMysqlDatabaseSettingsDto {
   password?: string | null;
 }
 
+export interface UpdatePostgresDatabaseSettingsDto {
+  host?: string | null;
+  port?: string | number | null;
+  database?: string | null;
+  username?: string | null;
+  password?: string | null;
+  sslMode?: PostgresSslModeDto | null;
+}
+
 export interface UpdateDatabaseSettingsDto {
   externalDatabaseUrl?: string | null;
   mysql?: UpdateMysqlDatabaseSettingsDto | null;
+  postgres?: UpdatePostgresDatabaseSettingsDto | null;
 }
 
 export interface TestDatabaseConnectionDto extends UpdateDatabaseSettingsDto {}
@@ -223,7 +244,7 @@ export type StoryDto = AdminStory;
 
 export type AssetTypeDto = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 export type AssetSourceDto = 'upload' | 'url' | 'cloud_upload';
-export type AssetStorageProviderDto = 'local' | 'gcs';
+export type AssetStorageProviderDto = 'local' | 'gcs' | 'supabase_s3';
 
 export interface AssetUsageReferenceDto {
   entityType: 'story_group' | 'story';
@@ -269,11 +290,24 @@ export interface GcsAssetStorageSettingsDto {
   credentialsSource: 'application_default_credentials';
 }
 
+export interface SupabaseS3AssetStorageSettingsDto {
+  endpoint: string | null;
+  region: string;
+  bucketName: string | null;
+  accessKeyId: string | null;
+  secretAccessKeyConfigured: boolean;
+  objectPrefix: string;
+  publicAssetBaseUrl: string | null;
+  cacheControl: string;
+  forcePathStyle: true;
+}
+
 export interface AssetStorageSettingsDto {
   activeProvider: AssetStorageProviderDto;
   localPublicAssetBaseUrl: string;
   gcs: GcsAssetStorageSettingsDto;
-  recommendedProductionProvider: 'gcs';
+  supabaseS3: SupabaseS3AssetStorageSettingsDto;
+  recommendedProductionProvider: 'gcs' | 'supabase_s3';
   updatedAt: string | null;
 }
 
@@ -285,9 +319,21 @@ export interface UpdateGcsAssetStorageSettingsDto {
   cacheControl?: string | null;
 }
 
+export interface UpdateSupabaseS3AssetStorageSettingsDto {
+  endpoint?: string | null;
+  region?: string | null;
+  bucketName?: string | null;
+  accessKeyId?: string | null;
+  secretAccessKey?: string | null;
+  objectPrefix?: string | null;
+  publicAssetBaseUrl?: string | null;
+  cacheControl?: string | null;
+}
+
 export interface UpdateAssetStorageSettingsDto {
   activeProvider?: AssetStorageProviderDto;
   gcs?: UpdateGcsAssetStorageSettingsDto | null;
+  supabaseS3?: UpdateSupabaseS3AssetStorageSettingsDto | null;
 }
 
 export interface TestAssetStorageSettingsDto extends UpdateAssetStorageSettingsDto {}

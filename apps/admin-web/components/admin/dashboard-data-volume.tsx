@@ -39,6 +39,10 @@ function getMetricBarWidth(count: number, maxCount: number): number {
 }
 
 function getDatabaseProviderLabel(settings: DashboardDataVolumeSnapshot['settings']): string {
+  if (settings.activeProvider === 'postgres') {
+    return 'Harici Postgres aktif';
+  }
+
   if (settings.activeProvider === 'mysql') {
     return 'Harici MySQL aktif';
   }

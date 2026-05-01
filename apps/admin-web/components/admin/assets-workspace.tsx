@@ -677,7 +677,7 @@ export function AssetsWorkspace() {
                     ) : null}
                     {createMode === 'cloud_upload' ? (
                       <p className="text-xs leading-5 text-muted-foreground">
-                        Production için önerilen yol. Görseller optimize edilir; medya Google Cloud Storage/CDN hedefinde saklanır.
+                        Production için önerilen yol. Görseller optimize edilir; medya aktif Cloud Storage/CDN hedefinde saklanır.
                       </p>
                     ) : (
                       <p className="text-xs leading-5 text-muted-foreground">

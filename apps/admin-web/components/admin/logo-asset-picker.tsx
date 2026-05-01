@@ -387,7 +387,7 @@ export function LogoAssetPicker({
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {mode === 'cloud_upload'
-                    ? 'Production için önerilir. Raster görseller optimize edilip Google Cloud Storage/CDN hedefinde saklanır.'
+                    ? 'Production için önerilir. Raster görseller optimize edilip aktif Cloud Storage/CDN hedefinde saklanır.'
                     : 'JPG, PNG, WEBP veya SVG formatlarını yükleyebilirsiniz. Raster görseller için kare kontrolü yapılır.'}
                 </p>
                 <Input accept="image/*" onChange={handleFileChange} type="file" />

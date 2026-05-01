@@ -42,7 +42,19 @@ export class AssetsRepository {
   }
 
   listCurrentUsage(assetId: string): AssetUsageReference[] {
-    const usage: AssetUsageReference[] = [];
+    return this.listCurrentUsageByAssetId([assetId]).get(assetId) ?? [];
+  }
+
+  listCurrentUsageByAssetId(assetIds: Iterable<string>): Map<string, AssetUsageReference[]> {
+    const targetAssetIds = new Set(assetIds);
+    const usageByAssetId = new Map<string, AssetUsageReference[]>(
+      [...targetAssetIds].map((assetId) => [assetId, []]),
+    );
+
+    if (targetAssetIds.size === 0) {
+      return usageByAssetId;
+    }
+
     const groupRevisionById = new Map(
       this.db.list<StoryGroupRevisionRecord>('storyGroupRevisions').map((revision) => [revision.id, revision]),
     );
@@ -53,11 +65,11 @@ export class AssetsRepository {
     for (const groupRoot of this.db.list<StoryGroupRootRecord>('storyGroups')) {
       for (const revisionId of getCurrentRevisionIds(groupRoot.currentDraftRevisionId, groupRoot.currentPublishedRevisionId)) {
         const revision = groupRevisionById.get(revisionId);
-        if (!revision || revision.logoAssetId !== assetId) {
+        if (!revision || !targetAssetIds.has(revision.logoAssetId)) {
           continue;
         }
 
-        usage.push({
+        usageByAssetId.get(revision.logoAssetId)?.push({
           entityType: 'story_group',
           entityId: groupRoot.id,
           revisionId: revision.id,
@@ -75,8 +87,8 @@ export class AssetsRepository {
           continue;
         }
 
-        if (revision.assetId === assetId) {
-          usage.push({
+        if (targetAssetIds.has(revision.assetId)) {
+          usageByAssetId.get(revision.assetId)?.push({
             entityType: 'story',
             entityId: storyRoot.id,
             revisionId: revision.id,
@@ -86,8 +98,8 @@ export class AssetsRepository {
           });
         }
 
-        if (revision.posterAssetId === assetId) {
-          usage.push({
+        if (revision.posterAssetId && targetAssetIds.has(revision.posterAssetId)) {
+          usageByAssetId.get(revision.posterAssetId)?.push({
             entityType: 'story',
             entityId: storyRoot.id,
             revisionId: revision.id,
@@ -99,7 +111,7 @@ export class AssetsRepository {
       }
     }
 
-    return usage;
+    return usageByAssetId;
   }
 }
 

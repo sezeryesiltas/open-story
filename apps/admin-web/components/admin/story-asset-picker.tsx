@@ -534,7 +534,7 @@ export function StoryAssetPicker({
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {mode === 'cloud_upload'
-                    ? 'Production için önerilir. Görseller optimize edilir; medya Google Cloud Storage/CDN hedefinde saklanır.'
+                    ? 'Production için önerilir. Görseller optimize edilir; medya aktif Cloud Storage/CDN hedefinde saklanır.'
                     : config.uploadDescription}
                 </p>
                 <Input accept={config.accepts} onChange={handleFileChange} type="file" />
