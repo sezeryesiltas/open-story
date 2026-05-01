@@ -41,8 +41,8 @@ VM service account metadata üzerinden otomatik credential sağlar.
 Dedicated service account kullanın. Default Compute Engine service account'a geniş yetkiler vermeyin.
 
 ```bash
-PROJECT_ID="your-project"
-BUCKET_NAME="open-story-assets-prod"
+PROJECT_ID="open-story-493310"
+BUCKET_NAME="open-story"
 SA_NAME="open-story-assets"
 SA_EMAIL="$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
 
