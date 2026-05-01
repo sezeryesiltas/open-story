@@ -4,13 +4,22 @@ import { dirname, resolve } from 'node:path';
 import type {
   AssetStorageSettingsDto,
   GcsAssetStorageSettingsDto,
+  SupabaseS3AssetStorageSettingsDto,
   UpdateAssetStorageSettingsDto,
 } from '@open-story/contracts';
 
+type SupabaseS3AssetStorageConfig = Omit<
+  SupabaseS3AssetStorageSettingsDto,
+  'secretAccessKeyConfigured'
+> & {
+  secretAccessKey: string;
+};
+
 type AssetStorageConfig = {
-  version: 1;
+  version: 2;
   activeProvider: AssetStorageSettingsDto['activeProvider'];
   gcs: Omit<GcsAssetStorageSettingsDto, 'credentialsSource'>;
+  supabaseS3: SupabaseS3AssetStorageConfig;
   updatedAt: string | null;
 };
 
@@ -22,10 +31,21 @@ const GCS_BUCKET_ENV = 'OPEN_STORY_GCS_BUCKET';
 const GCS_OBJECT_PREFIX_ENV = 'OPEN_STORY_GCS_OBJECT_PREFIX';
 const GCS_PUBLIC_BASE_URL_ENV = 'OPEN_STORY_GCS_PUBLIC_ASSET_BASE_URL';
 const GCS_CACHE_CONTROL_ENV = 'OPEN_STORY_GCS_CACHE_CONTROL';
+const SUPABASE_S3_ENDPOINT_ENV = 'OPEN_STORY_SUPABASE_S3_ENDPOINT';
+const SUPABASE_S3_REGION_ENV = 'OPEN_STORY_SUPABASE_S3_REGION';
+const SUPABASE_S3_BUCKET_ENV = 'OPEN_STORY_SUPABASE_S3_BUCKET';
+const SUPABASE_S3_ACCESS_KEY_ID_ENV = 'OPEN_STORY_SUPABASE_S3_ACCESS_KEY_ID';
+const SUPABASE_S3_SECRET_ACCESS_KEY_ENV = 'OPEN_STORY_SUPABASE_S3_SECRET_ACCESS_KEY';
+const SUPABASE_S3_OBJECT_PREFIX_ENV = 'OPEN_STORY_SUPABASE_S3_OBJECT_PREFIX';
+const SUPABASE_S3_PUBLIC_BASE_URL_ENV = 'OPEN_STORY_SUPABASE_S3_PUBLIC_ASSET_BASE_URL';
+const SUPABASE_S3_CACHE_CONTROL_ENV = 'OPEN_STORY_SUPABASE_S3_CACHE_CONTROL';
 
 const DEFAULT_LOCAL_PUBLIC_ASSET_BASE_URL = 'http://localhost:3001/uploads/assets';
 const DEFAULT_GCS_OBJECT_PREFIX = 'assets';
 const DEFAULT_GCS_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+const DEFAULT_SUPABASE_S3_OBJECT_PREFIX = 'assets';
+const DEFAULT_SUPABASE_S3_REGION = 'project_region';
+const DEFAULT_SUPABASE_S3_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 export class AssetStorageSettingsStore {
   getSettings(): AssetStorageSettingsDto {
@@ -38,6 +58,7 @@ export class AssetStorageSettingsStore {
         ...config.gcs,
         credentialsSource: 'application_default_credentials',
       },
+      supabaseS3: toSupabaseS3SettingsDto(config.supabaseS3),
       recommendedProductionProvider: 'gcs',
       updatedAt: config.updatedAt,
     };
@@ -49,11 +70,14 @@ export class AssetStorageSettingsStore {
       ...current,
       activeProvider: normalizeProvider(input.activeProvider ?? current.activeProvider),
       gcs: normalizeGcsSettings(input.gcs, current.gcs),
+      supabaseS3: normalizeSupabaseS3Settings(input.supabaseS3, current.supabaseS3),
       updatedAt: new Date().toISOString(),
     };
 
     if (next.activeProvider === 'gcs') {
       assertUsableGcsSettings(next.gcs);
+    } else if (next.activeProvider === 'supabase_s3') {
+      assertUsableSupabaseS3Settings(next.supabaseS3);
     }
 
     writeConfig(next);
@@ -61,24 +85,44 @@ export class AssetStorageSettingsStore {
   }
 
   normalizeCandidate(input: UpdateAssetStorageSettingsDto): AssetStorageSettingsDto {
+    return this.normalizeCandidateForConnection(input).settings;
+  }
+
+  normalizeCandidateForConnection(input: UpdateAssetStorageSettingsDto): {
+    settings: AssetStorageSettingsDto;
+    supabaseS3SecretAccessKey: string | null;
+  } {
     const current = readConfig();
     const activeProvider = normalizeProvider(input.activeProvider ?? current.activeProvider);
     const gcs = normalizeGcsSettings(input.gcs, current.gcs);
+    const supabaseS3 = normalizeSupabaseS3Settings(input.supabaseS3, current.supabaseS3);
 
     if (activeProvider === 'gcs') {
       assertUsableGcsSettings(gcs);
+    } else if (activeProvider === 'supabase_s3') {
+      assertUsableSupabaseS3Settings(supabaseS3);
     }
 
     return {
-      activeProvider,
-      localPublicAssetBaseUrl: getLocalPublicAssetBaseUrl(),
-      gcs: {
-        ...gcs,
-        credentialsSource: 'application_default_credentials',
+      settings: {
+        activeProvider,
+        localPublicAssetBaseUrl: getLocalPublicAssetBaseUrl(),
+        gcs: {
+          ...gcs,
+          credentialsSource: 'application_default_credentials',
+        },
+        supabaseS3: toSupabaseS3SettingsDto(supabaseS3),
+        recommendedProductionProvider: 'gcs',
+        updatedAt: current.updatedAt,
       },
-      recommendedProductionProvider: 'gcs',
-      updatedAt: current.updatedAt,
+      supabaseS3SecretAccessKey:
+        activeProvider === 'supabase_s3' ? supabaseS3.secretAccessKey : null,
     };
+  }
+
+  getCurrentSupabaseS3SecretAccessKey(): string | null {
+    const config = readConfig();
+    return config.activeProvider === 'supabase_s3' ? config.supabaseS3.secretAccessKey : null;
   }
 }
 
@@ -92,16 +136,59 @@ export function assertUsableGcsSettings(settings: Omit<GcsAssetStorageSettingsDt
   }
 }
 
+export function assertUsableSupabaseS3Settings(settings: SupabaseS3AssetStorageConfig): void {
+  if (!settings.endpoint?.trim()) {
+    throw new Error('Supabase S3 endpoint boş bırakılamaz.');
+  }
+
+  if (!settings.region.trim()) {
+    throw new Error('Supabase S3 region boş bırakılamaz.');
+  }
+
+  if (!settings.bucketName?.trim()) {
+    throw new Error('Supabase bucket adı boş bırakılamaz.');
+  }
+
+  if (!settings.accessKeyId?.trim()) {
+    throw new Error('Supabase S3 access key ID boş bırakılamaz.');
+  }
+
+  if (!settings.secretAccessKey.trim()) {
+    throw new Error('Supabase S3 secret access key boş bırakılamaz.');
+  }
+
+  if (!settings.publicAssetBaseUrl?.trim()) {
+    throw new Error('CDN public base URL boş bırakılamaz.');
+  }
+}
+
 function createDefaultConfig(): AssetStorageConfig {
   return {
-    version: 1,
-    activeProvider: process.env[STORAGE_PROVIDER_ENV]?.trim() === 'gcs' ? 'gcs' : 'local',
+    version: 2,
+    activeProvider: normalizeProvider(process.env[STORAGE_PROVIDER_ENV]),
     gcs: {
       projectId: readString(process.env[GCS_PROJECT_ID_ENV]),
       bucketName: readString(process.env[GCS_BUCKET_ENV]),
       objectPrefix: normalizeObjectPrefix(process.env[GCS_OBJECT_PREFIX_ENV] ?? DEFAULT_GCS_OBJECT_PREFIX),
       publicAssetBaseUrl: readString(process.env[GCS_PUBLIC_BASE_URL_ENV]),
       cacheControl: readString(process.env[GCS_CACHE_CONTROL_ENV]) ?? DEFAULT_GCS_CACHE_CONTROL,
+    },
+    supabaseS3: {
+      endpoint: normalizeNullableUrl(process.env[SUPABASE_S3_ENDPOINT_ENV]),
+      region: normalizeRequiredValue(
+        process.env[SUPABASE_S3_REGION_ENV],
+        DEFAULT_SUPABASE_S3_REGION,
+        128,
+      ),
+      bucketName: normalizeNullableString(process.env[SUPABASE_S3_BUCKET_ENV], 256),
+      accessKeyId: normalizeNullableString(process.env[SUPABASE_S3_ACCESS_KEY_ID_ENV], 256),
+      secretAccessKey: readString(process.env[SUPABASE_S3_SECRET_ACCESS_KEY_ENV]) ?? '',
+      objectPrefix: normalizeObjectPrefix(
+        process.env[SUPABASE_S3_OBJECT_PREFIX_ENV] ?? DEFAULT_SUPABASE_S3_OBJECT_PREFIX,
+      ),
+      publicAssetBaseUrl: normalizeNullableUrl(process.env[SUPABASE_S3_PUBLIC_BASE_URL_ENV]),
+      cacheControl: readString(process.env[SUPABASE_S3_CACHE_CONTROL_ENV]) ?? DEFAULT_SUPABASE_S3_CACHE_CONTROL,
+      forcePathStyle: true,
     },
     updatedAt: null,
   };
@@ -131,15 +218,16 @@ function parseConfig(rawValue: string): AssetStorageConfig {
   const parsed = JSON.parse(rawValue) as Partial<AssetStorageConfig>;
 
   return {
-    version: 1,
+    version: 2,
     activeProvider: normalizeProvider(parsed.activeProvider ?? defaults.activeProvider),
     gcs: normalizeGcsSettings(parsed.gcs, defaults.gcs),
+    supabaseS3: normalizeSupabaseS3Settings(parsed.supabaseS3, defaults.supabaseS3),
     updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
   };
 }
 
 function normalizeProvider(value: unknown): AssetStorageSettingsDto['activeProvider'] {
-  return value === 'gcs' ? 'gcs' : 'local';
+  return value === 'gcs' || value === 'supabase_s3' ? value : 'local';
 }
 
 function normalizeGcsSettings(
@@ -161,6 +249,84 @@ function normalizeGcsSettings(
   };
 }
 
+function supabaseS3IdentityMatches(
+  left: SupabaseS3AssetStorageConfig,
+  right: SupabaseS3AssetStorageConfig,
+): boolean {
+  return (
+    left.endpoint === right.endpoint &&
+    left.region === right.region &&
+    left.bucketName === right.bucketName &&
+    left.accessKeyId === right.accessKeyId
+  );
+}
+
+function normalizeSupabaseS3Settings(
+  input:
+    | UpdateAssetStorageSettingsDto['supabaseS3']
+    | Partial<SupabaseS3AssetStorageConfig>
+    | null
+    | undefined,
+  current: SupabaseS3AssetStorageConfig,
+): SupabaseS3AssetStorageConfig {
+  if (!input) {
+    return current;
+  }
+
+  const nextWithoutSecret: SupabaseS3AssetStorageConfig = {
+    endpoint: hasOwn(input, 'endpoint') ? normalizeNullableUrl(input.endpoint) : current.endpoint,
+    region: hasOwn(input, 'region')
+      ? normalizeRequiredValue(input.region, DEFAULT_SUPABASE_S3_REGION, 128)
+      : current.region,
+    bucketName: hasOwn(input, 'bucketName')
+      ? normalizeNullableString(input.bucketName, 256)
+      : current.bucketName,
+    accessKeyId: hasOwn(input, 'accessKeyId')
+      ? normalizeNullableString(input.accessKeyId, 256)
+      : current.accessKeyId,
+    secretAccessKey: '',
+    objectPrefix: hasOwn(input, 'objectPrefix')
+      ? normalizeObjectPrefix(input.objectPrefix)
+      : current.objectPrefix,
+    publicAssetBaseUrl: hasOwn(input, 'publicAssetBaseUrl')
+      ? normalizeNullableUrl(input.publicAssetBaseUrl)
+      : current.publicAssetBaseUrl,
+    cacheControl: hasOwn(input, 'cacheControl')
+      ? normalizeCacheControl(input.cacheControl)
+      : current.cacheControl,
+    forcePathStyle: true,
+  };
+
+  const secretAccessKey =
+    hasOwn(input, 'secretAccessKey') && typeof input.secretAccessKey === 'string'
+      ? (readString(input.secretAccessKey) ?? '')
+      : '';
+  if (secretAccessKey.length > 2048) {
+    throw new Error('Supabase S3 secret access key en fazla 2048 karakter olabilir.');
+  }
+
+  return {
+    ...nextWithoutSecret,
+    secretAccessKey:
+      secretAccessKey ||
+      (supabaseS3IdentityMatches(nextWithoutSecret, current) ? current.secretAccessKey : ''),
+  };
+}
+
+function toSupabaseS3SettingsDto(config: SupabaseS3AssetStorageConfig): SupabaseS3AssetStorageSettingsDto {
+  return {
+    endpoint: config.endpoint,
+    region: config.region,
+    bucketName: config.bucketName,
+    accessKeyId: config.accessKeyId,
+    secretAccessKeyConfigured: config.secretAccessKey.length > 0,
+    objectPrefix: config.objectPrefix,
+    publicAssetBaseUrl: config.publicAssetBaseUrl,
+    cacheControl: config.cacheControl,
+    forcePathStyle: true,
+  };
+}
+
 function hasOwn<T extends object>(value: T, key: PropertyKey): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
@@ -171,6 +337,15 @@ function normalizeNullableString(value: unknown, maxLength: number): string | nu
     return null;
   }
 
+  if (normalized.length > maxLength) {
+    throw new Error(`Değer en fazla ${maxLength} karakter olabilir.`);
+  }
+
+  return normalized;
+}
+
+function normalizeRequiredValue(value: unknown, fallback: string, maxLength: number): string {
+  const normalized = readString(value) ?? fallback;
   if (normalized.length > maxLength) {
     throw new Error(`Değer en fazla ${maxLength} karakter olabilir.`);
   }

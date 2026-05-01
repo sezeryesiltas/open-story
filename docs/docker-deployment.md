@@ -72,8 +72,8 @@ Bu dosya container içine girmez; sadece Compose tarafından okunur.
 Cloud Build ile üretilmiş image'ları pull ederek deploy edecekseniz aynı `.env` dosyasına image referanslarını da ekleyin:
 
 ```env
-OPEN_STORY_API_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:<tag>
-OPEN_STORY_ADMIN_WEB_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:<tag>
+OPEN_STORY_API_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-api:latest
+OPEN_STORY_ADMIN_WEB_IMAGE=gcr.io/open-story-493310/github.com/sezeryesiltas/open-story-admin-web:latest
 ```
 
 İsterseniz burada `:latest` de kullanabilirsiniz. Daha deterministik deploy için yine de SHA tag'leri önerilir.
@@ -101,8 +101,9 @@ OPEN_STORY_COOKIE_SECURE=true
 Notlar:
 
 - `OPEN_STORY_PUBLIC_ASSET_BASE_URL` dışarıdan erişilen gerçek domain olmalı.
-- Production ortamında yüksek medya trafiği için Admin Console `Storage & CDN` ekranından Google Cloud Storage provider'ı etkinleştirin ve asset domainini `OPEN_STORY_GCS_PUBLIC_ASSET_BASE_URL` / CDN public URL olarak kullanın.
+- Production ortamında yüksek medya trafiği için Admin Console `Storage & CDN` ekranından Google Cloud Storage veya Supabase Storage S3 provider'ını etkinleştirin ve asset domainini CDN public URL olarak kullanın.
 - Google Cloud credential'larını admin ayarlarına yazmayın; API container'ına Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` ile verin.
+- Supabase Storage S3 kullanıyorsanız endpoint, region, bucket, S3 access key ID ve secret access key değerlerini Storage & CDN ekranından girin. Endpoint formatı Supabase tarafında `https://project-ref.storage.supabase.co/storage/v1/s3` şeklindedir.
 - Google Cloud VM, Managed Instance Group ve local ADC credential yönergeleri için `docs/gcs-asset-storage-credentials.md` dokümanını kullanın.
 - HTTPS load balancer arkasında `OPEN_STORY_COOKIE_SECURE=true` kullanın.
 - Sadece düz HTTP ile test ediyorsanız `OPEN_STORY_COOKIE_SECURE=false` yapın.

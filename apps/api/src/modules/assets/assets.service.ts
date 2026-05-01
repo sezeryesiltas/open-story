@@ -12,6 +12,10 @@ import {
   type AssetUploadInput,
 } from './asset-upload.ts';
 import { createGcsAssetUploadTarget, deleteGcsAssetBinary } from './gcs-asset-storage.ts';
+import {
+  createSupabaseS3AssetUploadTarget,
+  deleteSupabaseS3AssetBinary,
+} from './supabase-s3-asset-storage.ts';
 
 export class AssetsService {
   private readonly repository: AssetsRepository;
@@ -31,9 +35,11 @@ export class AssetsService {
   async list(query: ListAssetsQueryDto, authorization?: string): Promise<AssetDto[]> {
     await this.adminAccessService.requireAdminAccess(authorization);
 
-    return this.repository
-      .list()
-      .map((record) => toAssetDto(record, this.repository.listCurrentUsage(record.id)))
+    const records = this.repository.list();
+    const usageByAssetId = this.repository.listCurrentUsageByAssetId(records.map((record) => record.id));
+
+    return records
+      .map((record) => toAssetDto(record, usageByAssetId.get(record.id) ?? []))
       .filter((asset) => (query.type ? asset.type === query.type : true));
   }
 
@@ -51,7 +57,13 @@ export class AssetsService {
   async cloudUpload(input: Omit<AssetUploadInput, 'createdByAdminUserId'>, authorization?: string): Promise<AssetDto> {
     const access = await this.adminAccessService.requireAdminAccess(authorization);
     const settings = this.assetStorageSettingsStore.getSettings();
-    const target = createGcsAssetUploadTarget(settings);
+    const target =
+      settings.activeProvider === 'supabase_s3'
+        ? createSupabaseS3AssetUploadTarget(
+            settings,
+            this.assetStorageSettingsStore.getCurrentSupabaseS3SecretAccessKey(),
+          )
+        : createGcsAssetUploadTarget(settings);
     const record = await createAssetRecordFromCloudUpload(
       {
         ...input,
@@ -91,7 +103,16 @@ export class AssetsService {
     }
 
     deleteAssetBinary(asset);
-    await deleteGcsAssetBinary(asset, this.assetStorageSettingsStore.getSettings());
+    const settings = this.assetStorageSettingsStore.getSettings();
+    if (settings.activeProvider === 'supabase_s3') {
+      await deleteSupabaseS3AssetBinary(
+        asset,
+        settings,
+        this.assetStorageSettingsStore.getCurrentSupabaseS3SecretAccessKey(),
+      );
+    } else {
+      await deleteGcsAssetBinary(asset, settings);
+    }
     this.repository.deleteById(assetId);
   }
 }

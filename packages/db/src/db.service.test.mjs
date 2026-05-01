@@ -116,3 +116,55 @@ test('DbService validates mysql settings before switching providers', () => {
   assert.equal(settings.activeProvider, 'sqlite');
   assert.equal(settings.mysqlDatabase, null);
 });
+
+test('DbService validates postgres settings before switching providers', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'open-story-db-postgres-validation-'));
+  process.env.OPEN_STORY_SQLITE_PATH = join(tempDir, 'open-story.sqlite');
+  process.env.OPEN_STORY_DB_CONFIG_PATH = join(tempDir, 'database-config.json');
+
+  const db = new DbService();
+
+  assert.throws(
+    () =>
+      db.updateDatabaseSettings({
+        postgres: {
+          port: 5432,
+        },
+      }),
+    /Postgres host boş bırakılamaz/,
+  );
+
+  const settings = db.getDatabaseSettings();
+  assert.equal(settings.activeProvider, 'sqlite');
+  assert.equal(settings.postgresDatabase, null);
+});
+
+test('DbService rejects simultaneous mysql and postgres activation', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'open-story-db-single-sql-provider-'));
+  process.env.OPEN_STORY_SQLITE_PATH = join(tempDir, 'open-story.sqlite');
+  process.env.OPEN_STORY_DB_CONFIG_PATH = join(tempDir, 'database-config.json');
+
+  const db = new DbService();
+
+  assert.throws(
+    () =>
+      db.updateDatabaseSettings({
+        mysql: {
+          host: 'mysql.example.internal',
+          port: 3306,
+          database: 'open_story',
+          username: 'open_story_user',
+          password: 'secret',
+        },
+        postgres: {
+          host: 'db.project-ref.supabase.co',
+          port: 5432,
+          database: 'postgres',
+          username: 'postgres',
+          password: 'secret',
+          sslMode: 'require',
+        },
+      }),
+    /yalnızca bir harici SQL provider/,
+  );
+});

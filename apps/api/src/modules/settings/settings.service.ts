@@ -11,6 +11,7 @@ import {
 } from '@open-story/contracts';
 import { DbService } from '@open-story/db';
 import { Storage } from '@google-cloud/storage';
+import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
 import { AssetStorageSettingsStore } from './asset-storage-settings.store.ts';
 
 @Injectable()
@@ -71,7 +72,8 @@ export class SettingsService {
     payload: TestAssetStorageSettingsDto,
   ): Promise<TestAssetStorageConnectionResponseDto> {
     try {
-      const settings = this.assetStorageSettingsStore.normalizeCandidate(payload);
+      const { settings, supabaseS3SecretAccessKey } =
+        this.assetStorageSettingsStore.normalizeCandidateForConnection(payload);
 
       if (settings.activeProvider === 'local') {
         return {
@@ -80,6 +82,39 @@ export class SettingsService {
           message: 'Local asset storage ayarı geçerli.',
           bucketName: null,
           publicAssetBaseUrl: settings.localPublicAssetBaseUrl,
+        };
+      }
+
+      if (settings.activeProvider === 'supabase_s3') {
+        const bucketName = settings.supabaseS3.bucketName;
+        if (!bucketName) {
+          throw new Error('Supabase bucket adı boş bırakılamaz.');
+        }
+
+        const endpoint = settings.supabaseS3.endpoint;
+        const accessKeyId = settings.supabaseS3.accessKeyId;
+        const secretAccessKey = supabaseS3SecretAccessKey;
+        if (!endpoint || !accessKeyId || !secretAccessKey) {
+          throw new Error('Supabase S3 endpoint, access key ID ve secret access key zorunludur.');
+        }
+
+        const client = new S3Client({
+          endpoint,
+          region: settings.supabaseS3.region,
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId,
+            secretAccessKey,
+          },
+        });
+        await client.send(new HeadBucketCommand({ Bucket: bucketName }));
+
+        return {
+          ok: true,
+          provider: 'supabase_s3',
+          message: 'Supabase bucket erişimi doğrulandı.',
+          bucketName,
+          publicAssetBaseUrl: settings.supabaseS3.publicAssetBaseUrl,
         };
       }
 
