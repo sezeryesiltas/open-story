@@ -1,6 +1,7 @@
 import type { AuthSessionResponseDto } from '@open-story/contracts';
 import { redirect } from 'next/navigation';
 
+import { canAdminRoleAccessPath } from '../admin-authorization';
 import { getAdminAuthTokenFromCookies } from './backend-api';
 import { getAdminSessionFromToken, mapApiServiceError } from './auth-runtime';
 
@@ -30,6 +31,15 @@ export async function requireConsoleSession(): Promise<AuthSessionResponseDto> {
 
   if (session.user.mustChangePassword) {
     redirect('/change-password');
+  }
+
+  return session;
+}
+
+export async function requireAdminPageAccess(path: string): Promise<AuthSessionResponseDto> {
+  const session = await requireConsoleSession();
+  if (!canAdminRoleAccessPath(session.user.role, path)) {
+    redirect('/');
   }
 
   return session;

@@ -1,5 +1,8 @@
 import { StorageSettingsWorkspace } from '@/components/admin/storage-settings-workspace';
+import { requireAdminPageAccess } from '@/lib/server/admin-session';
 
-export default function StorageSettingsPage() {
+export default async function StorageSettingsPage() {
+  await requireAdminPageAccess('/settings/storage');
+
   return <StorageSettingsWorkspace />;
 }

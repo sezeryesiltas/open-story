@@ -5,8 +5,7 @@ import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import Link from 'next/link';
-import { ArrowRight, CalendarClock, Layers3, PencilLine, Plus, Shapes } from 'lucide-react';
+import { CalendarClock, Layers3, PencilLine, Plus, Shapes } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
@@ -198,18 +197,10 @@ export function PlacementsWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <>
-            <Button className="gap-2" onClick={openCreateSheet}>
-              <Plus className="h-4 w-4" />
-              Yeni placement
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/">
-                Dashboard&apos;a dön
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </>
+          <Button className="gap-2" onClick={openCreateSheet}>
+            <Plus className="h-4 w-4" />
+            Yeni placement
+          </Button>
         }
         description="Gösterim alanlarını burada oluşturabilir ve düzenleyebilirsiniz."
         eyebrow="Placements"

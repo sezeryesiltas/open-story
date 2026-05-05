@@ -33,7 +33,7 @@ export class AssetsService {
   }
 
   async list(query: ListAssetsQueryDto, authorization?: string): Promise<AssetDto[]> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     const records = this.repository.list();
     const usageByAssetId = this.repository.listCurrentUsageByAssetId(records.map((record) => record.id));
@@ -44,7 +44,7 @@ export class AssetsService {
   }
 
   async upload(input: Omit<AssetUploadInput, 'createdByAdminUserId'>, authorization?: string): Promise<AssetDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     const record = await createAssetRecordFromUpload({
       ...input,
@@ -55,7 +55,7 @@ export class AssetsService {
   }
 
   async cloudUpload(input: Omit<AssetUploadInput, 'createdByAdminUserId'>, authorization?: string): Promise<AssetDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
     const settings = this.assetStorageSettingsStore.getSettings();
     const target =
       settings.activeProvider === 'supabase_s3'
@@ -76,7 +76,7 @@ export class AssetsService {
   }
 
   async importFromUrl(input: CreateAssetFromUrlDto, authorization?: string): Promise<AssetDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     const record = await createAssetRecordFromUrlImport({
       ...input,
@@ -87,7 +87,7 @@ export class AssetsService {
   }
 
   async delete(assetId: string, authorization?: string): Promise<void> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     const asset = this.repository.findById(assetId);
     if (!asset) {

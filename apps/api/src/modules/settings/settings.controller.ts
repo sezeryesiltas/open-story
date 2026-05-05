@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Post, Put } from '@nestjs/common';
 import {
   AssetStorageSettingsDto,
   DatabaseSettingsDto,
@@ -17,34 +17,44 @@ export class SettingsController {
   private readonly service!: SettingsService;
 
   @Get('database')
-  getDatabaseSettings(): DatabaseSettingsDto {
-    return this.service.getDatabaseSettings();
+  getDatabaseSettings(@Headers('authorization') authorization?: string): Promise<DatabaseSettingsDto> {
+    return this.service.getDatabaseSettings(authorization);
   }
 
   @Put('database')
-  updateDatabaseSettings(@Body() payload: UpdateDatabaseSettingsDto): DatabaseSettingsDto {
-    return this.service.updateDatabaseSettings(payload);
+  updateDatabaseSettings(
+    @Body() payload: UpdateDatabaseSettingsDto,
+    @Headers('authorization') authorization?: string,
+  ): Promise<DatabaseSettingsDto> {
+    return this.service.updateDatabaseSettings(payload, authorization);
   }
 
   @Post('database/test')
-  testDatabaseConnection(@Body() payload: TestDatabaseConnectionDto): TestDatabaseConnectionResponseDto {
-    return this.service.testDatabaseConnection(payload);
+  testDatabaseConnection(
+    @Body() payload: TestDatabaseConnectionDto,
+    @Headers('authorization') authorization?: string,
+  ): Promise<TestDatabaseConnectionResponseDto> {
+    return this.service.testDatabaseConnection(payload, authorization);
   }
 
   @Get('storage')
-  getAssetStorageSettings(): AssetStorageSettingsDto {
-    return this.service.getAssetStorageSettings();
+  getAssetStorageSettings(@Headers('authorization') authorization?: string): Promise<AssetStorageSettingsDto> {
+    return this.service.getAssetStorageSettings(authorization);
   }
 
   @Put('storage')
-  updateAssetStorageSettings(@Body() payload: UpdateAssetStorageSettingsDto): AssetStorageSettingsDto {
-    return this.service.updateAssetStorageSettings(payload);
+  updateAssetStorageSettings(
+    @Body() payload: UpdateAssetStorageSettingsDto,
+    @Headers('authorization') authorization?: string,
+  ): Promise<AssetStorageSettingsDto> {
+    return this.service.updateAssetStorageSettings(payload, authorization);
   }
 
   @Post('storage/test')
   testAssetStorageConnection(
     @Body() payload: TestAssetStorageSettingsDto,
+    @Headers('authorization') authorization?: string,
   ): Promise<TestAssetStorageConnectionResponseDto> {
-    return this.service.testAssetStorageConnection(payload);
+    return this.service.testAssetStorageConnection(payload, authorization);
   }
 }

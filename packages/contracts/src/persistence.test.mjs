@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
 import {
+  adminUserRecordSchema,
   clientRecordSchema,
   storyGroupSetRevisionRecordSchema,
   storyPlatformTableNames,
@@ -31,6 +32,17 @@ test('story platform tables cover auth, content roots, revisions and composition
 
 test('client and revision persistence schemas validate canonical root-revision records', () => {
   const now = new Date().toISOString();
+
+  const adminUserRecord = adminUserRecordSchema.parse({
+    id: randomUUID(),
+    email: 'admin@openstory.local',
+    role: 'super_admin',
+    passwordHash: 'sha256:salt:hash',
+    mustChangePassword: true,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  });
 
   const clientRecord = clientRecordSchema.parse({
     id: randomUUID(),
@@ -72,6 +84,7 @@ test('client and revision persistence schemas validate canonical root-revision r
     createdAt: now,
   });
 
+  assert.equal(adminUserRecord.role, 'super_admin');
   assert.equal(clientRecord.clientId, 'public-client-id');
   assert.equal(setRevisionRecord.platformTargets[0].minAppVersion, '5.2.0');
   assert.equal(storyRevisionRecord.cta?.value, 'app://launch');

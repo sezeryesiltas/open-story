@@ -5,8 +5,7 @@ import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import Link from 'next/link';
-import { ArrowRight, CalendarClock, CheckCircle2, Layers3, PencilLine, Plus, SquareStack } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Layers3, PencilLine, Plus, SquareStack } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import {
@@ -342,18 +341,10 @@ export function StoryGroupSetsWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <>
-            <Button className="gap-2" disabled={!canCreateStoryGroupSet} onClick={openCreateSheet}>
-              <Plus className="h-4 w-4" />
-              Yeni Story Bar
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/placements">
-                Placements
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </>
+          <Button className="gap-2" disabled={!canCreateStoryGroupSet} onClick={openCreateSheet}>
+            <Plus className="h-4 w-4" />
+            Yeni Story Bar
+          </Button>
         }
         description="Story bar listelerini burada oluşturabilir ve düzenleyebilirsiniz."
         eyebrow="Story Bars"
@@ -403,14 +394,6 @@ export function StoryGroupSetsWorkspace() {
                 Story Bar eklemek için önce bir placement oluşturun.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button asChild className="gap-2">
-                <Link href="/placements">
-                  Placement yönetimine git
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
           </Card>
         ) : null}
 

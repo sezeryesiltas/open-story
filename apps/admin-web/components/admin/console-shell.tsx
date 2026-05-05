@@ -1,16 +1,20 @@
 import { Separator } from '@open-story/ui/components/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@open-story/ui/components/sidebar';
+import type { AdminRole } from '@open-story/contracts';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { AdminLogoutButton } from '@/components/admin/admin-logout-button';
 import { AppSidebar } from '@/components/admin/app-sidebar';
+import { getAdminRoleLabel } from '@/lib/admin-authorization';
 
 export function ConsoleShell({
   children,
   currentUserEmail,
+  currentUserRole,
 }: {
   children: ReactNode;
   currentUserEmail: string;
+  currentUserRole: AdminRole;
 }) {
   return (
     <SidebarProvider
@@ -23,7 +27,7 @@ export function ConsoleShell({
         } as CSSProperties
       }
     >
-      <AppSidebar />
+      <AppSidebar currentUserRole={currentUserRole} />
       <SidebarInset>
         <div className="flex min-h-svh flex-col">
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear">
@@ -39,7 +43,7 @@ export function ConsoleShell({
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
                 <div className="text-sm font-medium">{currentUserEmail}</div>
-                <div className="text-xs text-muted-foreground">Oturum açık</div>
+                <div className="text-xs text-muted-foreground">{getAdminRoleLabel(currentUserRole)}</div>
               </div>
               <AdminLogoutButton />
             </div>

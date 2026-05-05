@@ -1,5 +1,10 @@
-import { Body, Controller, Get, Headers, Inject, Param, Post } from '@nestjs/common';
-import type { AdminUserDto, CreateAdminUserDto, ResetAdminUserPasswordDto } from '@open-story/contracts';
+import { Body, Controller, Get, Headers, Inject, Param, Patch, Post } from '@nestjs/common';
+import type {
+  AdminUserDto,
+  CreateAdminUserDto,
+  ResetAdminUserPasswordDto,
+  UpdateAdminUserRoleDto,
+} from '@open-story/contracts';
 
 import { AdminUserService } from './admin-user.service.ts';
 
@@ -28,5 +33,14 @@ export class AdminUserController {
     @Headers('authorization') authorization?: string,
   ): Promise<AdminUserDto> {
     return this.adminUserService.resetPassword(userId, payload, authorization);
+  }
+
+  @Patch(':userId/role')
+  async updateRole(
+    @Param('userId') userId: string,
+    @Body() payload: UpdateAdminUserRoleDto,
+    @Headers('authorization') authorization?: string,
+  ): Promise<AdminUserDto> {
+    return this.adminUserService.updateRole(userId, payload, authorization);
   }
 }

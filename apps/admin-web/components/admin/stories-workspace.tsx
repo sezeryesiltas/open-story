@@ -21,10 +21,8 @@ import {
 } from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
-import Link from 'next/link';
 import {
   Archive,
-  ArrowRight,
   CalendarClock,
   CheckCircle2,
   CircleSlash,
@@ -599,18 +597,10 @@ export function StoriesWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <>
-            <Button className="gap-2" disabled={storyGroups.length === 0} onClick={openCreateSheet}>
-              <Plus className="h-4 w-4" />
-              Yeni Story
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/story-groups">
-                Story Groups
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </>
+          <Button className="gap-2" disabled={storyGroups.length === 0} onClick={openCreateSheet}>
+            <Plus className="h-4 w-4" />
+            Yeni Story
+          </Button>
         }
         description="Story içeriklerini burada oluşturabilir ve düzenleyebilirsiniz."
         eyebrow="Stories"
@@ -671,14 +661,6 @@ export function StoriesWorkspace() {
                 Story eklemek için önce bir Story Group seçilebilir durumda olmalıdır.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button asChild className="gap-2">
-                <Link href="/story-groups">
-                  Story Groups ekranına git
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
           </Card>
         ) : stories.length === 0 ? (
           <Card className="border-border/60 border-dashed bg-card/80">

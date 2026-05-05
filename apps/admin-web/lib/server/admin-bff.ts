@@ -5,6 +5,7 @@ import type {
   ClientDto,
   CreateAdminApiKeyDto,
   CreateAdminApiKeyResponseDto,
+  CreateAdminUserDto,
   CreateStoryDto,
   CreateStoryGroupDto,
   CreateStoryGroupSetDto,
@@ -22,6 +23,7 @@ import type {
   StoryGroupDto,
   StoryGroupSetDto,
   UpdateClientDto,
+  UpdateAdminUserRoleDto,
   UpdatePlacementDto,
   UpdateStoryDto,
   UpdateStoryGroupDto,
@@ -404,7 +406,10 @@ export async function listAdminUsers(authToken?: string | null): Promise<AdminUs
   return backendApiRequest<AdminUserDto[]>('/v1/admin-users', { authToken });
 }
 
-export async function createAdminUser(payload: { email: string; temporaryPassword: string }, authToken?: string | null): Promise<AdminUserDto> {
+export async function createAdminUser(
+  payload: CreateAdminUserDto,
+  authToken?: string | null,
+): Promise<AdminUserDto> {
   return backendApiRequest<AdminUserDto>('/v1/admin-users', {
     method: 'POST',
     authToken,
@@ -415,6 +420,18 @@ export async function createAdminUser(payload: { email: string; temporaryPasswor
 export async function resetAdminUserPassword(userId: string, payload: ResetAdminUserPasswordDto, authToken?: string | null): Promise<AdminUserDto> {
   return backendApiRequest<AdminUserDto>(`/v1/admin-users/${userId}/reset-password`, {
     method: 'POST',
+    authToken,
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminUserRole(
+  userId: string,
+  payload: UpdateAdminUserRoleDto,
+  authToken?: string | null,
+): Promise<AdminUserDto> {
+  return backendApiRequest<AdminUserDto>(`/v1/admin-users/${userId}/role`, {
+    method: 'PATCH',
     authToken,
     body: JSON.stringify(payload),
   });

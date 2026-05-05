@@ -1,11 +1,8 @@
 import { Badge } from '@open-story/ui/components/badge';
-import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Separator } from '@open-story/ui/components/separator';
-import Link from 'next/link';
 import {
   Clapperboard,
-  Database,
   HardDriveDownload,
   type LucideIcon,
   Layers3,
@@ -39,6 +36,10 @@ function getMetricBarWidth(count: number, maxCount: number): number {
 }
 
 function getDatabaseProviderLabel(settings: DashboardDataVolumeSnapshot['settings']): string {
+  if (!settings.activeDatabaseUrl) {
+    return 'İçerik görünümü';
+  }
+
   if (settings.activeProvider === 'postgres') {
     return 'Harici Postgres aktif';
   }
@@ -63,17 +64,9 @@ export function DashboardDataVolume({
         <CardHeader>
           <CardTitle>Aktif veri hacmi okunamadi</CardTitle>
           <CardDescription>
-            {errorMessage ?? 'Database snapshot su anda yuklenemiyor. Ayarlari DB Settings ekranindan kontrol edin.'}
+            {errorMessage ?? 'Database snapshot su anda yuklenemiyor.'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button asChild variant="outline">
-            <Link href="/settings">
-              <Database data-icon="inline-start" />
-              DB Settings
-            </Link>
-          </Button>
-        </CardContent>
       </Card>
     );
   }
@@ -157,7 +150,7 @@ export function DashboardDataVolume({
 
             <div className="grid gap-4 xl:grid-cols-2">
             {contentCards.map((card) => {
-              const Icon = contentCardIcons[card.key] ?? Database;
+              const Icon = contentCardIcons[card.key];
 
               return (
                 <div

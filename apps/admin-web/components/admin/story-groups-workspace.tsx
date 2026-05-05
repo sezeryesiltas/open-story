@@ -23,10 +23,8 @@ import { Skeleton } from '@open-story/ui/components/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@open-story/ui/components/tooltip';
 import { cn } from '@open-story/ui/lib/utils';
-import Link from 'next/link';
 import {
   Archive,
-  ArrowRight,
   CalendarClock,
   CheckCircle2,
   CircleSlash,
@@ -611,18 +609,10 @@ export function StoryGroupsWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <>
-            <Button className="gap-2" onClick={openCreateSheet}>
-              <Plus className="h-4 w-4" />
-              Yeni Story Group
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/story-group-sets">
-                Story Bars
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </>
+          <Button className="gap-2" onClick={openCreateSheet}>
+            <Plus className="h-4 w-4" />
+            Yeni Story Group
+          </Button>
         }
         description="Story gruplarını ve durumlarını burada yönetebilirsiniz."
         eyebrow="Story Groups"
@@ -682,14 +672,6 @@ export function StoryGroupsWorkspace() {
                 İlk Story Group&apos;u oluşturduğunuzda burada listelenir.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button asChild className="gap-2">
-                <Link href="/story-group-sets">
-                  Story Bar ekranına git
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
           </Card>
         ) : filteredStoryGroups.length === 0 ? (
           <Card className="border-border/60 border-dashed bg-card/80">

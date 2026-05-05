@@ -27,7 +27,7 @@ export class ClientTokenService {
   }
 
   async list(authorization?: string): Promise<StaticTokenDto[]> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
 
     const client = this.repository.getSingletonClient();
 
@@ -40,7 +40,7 @@ export class ClientTokenService {
     payload: CreateStaticTokenDto,
     authorization?: string,
   ): Promise<CreateStaticTokenResponseDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
 
     const parsedPayload = adminToken.createStaticTokenDtoSchema.safeParse({
       label: payload.label,
@@ -69,7 +69,7 @@ export class ClientTokenService {
     payload: RevokeStaticTokenDto,
     authorization?: string,
   ): Promise<StaticTokenDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
 
     const parsedPayload = adminToken.revokeStaticTokenDtoSchema.safeParse({
       reason: payload.reason,

@@ -19,12 +19,12 @@ export class ClientService {
   }
 
   async get(authorization?: string): Promise<ClientDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
     return toClientDto(this.repository.getSingletonClient());
   }
 
   async update(payload: UpdateClientDto, authorization?: string): Promise<ClientDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
 
     const parsedPayload = adminClient.updateClientDtoSchema.safeParse({
       name: payload.name,

@@ -14,7 +14,6 @@ import {
 } from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import type { SdkFeedGroup, SdkFeedStory } from '@open-story/contracts';
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -686,24 +685,10 @@ export function PreviewWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Önizleme için içerik ekleyin</CardTitle>
-            <CardDescription>Önizlemeyi kullanmak için önce placement ve içerik oluşturun.</CardDescription>
+            <CardDescription>Önizlemeyi kullanmak için önce menüden placement ve içerik oluşturun.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {data ? <PreviewWarnings warnings={data.warnings} /> : null}
-            <div className="flex flex-wrap gap-3">
-              <Button asChild variant="outline">
-                <Link href="/placements">Placement oluştur</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/story-group-sets">Story Bar oluştur</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/story-groups">Story Group oluştur</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/stories">Story oluştur</Link>
-              </Button>
-            </div>
           </CardContent>
         </Card>
       ) : null}

@@ -1,23 +1,33 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePlacementDto, PlacementDto, UpdatePlacementDto } from '@open-story/contracts';
 import { randomUUID } from 'node:crypto';
+import { AdminAccessService } from '../../admin-auth/admin-access.service.ts';
 import { PlacementRepository } from './placement.repository.ts';
 
 @Injectable()
 export class PlacementService {
   private readonly repository: PlacementRepository;
+  private readonly adminAccessService: AdminAccessService;
 
-  constructor(@Inject(PlacementRepository) repository: PlacementRepository) {
+  constructor(
+    @Inject(PlacementRepository) repository: PlacementRepository,
+    @Inject(AdminAccessService) adminAccessService: AdminAccessService,
+  ) {
     this.repository = repository;
+    this.adminAccessService = adminAccessService;
   }
 
-  list(): PlacementDto[] {
+  async list(authorization?: string): Promise<PlacementDto[]> {
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
+
     return this.repository
       .list()
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   }
 
-  create(payload: CreatePlacementDto): PlacementDto {
+  async create(payload: CreatePlacementDto, authorization?: string): Promise<PlacementDto> {
+    await this.adminAccessService.requireContentAdminAccess(authorization);
+
     const key = payload.key.trim();
     const name = payload.name.trim();
 
@@ -45,7 +55,9 @@ export class PlacementService {
     });
   }
 
-  update(id: string, payload: UpdatePlacementDto): PlacementDto {
+  async update(id: string, payload: UpdatePlacementDto, authorization?: string): Promise<PlacementDto> {
+    await this.adminAccessService.requireContentAdminAccess(authorization);
+
     const existingPlacement = this.repository.findById(id);
     if (!existingPlacement) {
       throw new NotFoundException('Placement not found');

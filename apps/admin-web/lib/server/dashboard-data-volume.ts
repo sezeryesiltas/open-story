@@ -6,11 +6,12 @@ import {
   type AdminStoryGroupSetRecord,
   type AdminStoryRecord,
   listAssets,
+  listPlacements,
   listStoryGroups,
   listStoryGroupSets,
   listStories,
 } from './admin-bff';
-import { backendApiRequest } from './backend-api';
+import { backendApiRequest, BackendApiError } from './backend-api';
 import {
   accessMetricKeys,
   contentMetricKeys,
@@ -212,13 +213,29 @@ function buildSupportGroups(settings: DatabaseSettingsDto): DashboardDataVolumeS
 export async function loadDashboardDataVolumeSnapshot(
   authToken?: string | null,
 ): Promise<DashboardDataVolumeSnapshot> {
-  const [settings, storyGroupSets, storyGroups, stories, assets] = await Promise.all([
-    backendApiRequest<DatabaseSettingsDto>('/v1/settings/database', { authToken }),
+  const [settingsResult, placements, storyGroupSets, storyGroups, stories, assets] = await Promise.all([
+    backendApiRequest<DatabaseSettingsDto>('/v1/settings/database', { authToken }).catch((error) => {
+      if (error instanceof BackendApiError && error.status === 403) {
+        return null;
+      }
+
+      throw error;
+    }),
+    listPlacements(authToken),
     listStoryGroupSets(authToken),
     listStoryGroups(authToken),
     listStories(authToken),
     listAssets(undefined, authToken),
   ]);
+  const settings =
+    settingsResult ??
+    createContentOnlyDatabaseSettings({
+      placementsCount: placements.length,
+      storyGroupSets,
+      storyGroups,
+      stories,
+      assets,
+    });
 
   return {
     settings,
@@ -227,8 +244,49 @@ export async function loadDashboardDataVolumeSnapshot(
       ...contentMetricKeys,
       ...revisionMetricKeys,
     ]),
-    placementsCount: getDatabaseMetricCount(settings, 'placements'),
+    placementsCount: settingsResult ? getDatabaseMetricCount(settings, 'placements') : placements.length,
     contentCards: buildContentCards(settings, storyGroupSets, storyGroups, stories, assets),
     supportGroups: buildSupportGroups(settings),
+  };
+}
+
+function createContentOnlyDatabaseSettings({
+  placementsCount,
+  storyGroupSets,
+  storyGroups,
+  stories,
+  assets,
+}: {
+  placementsCount: number;
+  storyGroupSets: AdminStoryGroupSetRecord[];
+  storyGroups: AdminStoryGroupRecord[];
+  stories: AdminStoryRecord[];
+  assets: AdminAssetRecord[];
+}): DatabaseSettingsDto {
+  return {
+    defaultSqliteUrl: '',
+    activeProvider: 'sqlite',
+    activeDatabaseUrl: '',
+    externalDatabaseUrl: null,
+    mysqlDatabase: null,
+    postgresDatabase: null,
+    isUsingExternalDatabase: false,
+    migratedAt: null,
+    tableCounts: {
+      clients: 0,
+      staticTokens: 0,
+      adminUsers: 0,
+      adminSessions: 0,
+      placements: placementsCount,
+      storyGroupSets: storyGroupSets.length,
+      storyGroupSetRevisions: 0,
+      storyGroupSetRevisionGroups: 0,
+      storyGroups: storyGroups.length,
+      storyGroupRevisions: 0,
+      storyGroupRevisionStories: 0,
+      stories: stories.length,
+      storyRevisions: 0,
+      assets: assets.length,
+    },
   };
 }

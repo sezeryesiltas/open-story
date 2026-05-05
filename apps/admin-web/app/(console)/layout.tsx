@@ -6,5 +6,9 @@ import { requireConsoleSession } from '@/lib/server/admin-session';
 export default async function ConsoleLayout({ children }: { children: ReactNode }) {
   const session = await requireConsoleSession();
 
-  return <ConsoleShell currentUserEmail={session.user.email}>{children}</ConsoleShell>;
+  return (
+    <ConsoleShell currentUserEmail={session.user.email} currentUserRole={session.user.role}>
+      {children}
+    </ConsoleShell>
+  );
 }
