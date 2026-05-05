@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -184,19 +184,19 @@ function AssetStats({ assets }: { assets: AssetApiRecord[] }) {
     <div className="grid gap-3 sm:grid-cols-3">
       <Card className="border-border/60 bg-card/80">
         <CardHeader className="pb-2">
-          <CardDescription>Toplam</CardDescription>
+          <p className="text-sm font-medium text-muted-foreground">Toplam</p>
           <CardTitle className="text-2xl">{assets.length}</CardTitle>
         </CardHeader>
       </Card>
       <Card className="border-border/60 bg-card/80">
         <CardHeader className="pb-2">
-          <CardDescription>Kullanılan</CardDescription>
+          <p className="text-sm font-medium text-muted-foreground">Kullanılan</p>
           <CardTitle className="text-2xl">{usedCount}</CardTitle>
         </CardHeader>
       </Card>
       <Card className="border-border/60 bg-card/80">
         <CardHeader className="pb-2">
-          <CardDescription>Kullanılmayan / Upload / Cloud</CardDescription>
+          <p className="text-sm font-medium text-muted-foreground">Kullanılmayan / Upload / Cloud</p>
           <CardTitle className="text-2xl">
             {unusedCount} / {uploadCount} / {cloudUploadCount}
           </CardTitle>
@@ -237,7 +237,7 @@ export function AssetsWorkspace() {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [searchValue, setSearchValue] = useState('');
   const [createType, setCreateType] = useState<AssetType>('story_image');
-  const [createMode, setCreateMode] = useState<CreateMode>('upload');
+  const [createMode, setCreateMode] = useState<CreateMode>('cloud_upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [urlValue, setUrlValue] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
@@ -412,8 +412,6 @@ export function AssetsWorkspace() {
             Yenile
           </Button>
         }
-        description="Asset havuzunu, current içerik referanslarını ve kullanılmayan medya temizliğini yönetin."
-        eyebrow="Content"
         title="Assets"
       />
 
@@ -425,7 +423,6 @@ export function AssetsWorkspace() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <CardTitle>Asset listesi</CardTitle>
-                <CardDescription>{filteredAssets.length} kayıt gösteriliyor.</CardDescription>
               </div>
               {typeFilter !== 'all' || usageFilter !== 'all' || sourceFilter !== 'all' || searchValue ? (
                 <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
@@ -608,7 +605,6 @@ export function AssetsWorkspace() {
         <Card className="order-1 border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Yeni asset</CardTitle>
-            <CardDescription>Upload veya URL import ile asset ekleyin.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">

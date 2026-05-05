@@ -45,6 +45,7 @@ CREATE INDEX idx_static_token_client_active ON static_token (client_id, is_activ
 CREATE TABLE admin_user (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL DEFAULT 'super_admin' CHECK (role IN ('super_admin', 'story_admin', 'story_editor')),
   password_hash TEXT NOT NULL,
   must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,

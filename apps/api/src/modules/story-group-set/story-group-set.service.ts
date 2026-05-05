@@ -37,7 +37,7 @@ export class StoryGroupSetService {
   }
 
   async list(authorization?: string): Promise<StoryGroupSetDto[]> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     return this.repository
       .listSetRoots()
@@ -46,12 +46,12 @@ export class StoryGroupSetService {
   }
 
   async get(setId: string, authorization?: string): Promise<StoryGroupSetDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
     return this.toDto(this.getSetRootOrThrow(setId));
   }
 
   async create(payload: CreateStoryGroupSetDto, authorization?: string): Promise<StoryGroupSetDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireContentAdminAccess(authorization);
     const parsedPayload = adminSet.createStoryGroupSetDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -99,7 +99,7 @@ export class StoryGroupSetService {
     payload: UpdateStoryGroupSetDto,
     authorization?: string,
   ): Promise<StoryGroupSetDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireContentAdminAccess(authorization);
     const parsedPayload = adminSet.updateStoryGroupSetDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -188,7 +188,7 @@ export class StoryGroupSetService {
     payload: PublishStoryGroupSetDto | undefined,
     authorization?: string,
   ): Promise<StoryGroupSetDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireContentAdminAccess(authorization);
 
     const parsedPayload = adminSet.publishStoryGroupSetDtoSchema.safeParse(payload ?? {});
     if (!parsedPayload.success) {

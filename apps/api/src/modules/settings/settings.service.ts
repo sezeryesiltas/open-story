@@ -12,26 +12,33 @@ import {
 import { DbService } from '@open-story/db';
 import { Storage } from '@google-cloud/storage';
 import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import { AdminAccessService } from '../../admin-auth/admin-access.service.ts';
 import { AssetStorageSettingsStore } from './asset-storage-settings.store.ts';
 
 @Injectable()
 export class SettingsService {
   private readonly db: DbService;
   private readonly assetStorageSettingsStore: AssetStorageSettingsStore;
+  private readonly adminAccessService: AdminAccessService;
 
   constructor(
     @Inject(DbService) db: DbService,
+    adminAccessService: AdminAccessService,
     assetStorageSettingsStore: AssetStorageSettingsStore,
   ) {
     this.db = db;
+    this.adminAccessService = adminAccessService;
     this.assetStorageSettingsStore = assetStorageSettingsStore;
   }
 
-  getDatabaseSettings(): DatabaseSettingsDto {
+  async getDatabaseSettings(authorization?: string): Promise<DatabaseSettingsDto> {
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
     return this.db.getDatabaseSettings();
   }
 
-  updateDatabaseSettings(payload: UpdateDatabaseSettingsDto): DatabaseSettingsDto {
+  async updateDatabaseSettings(payload: UpdateDatabaseSettingsDto, authorization?: string): Promise<DatabaseSettingsDto> {
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
+
     try {
       return this.db.updateDatabaseSettings(payload);
     } catch (error) {
@@ -41,7 +48,12 @@ export class SettingsService {
     }
   }
 
-  testDatabaseConnection(payload: TestDatabaseConnectionDto): TestDatabaseConnectionResponseDto {
+  async testDatabaseConnection(
+    payload: TestDatabaseConnectionDto,
+    authorization?: string,
+  ): Promise<TestDatabaseConnectionResponseDto> {
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
+
     try {
       return this.db.testDatabaseConnection(payload);
     } catch (error) {
@@ -54,11 +66,17 @@ export class SettingsService {
     }
   }
 
-  getAssetStorageSettings(): AssetStorageSettingsDto {
+  async getAssetStorageSettings(authorization?: string): Promise<AssetStorageSettingsDto> {
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
     return this.assetStorageSettingsStore.getSettings();
   }
 
-  updateAssetStorageSettings(payload: UpdateAssetStorageSettingsDto): AssetStorageSettingsDto {
+  async updateAssetStorageSettings(
+    payload: UpdateAssetStorageSettingsDto,
+    authorization?: string,
+  ): Promise<AssetStorageSettingsDto> {
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
+
     try {
       return this.assetStorageSettingsStore.updateSettings(payload);
     } catch (error) {
@@ -70,7 +88,10 @@ export class SettingsService {
 
   async testAssetStorageConnection(
     payload: TestAssetStorageSettingsDto,
+    authorization?: string,
   ): Promise<TestAssetStorageConnectionResponseDto> {
+    await this.adminAccessService.requireSuperAdminAccess(authorization);
+
     try {
       const { settings, supabaseS3SecretAccessKey } =
         this.assetStorageSettingsStore.normalizeCandidateForConnection(payload);

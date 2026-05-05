@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 
 import type {
   AdminApiKeyRecord,
+  AdminRole,
   AdminSessionRecord,
   AdminUserRecord,
   ClientRecord,
@@ -98,7 +99,7 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
     return this.db.findById<AdminUserRecord>('adminUsers', userId) ?? null;
   }
 
-  createAdminUser(params: { email: string; temporaryPassword: string }): AdminUserRecord {
+  createAdminUser(params: { email: string; role: AdminRole; temporaryPassword: string }): AdminUserRecord {
     this.ensureBootstrapState();
 
     const email = params.email.trim().toLowerCase();
@@ -112,6 +113,7 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
     const record: AdminUserRecord = {
       id: randomUUID(),
       email,
+      role: params.role,
       passwordHash: hashPassword(params.temporaryPassword, this.generateSalt()),
       mustChangePassword: true,
       isActive: true,
@@ -129,6 +131,17 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
       this.db.updateById<AdminUserRecord>('adminUsers', userId, {
         passwordHash: hashPassword(nextPassword, this.generateSalt()),
         mustChangePassword,
+        updatedAt: new Date().toISOString(),
+      }) ?? null
+    );
+  }
+
+  updateAdminUserRole(userId: string, role: AdminRole): AdminUserRecord | null {
+    this.ensureBootstrapState();
+
+    return (
+      this.db.updateById<AdminUserRecord>('adminUsers', userId, {
+        role,
         updatedAt: new Date().toISOString(),
       }) ?? null
     );
@@ -353,16 +366,31 @@ export class StoryPlatformRepository implements AdminUserStore, AdminSessionStor
       this.db.insert<AdminUserRecord>('adminUsers', {
         id: randomUUID(),
         email: this.seedConfig.adminEmail,
+        role: 'super_admin',
         passwordHash: hashPassword(this.seedConfig.adminPassword, this.generateSalt()),
         mustChangePassword: true,
         isActive: true,
         createdAt: now,
         updatedAt: now,
       });
+      return;
+    }
+
+    for (const adminUser of adminUsers) {
+      if (!isAdminRole((adminUser as Partial<AdminUserRecord>).role)) {
+        this.db.updateById<AdminUserRecord>('adminUsers', adminUser.id, {
+          role: 'super_admin',
+          updatedAt: new Date().toISOString(),
+        });
+      }
     }
   }
 
   private generateSalt(): string {
     return randomBytes(16).toString('hex');
   }
+}
+
+function isAdminRole(role: unknown): role is AdminRole {
+  return role === 'super_admin' || role === 'story_admin' || role === 'story_editor';
 }

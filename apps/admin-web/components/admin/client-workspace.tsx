@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
 import { Skeleton } from '@open-story/ui/components/skeleton';
@@ -271,11 +271,7 @@ export function ClientWorkspace() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        description="Uygulama erişim bilgilerini burada yönetebilirsiniz."
-        eyebrow="Client & Tokens"
-        title="Client ve token yönetimi"
-      />
+      <PageHeader title="Client ve token yönetimi" />
 
       {workspaceQuery.isLoading ? <LoadingState /> : null}
 
@@ -283,12 +279,12 @@ export function ClientWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Client workspace yüklenemedi</CardTitle>
-            <CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
                 'Client ve token bilgileri okunamadı.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </div>
             <Button className="gap-2" onClick={() => workspaceQuery.refetch()} variant="outline">
               <RefreshCcw className="h-4 w-4" />
               Tekrar dene
@@ -303,9 +299,6 @@ export function ClientWorkspace() {
             <Card className="border-primary/30 bg-primary/5">
               <CardHeader>
                 <CardTitle>Yeni static token</CardTitle>
-                <CardDescription>
-                  Bu değer yalnızca şimdi gösterilir. Gerekirse kopyalayın.
-                </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <div className="rounded-lg border border-border/60 bg-background px-4 py-3 break-all font-mono text-sm">
@@ -328,9 +321,6 @@ export function ClientWorkspace() {
             <Card className="border-primary/30 bg-primary/5">
               <CardHeader>
                 <CardTitle>Yeni admin API key</CardTitle>
-                <CardDescription>
-                  API key ve client secret yalnızca şimdi gösterilir.
-                </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
@@ -371,9 +361,6 @@ export function ClientWorkspace() {
                     {workspaceQuery.data.client.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
-                <CardDescription>
-                  Client adı ve durumunu buradan güncelleyebilirsiniz.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="rounded-lg border border-border/60 bg-background/70 p-4">
@@ -416,9 +403,6 @@ export function ClientWorkspace() {
               <Card className="border-border/60 bg-card/80">
                 <CardHeader>
                   <CardTitle>Yeni token</CardTitle>
-                  <CardDescription>
-                    Yeni bir erişim tokenı oluşturun.
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -447,9 +431,6 @@ export function ClientWorkspace() {
               <Card className="border-border/60 bg-card/80">
                 <CardHeader>
                   <CardTitle>Yeni admin API key</CardTitle>
-                  <CardDescription>
-                    Backend-to-backend admin API erişimi için key oluşturun.
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -480,7 +461,6 @@ export function ClientWorkspace() {
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Token listesi</CardTitle>
-              <CardDescription>Oluşturulan token&apos;ları buradan takip edebilirsiniz.</CardDescription>
             </CardHeader>
             <CardContent>
               {(workspaceQuery.data.tokens ?? []).length === 0 ? (
@@ -533,7 +513,6 @@ export function ClientWorkspace() {
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Admin API key listesi</CardTitle>
-              <CardDescription>Backend-to-backend admin erişimlerini buradan takip edebilirsiniz.</CardDescription>
             </CardHeader>
             <CardContent>
               {(workspaceQuery.data.adminApiKeys ?? []).length === 0 ? (

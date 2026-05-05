@@ -3,10 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import Link from 'next/link';
-import { ArrowRight, CalendarClock, Layers3, PencilLine, Plus, Shapes } from 'lucide-react';
+import { CalendarClock, Layers3, PencilLine, Plus, Shapes } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
@@ -198,54 +197,30 @@ export function PlacementsWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <>
-            <Button className="gap-2" onClick={openCreateSheet}>
-              <Plus className="h-4 w-4" />
-              Yeni placement
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/">
-                Dashboard&apos;a dön
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </>
+          <Button className="gap-2" onClick={openCreateSheet}>
+            <Plus className="h-4 w-4" />
+            Yeni placement
+          </Button>
         }
-        description="Gösterim alanlarını burada oluşturabilir ve düzenleyebilirsiniz."
-        eyebrow="Placements"
         title="Placement yönetimi"
       />
 
       <section className="space-y-4">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/80 p-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
-            <h2 className="text-xl font-semibold tracking-tight">Tanımlı placement&apos;lar</h2>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Her kart placement adını, anahtarını ve son güncelleme bilgisini gösterir.
-            </p>
-          </div>
-
-          <Badge className="w-fit" variant="secondary">
-            {placements.length} placement
-          </Badge>
-        </div>
-
         {placementsQuery.isLoading ? (
           <LoadingState />
         ) : placementsQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <CardTitle>Placement listesi yüklenemedi</CardTitle>
-              <CardDescription>
-                {(placementsQuery.error as Error | undefined)?.message ??
-                  'Placement listesi şu anda alınamıyor.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => placementsQuery.refetch()} variant="outline">
-                Tekrar dene
-              </Button>
+          <CardHeader>
+            <CardTitle>Placement listesi yüklenemedi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {(placementsQuery.error as Error | undefined)?.message ??
+                'Placement listesi şu anda alınamıyor.'}
+            </div>
+            <Button onClick={() => placementsQuery.refetch()} variant="outline">
+              Tekrar dene
+            </Button>
             </CardContent>
           </Card>
         ) : placements.length === 0 ? (
@@ -255,9 +230,6 @@ export function PlacementsWorkspace() {
                 <Layers3 className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Henüz placement tanımı yok</CardTitle>
-              <CardDescription className="max-w-xl leading-6">
-                İçeriğin gösterileceği ilk alanı oluşturmak için yeni bir placement ekleyin.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
@@ -278,9 +250,6 @@ export function PlacementsWorkspace() {
                       </div>
                       <div className="space-y-2">
                         <CardTitle className="text-xl">{placement.name}</CardTitle>
-                        <CardDescription className="leading-6">
-                          {placement.description ?? 'Açıklama girilmedi.'}
-                        </CardDescription>
                       </div>
                     </div>
 

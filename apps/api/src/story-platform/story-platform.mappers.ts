@@ -15,6 +15,7 @@ import type {
 export const toAuthUserDto = (record: AdminUserRecord): AuthUserDto => ({
   id: record.id,
   email: record.email,
+  role: record.role,
   mustChangePassword: record.mustChangePassword,
   isActive: record.isActive,
 });
@@ -27,6 +28,7 @@ export const toAuthSessionDto = (record: AdminSessionRecord): AuthSessionDto => 
 export const toAdminUserDto = (record: AdminUserRecord): AdminUserDto => ({
   id: record.id,
   email: record.email,
+  role: record.role,
   mustChangePassword: record.mustChangePassword,
   isActive: record.isActive,
   createdAt: record.createdAt,

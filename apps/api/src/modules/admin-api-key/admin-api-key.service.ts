@@ -32,7 +32,7 @@ export class AdminApiKeyService {
   }
 
   async list(authorization?: string): Promise<AdminApiKeyDto[]> {
-    await this.adminAccessService.requireAdminSession(authorization);
+    await this.adminAccessService.requireSuperAdminSession(authorization);
 
     return this.repository.listAdminApiKeys().map(toAdminApiKeyDto);
   }
@@ -41,7 +41,7 @@ export class AdminApiKeyService {
     payload: CreateAdminApiKeyDto,
     authorization?: string,
   ): Promise<CreateAdminApiKeyResponseDto> {
-    const { user } = await this.adminAccessService.requireAdminSession(authorization);
+    const { user } = await this.adminAccessService.requireSuperAdminSession(authorization);
     const parsedPayload = adminApiKey.createAdminApiKeyDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -71,7 +71,7 @@ export class AdminApiKeyService {
     payload: RevokeAdminApiKeyDto,
     authorization?: string,
   ): Promise<AdminApiKeyDto> {
-    await this.adminAccessService.requireAdminSession(authorization);
+    await this.adminAccessService.requireSuperAdminSession(authorization);
 
     const parsedPayload = adminApiKey.revokeAdminApiKeyDtoSchema.safeParse({
       reason: payload.reason,

@@ -9,7 +9,7 @@ import type {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
 import { Skeleton } from '@open-story/ui/components/skeleton';
@@ -241,11 +241,7 @@ export function StorageSettingsWorkspace() {
   if (settingsQuery.isLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader
-          description="Asset storage provider ve CDN public URL ayarlarını yönetin."
-          eyebrow="Settings"
-          title="Storage & CDN"
-        />
+        <PageHeader title="Storage & CDN" />
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <Skeleton className="h-5 w-40" />
@@ -270,17 +266,17 @@ export function StorageSettingsWorkspace() {
               Tekrar dene
             </Button>
           }
-          description="Asset storage provider ve CDN public URL ayarlarını yönetin."
-          eyebrow="Settings"
           title="Storage & CDN"
         />
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Storage ayarları okunamadı</CardTitle>
-            <CardDescription>
-              {(settingsQuery.error as Error | undefined)?.message ?? 'Ayarlar şu anda alınamıyor.'}
-            </CardDescription>
           </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {(settingsQuery.error as Error | undefined)?.message ?? 'Ayarlar şu anda alınamıyor.'}
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -290,11 +286,7 @@ export function StorageSettingsWorkspace() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        description="Asset storage provider ve CDN public URL ayarlarını yönetin."
-        eyebrow="Settings"
-        title="Storage & CDN"
-      />
+      <PageHeader title="Storage & CDN" />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="border-border/60 bg-card/80">
@@ -302,7 +294,6 @@ export function StorageSettingsWorkspace() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <CardTitle>Aktif provider</CardTitle>
-                <CardDescription>Yeni Cloud Upload istekleri bu ayarlara göre çalışır.</CardDescription>
               </div>
               <Badge variant={settings.activeProvider === 'local' ? 'secondary' : 'default'}>
                 {getStorageProviderLabel(settings.activeProvider)}
@@ -324,9 +315,6 @@ export function StorageSettingsWorkspace() {
                 <Cloud className="h-4 w-4" />
                 Production önerisi
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Yüksek mobil trafik için Server Upload yerine Cloud Upload kullanın.
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -334,9 +322,6 @@ export function StorageSettingsWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Google Cloud Storage</CardTitle>
-            <CardDescription>
-              Credential bilgisi admin panelde saklanmaz; API runtime&apos;ı Application Default Credentials kullanır.
-            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
@@ -428,9 +413,6 @@ export function StorageSettingsWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Supabase Storage S3</CardTitle>
-            <CardDescription>
-              Supabase S3 access key bilgileri API config dosyasında saklanır ve sadece server-side kullanılır.
-            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">

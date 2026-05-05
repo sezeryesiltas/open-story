@@ -24,8 +24,10 @@ import type {
   StoryGroupSet as AdminStoryGroupSet,
   UpdateStoryGroupSetDto as AdminUpdateStoryGroupSetDto,
 } from './admin/set.ts';
+import type { AdminRole as AdminUserRole } from './admin/user.ts';
 
 export type Platform = 'ios' | 'android';
+export type AdminRole = AdminUserRole;
 
 export interface AuthLoginRequestDto {
   email: string;
@@ -35,6 +37,7 @@ export interface AuthLoginRequestDto {
 export interface AuthUserDto {
   id: string;
   email: string;
+  role: AdminRole;
   mustChangePassword: boolean;
   isActive: boolean;
 }
@@ -64,6 +67,7 @@ export interface AuthChangePasswordDto {
 export interface AdminUserDto {
   id: string;
   email: string;
+  role: AdminRole;
   mustChangePassword: boolean;
   isActive: boolean;
   createdAt: string;
@@ -72,11 +76,16 @@ export interface AdminUserDto {
 
 export interface CreateAdminUserDto {
   email: string;
+  role: AdminRole;
   temporaryPassword: string;
 }
 
 export interface ResetAdminUserPasswordDto {
   temporaryPassword: string;
+}
+
+export interface UpdateAdminUserRoleDto {
+  role: AdminRole;
 }
 
 export type DatabaseProvider = 'sqlite' | 'mysql' | 'postgres';

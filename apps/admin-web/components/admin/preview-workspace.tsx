@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import {
   Select,
   SelectContent,
@@ -14,7 +14,6 @@ import {
 } from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import type { SdkFeedGroup, SdkFeedStory } from '@open-story/contracts';
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -416,11 +415,7 @@ export function PreviewWorkspace() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        description="İçeriğin ekranda nasıl görüneceğini buradan kontrol edin."
-        eyebrow="Preview"
-        title="İçerik önizleme"
-      />
+      <PageHeader title="İçerik önizleme" />
 
       {previewQuery.isPending ? <PreviewLoadingState /> : null}
 
@@ -428,7 +423,6 @@ export function PreviewWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Preview yüklenemedi</CardTitle>
-            <CardDescription>Önizleme şu anda yüklenemiyor.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Button onClick={() => previewQuery.refetch()}>Tekrar dene</Button>
@@ -441,9 +435,6 @@ export function PreviewWorkspace() {
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Önizleme</CardTitle>
-              <CardDescription>
-                Placement ve Story Bar seçerek görünümü kontrol edin.
-              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
               <div className="grid gap-4 md:grid-cols-2">
@@ -653,7 +644,6 @@ export function PreviewWorkspace() {
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Görünürlük sorunları</CardTitle>
-              <CardDescription>Önizlemede filtrelenen grup ve story kayıtları.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {visibilityIssues.length > 0 ? (
@@ -686,24 +676,9 @@ export function PreviewWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Önizleme için içerik ekleyin</CardTitle>
-            <CardDescription>Önizlemeyi kullanmak için önce placement ve içerik oluşturun.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {data ? <PreviewWarnings warnings={data.warnings} /> : null}
-            <div className="flex flex-wrap gap-3">
-              <Button asChild variant="outline">
-                <Link href="/placements">Placement oluştur</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/story-group-sets">Story Bar oluştur</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/story-groups">Story Group oluştur</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/stories">Story oluştur</Link>
-              </Button>
-            </div>
           </CardContent>
         </Card>
       ) : null}

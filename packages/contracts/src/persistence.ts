@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ctaSchema } from './common/cta.ts';
 import { appVersionSchema, platformSchema, userSegmentSchema } from './common/context.ts';
 import { revisionIdSchema, rootIdSchema } from './common/revision.ts';
+import { adminRoleSchema } from './admin/user.ts';
 
 const timestampSchema = z.string().datetime();
 const nullableTimestampSchema = timestampSchema.nullable();
@@ -88,6 +89,7 @@ export const adminUserRecordSchema = z
   .object({
     id: rootIdSchema,
     email: z.string().trim().email(),
+    role: adminRoleSchema,
     passwordHash: z.string().trim().min(1),
     mustChangePassword: z.boolean(),
     isActive: z.boolean(),

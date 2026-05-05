@@ -12,13 +12,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator
+  SidebarSeparator,
 } from '@open-story/ui/components/sidebar';
+import type { AdminRole } from '@open-story/contracts';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutPanelTop, ShieldCheck } from 'lucide-react';
+import { LayoutPanelTop } from 'lucide-react';
 
-import { adminNavSections } from '@/lib/admin-navigation';
+import { getAdminNavSectionsForRole } from '@/lib/admin-navigation';
 import { adminBuildInfo, adminBuildLabel } from '@/lib/build-info';
 
 function isActive(pathname: string, href: string) {
@@ -33,8 +34,9 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AppSidebar() {
+export function AppSidebar({ currentUserRole }: { currentUserRole: AdminRole }) {
   const pathname = usePathname();
+  const adminNavSections = getAdminNavSectionsForRole(currentUserRole);
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -85,23 +87,8 @@ export function AppSidebar() {
       <SidebarSeparator />
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" tooltip="Önizleme">
-              <Link href="/preview">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
-                  <ShieldCheck className="size-4" />
-                </div>
-                <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Önizleme</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">İçeriği kontrol et</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
         <div
-          className="flex min-w-0 flex-col px-2 pb-1 text-[11px] leading-4 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
+          className="flex min-w-0 flex-col px-2 py-2 text-[11px] leading-4 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
           title={`Build ${adminBuildInfo.buildNumber}`}
         >
           <span className="truncate">{adminBuildLabel}</span>

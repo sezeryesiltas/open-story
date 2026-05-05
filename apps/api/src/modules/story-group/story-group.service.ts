@@ -33,7 +33,7 @@ export class StoryGroupService {
   }
 
   async list(authorization?: string): Promise<StoryGroupDto[]> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     return this.repository
       .listGroupRoots()
@@ -42,12 +42,12 @@ export class StoryGroupService {
   }
 
   async get(groupId: string, authorization?: string): Promise<StoryGroupDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
     return this.toDto(this.getGroupRootOrThrow(groupId));
   }
 
   async create(payload: CreateStoryGroupDto, authorization?: string): Promise<StoryGroupDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireContentAdminAccess(authorization);
     const parsedPayload = adminGroup.createStoryGroupDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -94,7 +94,7 @@ export class StoryGroupService {
     payload: UpdateStoryGroupDto,
     authorization?: string,
   ): Promise<StoryGroupDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
     const parsedPayload = adminGroup.updateStoryGroupDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -103,6 +103,14 @@ export class StoryGroupService {
 
     if (Object.keys(parsedPayload.data).length === 0) {
       throw ApiServiceError.badRequest('At least one story group field must be provided.');
+    }
+
+    if (
+      access.kind === 'session' &&
+      access.user.role === 'story_editor' &&
+      !isStoryEditorGroupPatch(parsedPayload.data)
+    ) {
+      throw ApiServiceError.forbidden('Story Editor can only update story membership from the Stories workspace.');
     }
 
     const existingRoot = this.getGroupRootOrThrow(groupId);
@@ -175,7 +183,7 @@ export class StoryGroupService {
     payload: PublishStoryGroupDto | undefined,
     authorization?: string,
   ): Promise<StoryGroupDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireContentAdminAccess(authorization);
 
     const parsedPayload = adminGroup.publishStoryGroupDtoSchema.safeParse(payload ?? {});
     if (!parsedPayload.success) {
@@ -195,7 +203,7 @@ export class StoryGroupService {
     payload: ArchiveStoryGroupDto,
     authorization?: string,
   ): Promise<StoryGroupDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireContentAdminAccess(authorization);
 
     const parsedPayload = adminGroup.archiveStoryGroupDtoSchema.safeParse(payload);
     if (!parsedPayload.success) {
@@ -296,6 +304,11 @@ export class StoryGroupService {
       }
     }
   }
+}
+
+function isStoryEditorGroupPatch(payload: UpdateStoryGroupDto): boolean {
+  const keys = Object.keys(payload);
+  return keys.length === 1 && keys[0] === 'story_ids';
 }
 
 type NormalizedGroupDraftPayload = {

@@ -35,7 +35,7 @@ export class StoryService {
   }
 
   async list(authorization?: string): Promise<StoryDto[]> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     return this.repository
       .listStoryRoots()
@@ -44,12 +44,12 @@ export class StoryService {
   }
 
   async get(storyId: string, authorization?: string): Promise<StoryDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
     return this.toDto(this.getStoryRootOrThrow(storyId));
   }
 
   async create(payload: CreateStoryDto, authorization?: string): Promise<StoryDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
     const parsedPayload = adminStory.createStoryDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -99,7 +99,7 @@ export class StoryService {
     payload: UpdateStoryDto,
     authorization?: string,
   ): Promise<StoryDto> {
-    const access = await this.adminAccessService.requireAdminAccess(authorization);
+    const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
     const parsedPayload = adminStory.updateStoryDtoSchema.safeParse(payload);
 
     if (!parsedPayload.success) {
@@ -179,7 +179,7 @@ export class StoryService {
     payload: PublishStoryDto | undefined,
     authorization?: string,
   ): Promise<StoryDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     const parsedPayload = adminStory.publishStoryDtoSchema.safeParse(payload ?? {});
     if (!parsedPayload.success) {
@@ -199,7 +199,7 @@ export class StoryService {
     payload: ArchiveStoryDto,
     authorization?: string,
   ): Promise<StoryDto> {
-    await this.adminAccessService.requireAdminAccess(authorization);
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     const parsedPayload = adminStory.archiveStoryDtoSchema.safeParse(payload);
     if (!parsedPayload.success) {

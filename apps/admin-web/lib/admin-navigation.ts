@@ -12,12 +12,16 @@ import {
   Users
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import type { AdminRole } from '@open-story/contracts';
+
+import { canAdminRoleAccessPath } from './admin-authorization';
 
 export type AdminNavItem = {
   title: string;
   description: string;
   href: string;
   icon: LucideIcon;
+  roles: AdminRole[];
 };
 
 export type AdminNavSection = {
@@ -33,7 +37,8 @@ export const adminNavSections: AdminNavSection[] = [
         title: 'Ana Sayfa',
         description: 'Hızlı erişim ve genel görünüm.',
         href: '/',
-        icon: Home
+        icon: Home,
+        roles: ['super_admin', 'story_admin', 'story_editor'],
       }
     ]
   },
@@ -44,37 +49,43 @@ export const adminNavSections: AdminNavSection[] = [
         title: 'Placements',
         description: 'Gösterim alanlarını yönetin.',
         href: '/placements',
-        icon: Layers3
+        icon: Layers3,
+        roles: ['super_admin', 'story_admin'],
       },
       {
         title: 'Story Bars',
         description: 'Story bar listelerini yönetin.',
         href: '/story-group-sets',
-        icon: SquareStack
+        icon: SquareStack,
+        roles: ['super_admin', 'story_admin'],
       },
       {
         title: 'Story Groups',
         description: 'Story gruplarını düzenleyin.',
         href: '/story-groups',
-        icon: SquareStack
+        icon: SquareStack,
+        roles: ['super_admin', 'story_admin'],
       },
       {
         title: 'Stories',
         description: 'Story içeriklerini yönetin.',
         href: '/stories',
-        icon: Clapperboard
+        icon: Clapperboard,
+        roles: ['super_admin', 'story_admin', 'story_editor'],
       },
       {
         title: 'Assets',
         description: 'Medya dosyalarını yönetin.',
         href: '/assets',
-        icon: Images
+        icon: Images,
+        roles: ['super_admin', 'story_admin', 'story_editor'],
       },
       {
         title: 'Preview',
         description: 'İçeriği önizleyin.',
         href: '/preview',
-        icon: Eye
+        icon: Eye,
+        roles: ['super_admin', 'story_admin', 'story_editor'],
       }
     ]
   },
@@ -85,34 +96,50 @@ export const adminNavSections: AdminNavSection[] = [
         title: 'Client & Tokens',
         description: 'Uygulama erişimini yönetin.',
         href: '/client',
-        icon: KeyRound
+        icon: KeyRound,
+        roles: ['super_admin'],
       },
       {
         title: 'Users',
         description: 'Yönetici hesaplarını yönetin.',
         href: '/users',
-        icon: Users
+        icon: Users,
+        roles: ['super_admin'],
       },
       {
         title: 'DB Settings',
         description: 'Bağlantı ayarlarını yönetin.',
         href: '/settings',
-        icon: Database
+        icon: Database,
+        roles: ['super_admin'],
       },
       {
         title: 'Storage & CDN',
         description: 'Asset storage ayarlarını yönetin.',
         href: '/settings/storage',
-        icon: Cloud
+        icon: Cloud,
+        roles: ['super_admin'],
       },
       {
         title: 'Change Password',
         description: 'Şifrenizi güncelleyin.',
         href: '/change-password',
-        icon: ShieldCheck
+        icon: ShieldCheck,
+        roles: ['super_admin'],
       }
     ]
   }
 ];
 
 export const adminNavItems = adminNavSections.flatMap((section) => section.items);
+
+export function getAdminNavSectionsForRole(role: AdminRole): AdminNavSection[] {
+  return adminNavSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) => item.roles.includes(role) && canAdminRoleAccessPath(role, item.href),
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
+}

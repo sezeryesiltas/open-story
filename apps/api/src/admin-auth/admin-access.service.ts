@@ -1,4 +1,9 @@
-import type { AdminApiKeyRecord, AdminSessionRecord, AdminUserRecord } from '@open-story/contracts';
+import type {
+  AdminApiKeyRecord,
+  AdminRole,
+  AdminSessionRecord,
+  AdminUserRecord,
+} from '@open-story/contracts';
 
 import { ApiServiceError } from '../common/filters/api-error.ts';
 import { verifyStaticTokenHash } from '../sdk-auth/static-token-hash.ts';
@@ -46,6 +51,24 @@ export class AdminAccessService {
     return this.requireAdminSession(authorization);
   }
 
+  async requireSuperAdminAccess(authorization?: string): Promise<AdminAccessContext> {
+    return this.requireRoles(authorization, ['super_admin']);
+  }
+
+  async requireContentAdminAccess(authorization?: string): Promise<AdminAccessContext> {
+    return this.requireRoles(authorization, ['super_admin', 'story_admin']);
+  }
+
+  async requireStoryEditorAccess(authorization?: string): Promise<AdminAccessContext> {
+    return this.requireRoles(authorization, ['super_admin', 'story_admin', 'story_editor']);
+  }
+
+  async requireSuperAdminSession(authorization?: string): Promise<AdminSessionAccessContext> {
+    const access = await this.requireAdminSession(authorization);
+    this.assertSessionRole(access, ['super_admin']);
+    return access;
+  }
+
   async requireAdminSession(authorization?: string): Promise<AdminSessionAccessContext> {
     const result = await new AdminSessionJwtGuard(this.jwtService, this.repository).validateRequest({
       headers: { authorization },
@@ -73,6 +96,28 @@ export class AdminAccessService {
       adminUserId: user.id,
       adminApiKey: null,
     };
+  }
+
+  private async requireRoles(
+    authorization: string | undefined,
+    allowedRoles: AdminRole[],
+  ): Promise<AdminAccessContext> {
+    const access = await this.requireAdminAccess(authorization);
+    if (access.kind === 'api_key') {
+      return access;
+    }
+
+    this.assertSessionRole(access, allowedRoles);
+    return access;
+  }
+
+  private assertSessionRole(
+    access: AdminSessionAccessContext,
+    allowedRoles: AdminRole[],
+  ): void {
+    if (!allowedRoles.includes(access.user.role)) {
+      throw ApiServiceError.forbidden('Admin role is not allowed to access this resource.');
+    }
   }
 
   private async requireAdminApiKeyAccess(token: string): Promise<AdminApiKeyAccessContext> {

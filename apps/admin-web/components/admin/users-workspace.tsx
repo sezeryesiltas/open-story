@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -13,22 +13,51 @@ import {
 } from '@open-story/ui/components/dialog';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
+import type { AdminRole } from '@open-story/contracts';
 import { RefreshCcw, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
+import { adminRoleLabels } from '@/lib/admin-authorization';
 import { ApiRequestError, apiRequest } from '@/lib/api';
 
 type AdminUserApiRecord = {
   id: string;
   email: string;
+  role: AdminRole;
   mustChangePassword: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 };
+
+const adminRoleOptions: Array<{ value: AdminRole; label: string; description: string }> = [
+  {
+    value: 'super_admin',
+    label: adminRoleLabels.super_admin,
+    description: 'Tüm admin console yetkileri.',
+  },
+  {
+    value: 'story_admin',
+    label: adminRoleLabels.story_admin,
+    description: 'Ana sayfa ve tüm Content bölümü.',
+  },
+  {
+    value: 'story_editor',
+    label: adminRoleLabels.story_editor,
+    description: 'Ana sayfa, Stories, Assets ve Preview.',
+  },
+];
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('tr-TR', {
@@ -42,15 +71,19 @@ function LoadingState() {
   return <Skeleton className="h-80 w-full rounded-xl" />;
 }
 
-export function UsersWorkspace() {
+export function UsersWorkspace({ currentUserId }: { currentUserId: string }) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState<AdminRole>('story_editor');
   const [temporaryPassword, setTemporaryPassword] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState('');
+  const [roleUserId, setRoleUserId] = useState<string | null>(null);
+  const [roleDraft, setRoleDraft] = useState<AdminRole>('story_editor');
 
   const usersQuery = useQuery({
     queryKey: ['admin-users'],
@@ -59,6 +92,7 @@ export function UsersWorkspace() {
 
   const users = usersQuery.data ?? [];
   const activeUserCount = users.filter((user) => user.isActive).length;
+  const roleUser = users.find((user) => user.id === roleUserId) ?? null;
 
   const createUserMutation = useMutation({
     mutationFn: () =>
@@ -66,6 +100,7 @@ export function UsersWorkspace() {
         method: 'POST',
         body: JSON.stringify({
           email: email.trim(),
+          role,
           temporaryPassword,
         }),
       }),
@@ -73,6 +108,7 @@ export function UsersWorkspace() {
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setNotice(`${user.email} oluşturuldu. Temporary password: ${temporaryPassword}`);
       setEmail('');
+      setRole('story_editor');
       setTemporaryPassword('');
       setCreateError(null);
     },
@@ -97,6 +133,27 @@ export function UsersWorkspace() {
       setResetError(null);
       setResetPassword('');
       setResetUserId(null);
+    },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: () => {
+      if (!roleUserId) {
+        throw new Error('Rolü güncellenecek kullanıcı seçilmedi.');
+      }
+
+      return apiRequest<AdminUserApiRecord>(`/api/admin-users/${roleUserId}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          role: roleDraft,
+        }),
+      });
+    },
+    onSuccess: async (user) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setNotice(`${user.email} rolü ${adminRoleLabels[user.role]} olarak güncellendi.`);
+      setRoleError(null);
+      setRoleUserId(null);
     },
   });
 
@@ -132,13 +189,37 @@ export function UsersWorkspace() {
     }
   };
 
+  const openRoleDialog = (user: AdminUserApiRecord) => {
+    setNotice(null);
+    setRoleError(null);
+    setRoleUserId(user.id);
+    setRoleDraft(user.role);
+  };
+
+  const handleUpdateRole = async () => {
+    setRoleError(null);
+    setNotice(null);
+
+    if (!roleUserId) {
+      setRoleError('Rolü güncellenecek kullanıcı seçilmedi.');
+      return;
+    }
+
+    if (roleUserId === currentUserId) {
+      setRoleError('Super Admin kendi rolünü değiştiremez.');
+      return;
+    }
+
+    try {
+      await updateRoleMutation.mutateAsync();
+    } catch (error) {
+      setRoleError(error instanceof Error ? error.message : 'Admin user rolü güncellenemedi.');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        description="Yönetici hesaplarını buradan ekleyebilir ve şifrelerini sıfırlayabilirsiniz."
-        eyebrow="Users"
-        title="Kullanıcı yönetimi"
-      />
+      <PageHeader title="Kullanıcı yönetimi" />
 
       {notice ? (
         <Card className="border-primary/30 bg-primary/5">
@@ -150,9 +231,6 @@ export function UsersWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Yeni admin oluştur</CardTitle>
-            <CardDescription>
-              Yeni kullanıcı ilk girişte şifresini yeniler.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -174,6 +252,26 @@ export function UsersWorkspace() {
                 value={temporaryPassword}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="adminUserRole">Rol</Label>
+              <Select onValueChange={(value) => setRole(value as AdminRole)} value={role}>
+                <SelectTrigger id="adminUserRole">
+                  <SelectValue placeholder="Rol seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {adminRoleOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-5 text-muted-foreground">
+                {adminRoleOptions.find((option) => option.value === role)?.description}
+              </p>
+            </div>
 
             {createError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -194,12 +292,7 @@ export function UsersWorkspace() {
               <CardTitle>Kullanıcı özeti</CardTitle>
               <Badge variant="secondary">{activeUserCount} active</Badge>
             </div>
-            <CardDescription>Toplam aktif yönetici sayısı.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>Bu alanda tüm yönetici hesaplarını görebilirsiniz.</p>
-            <p>Şifresini yenilemesi gereken kullanıcılar tabloda işaretlenir.</p>
-          </CardContent>
         </Card>
       </div>
 
@@ -209,12 +302,12 @@ export function UsersWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Admin user listesi yüklenemedi</CardTitle>
-            <CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {(usersQuery.error as ApiRequestError | Error | undefined)?.message ??
                 'Admin user listesi okunamadı.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </div>
             <Button className="gap-2" onClick={() => usersQuery.refetch()} variant="outline">
               <RefreshCcw className="h-4 w-4" />
               Tekrar dene
@@ -227,7 +320,6 @@ export function UsersWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Admin user listesi</CardTitle>
-            <CardDescription>Şifresini sıfırlamak istediğiniz kullanıcıyı listeden seçin.</CardDescription>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (
@@ -239,6 +331,7 @@ export function UsersWorkspace() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Password</TableHead>
                     <TableHead>Created</TableHead>
@@ -250,6 +343,9 @@ export function UsersWorkspace() {
                   {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{adminRoleLabels[user.role]}</Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={user.isActive ? 'default' : 'secondary'}>
                           {user.isActive ? 'Active' : 'Inactive'}
@@ -263,9 +359,20 @@ export function UsersWorkspace() {
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
                       <TableCell>{formatDate(user.updatedAt)}</TableCell>
                       <TableCell className="text-right">
-                        <Button onClick={() => setResetUserId(user.id)} size="sm" type="button" variant="outline">
-                          Reset password
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            disabled={user.id === currentUserId}
+                            onClick={() => openRoleDialog(user)}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            Rol değiştir
+                          </Button>
+                          <Button onClick={() => setResetUserId(user.id)} size="sm" type="button" variant="outline">
+                            Reset password
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -318,6 +425,66 @@ export function UsersWorkspace() {
               </Button>
               <Button disabled={resetPasswordMutation.isPending} onClick={handleResetPassword} type="button">
                 {resetPasswordMutation.isPending ? 'Resetleniyor...' : 'Reset password'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setRoleUserId(null);
+            setRoleError(null);
+          }
+        }}
+        open={Boolean(roleUserId)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rol değiştir</DialogTitle>
+            <DialogDescription>
+              {roleUser
+                ? `${roleUser.email} için yeni rol seçin.`
+                : 'Kullanıcı için yeni rol seçin.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editAdminUserRole">Rol</Label>
+              <Select onValueChange={(value) => setRoleDraft(value as AdminRole)} value={roleDraft}>
+                <SelectTrigger id="editAdminUserRole">
+                  <SelectValue placeholder="Rol seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {adminRoleOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {roleError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {roleError}
+              </div>
+            ) : null}
+
+            <div className="flex justify-end gap-3">
+              <Button onClick={() => setRoleUserId(null)} type="button" variant="outline">
+                Vazgeç
+              </Button>
+              <Button
+                disabled={updateRoleMutation.isPending || roleUser?.role === roleDraft}
+                onClick={handleUpdateRole}
+                type="button"
+              >
+                {updateRoleMutation.isPending ? 'Güncelleniyor...' : 'Rolü güncelle'}
               </Button>
             </div>
           </div>
