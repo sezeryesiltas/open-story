@@ -2,7 +2,7 @@
 
 import type { AuthSessionResponseDto } from '@open-story/contracts';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
 import { useRouter } from 'next/navigation';
@@ -84,7 +84,6 @@ export default function LoginPage() {
     <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.03)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_32px_80px_-44px_rgba(0,0,0,1)]">
       <CardHeader>
         <CardTitle>Login</CardTitle>
-        <CardDescription>Yönetim paneline giriş yapın.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -114,10 +113,6 @@ export default function LoginPage() {
             {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş yap'}
           </Button>
         </form>
-
-        <div className="rounded-3xl border border-white/10 bg-black/20 p-5 text-sm leading-6 text-slate-400">
-          Girişten sonra hesabınız hazırsa ana sayfaya, şifre yenilemeniz gerekiyorsa ilgili ekrana yönlendirilirsiniz.
-        </div>
       </CardContent>
     </Card>
   );

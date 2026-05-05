@@ -36,7 +36,7 @@ export function ConsoleShell({
               <Separator className="mr-2 data-[orientation=vertical]:h-4" orientation="vertical" />
               <div className="flex min-w-0 flex-col">
                 <span className="text-sm font-medium">Open Story Admin</span>
-                <span className="text-xs text-muted-foreground">Yönetim paneli</span>
+                <span className="text-xs text-muted-foreground">Dashboard</span>
               </div>
             </div>
 

@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -219,11 +219,7 @@ export function UsersWorkspace({ currentUserId }: { currentUserId: string }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        description="Yönetici hesaplarını buradan ekleyebilir ve şifrelerini sıfırlayabilirsiniz."
-        eyebrow="Users"
-        title="Kullanıcı yönetimi"
-      />
+      <PageHeader title="Kullanıcı yönetimi" />
 
       {notice ? (
         <Card className="border-primary/30 bg-primary/5">
@@ -235,9 +231,6 @@ export function UsersWorkspace({ currentUserId }: { currentUserId: string }) {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Yeni admin oluştur</CardTitle>
-            <CardDescription>
-              Yeni kullanıcı ilk girişte şifresini yeniler.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -299,12 +292,7 @@ export function UsersWorkspace({ currentUserId }: { currentUserId: string }) {
               <CardTitle>Kullanıcı özeti</CardTitle>
               <Badge variant="secondary">{activeUserCount} active</Badge>
             </div>
-            <CardDescription>Toplam aktif yönetici sayısı.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>Bu alanda tüm yönetici hesaplarını görebilirsiniz.</p>
-            <p>Şifresini yenilemesi gereken kullanıcılar tabloda işaretlenir.</p>
-          </CardContent>
         </Card>
       </div>
 
@@ -314,12 +302,12 @@ export function UsersWorkspace({ currentUserId }: { currentUserId: string }) {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Admin user listesi yüklenemedi</CardTitle>
-            <CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {(usersQuery.error as ApiRequestError | Error | undefined)?.message ??
                 'Admin user listesi okunamadı.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </div>
             <Button className="gap-2" onClick={() => usersQuery.refetch()} variant="outline">
               <RefreshCcw className="h-4 w-4" />
               Tekrar dene
@@ -332,7 +320,6 @@ export function UsersWorkspace({ currentUserId }: { currentUserId: string }) {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Admin user listesi</CardTitle>
-            <CardDescription>Şifresini sıfırlamak istediğiniz kullanıcıyı listeden seçin.</CardDescription>
           </CardHeader>
           <CardContent>
             {users.length === 0 ? (

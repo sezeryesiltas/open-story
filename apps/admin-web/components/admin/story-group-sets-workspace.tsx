@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import { CalendarClock, CheckCircle2, Layers3, PencilLine, Plus, SquareStack } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -79,6 +79,7 @@ function mapPlacement(apiPlacement: PlacementApiRecord): PlacementRecord {
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('tr-TR', {
     day: '2-digit',
+
     month: 'short',
     year: 'numeric',
   }).format(new Date(value));
@@ -171,6 +172,47 @@ function LoadingState() {
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function StoryBarStats({
+  storyBarCount,
+  publishedCount,
+  pendingChangesCount,
+  placementsCount,
+}: {
+  storyBarCount: number;
+  publishedCount: number;
+  pendingChangesCount: number;
+  placementsCount: number;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Story Bar</p>
+          <CardTitle className="text-2xl">{storyBarCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Live</p>
+          <CardTitle className="text-2xl">{publishedCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Taslak değişiklik</p>
+          <CardTitle className="text-2xl">{pendingChangesCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Placement</p>
+          <CardTitle className="text-2xl">{placementsCount}</CardTitle>
+        </CardHeader>
+      </Card>
     </div>
   );
 }
@@ -346,36 +388,16 @@ export function StoryGroupSetsWorkspace() {
             Yeni Story Bar
           </Button>
         }
-        description="Story bar listelerini burada oluşturabilir ve düzenleyebilirsiniz."
-        eyebrow="Story Bars"
         title="Story Bar listesi"
       />
 
       <section className="space-y-4">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/80 p-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
-            <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story Bar&apos;lar</h2>
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Her kart Story Bar adını, bağlı placement&apos;ı ve seçili koşulları gösterir.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge className="w-fit" variant="secondary">
-              {storyGroupSets.length} Story Bar
-            </Badge>
-            <Badge className="w-fit" variant="secondary">
-              {publishedCount} live
-            </Badge>
-            <Badge className="w-fit" variant="secondary">
-              {pendingChangesCount} taslak değişiklik
-            </Badge>
-            <Badge className="w-fit" variant="secondary">
-              {placements.length} placement
-            </Badge>
-          </div>
-        </div>
+        <StoryBarStats
+          pendingChangesCount={pendingChangesCount}
+          placementsCount={placements.length}
+          publishedCount={publishedCount}
+          storyBarCount={storyGroupSets.length}
+        />
 
         {actionError ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
@@ -390,9 +412,6 @@ export function StoryGroupSetsWorkspace() {
                 <Layers3 className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Önce placement oluşturulmalı</CardTitle>
-              <CardDescription className="max-w-2xl leading-6">
-                Story Bar eklemek için önce bir placement oluşturun.
-              </CardDescription>
             </CardHeader>
           </Card>
         ) : null}
@@ -401,17 +420,17 @@ export function StoryGroupSetsWorkspace() {
           <LoadingState />
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <CardTitle>Story Bar listesi yüklenemedi</CardTitle>
-              <CardDescription>
-                {(workspaceQuery.error as Error | undefined)?.message ??
-                  'Story Bar listesi şu anda alınamıyor.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-                Tekrar dene
-              </Button>
+          <CardHeader>
+            <CardTitle>Story Bar listesi yüklenemedi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {(workspaceQuery.error as Error | undefined)?.message ??
+                'Story Bar listesi şu anda alınamıyor.'}
+            </div>
+            <Button onClick={() => workspaceQuery.refetch()} variant="outline">
+              Tekrar dene
+            </Button>
             </CardContent>
           </Card>
         ) : !canCreateStoryGroupSet ? null : storyGroupSets.length === 0 ? (
@@ -421,9 +440,6 @@ export function StoryGroupSetsWorkspace() {
                 <SquareStack className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Henüz Story Bar tanımı yok</CardTitle>
-              <CardDescription className="max-w-2xl leading-6">
-                İlk Story Bar&apos;ı ekleyerek içeriğin hangi alanda gösterileceğini belirleyin.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
@@ -455,9 +471,6 @@ export function StoryGroupSetsWorkspace() {
                         <div className="space-y-2">
                           <CardTitle className="text-xl">{storyGroupSet.name}</CardTitle>
                           <RecordId label="Group Set ID" value={storyGroupSet.id} />
-                          <CardDescription className="leading-6">
-                            {placement ? `Placement: ${placement.name}` : 'Bağlı placement bulunamadı.'}
-                          </CardDescription>
                         </div>
                       </div>
 
@@ -528,17 +541,6 @@ export function StoryGroupSetsWorkspace() {
                         Bağlı Group
                       </p>
                       <p className="mt-3 text-2xl font-semibold">{storyGroupSet.groupIds.length}</p>
-                      {storyGroupSet.groupIds.length > 0 ? (
-                        <div className="mt-2 flex flex-col gap-1">
-                          {storyGroupSet.groupIds.map((groupId) => (
-                            <RecordId key={groupId} label="Group ID" value={groupId} />
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                          Bu Story Bar&apos;da henüz group yok.
-                        </p>
-                      )}
                     </div>
 
                     <div className="rounded-lg border border-border/60 bg-muted/30 p-4">

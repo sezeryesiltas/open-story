@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -187,6 +187,63 @@ function LoadingState() {
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function StoryStats({
+  totalCount,
+  publishedCount,
+  pendingChangesCount,
+  archivedCount,
+  videoCount,
+  ctaCount,
+}: {
+  totalCount: number;
+  publishedCount: number;
+  pendingChangesCount: number;
+  archivedCount: number;
+  videoCount: number;
+  ctaCount: number;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Toplam</p>
+          <CardTitle className="text-2xl">{totalCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Yayında</p>
+          <CardTitle className="text-2xl">{publishedCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Taslak değişiklik</p>
+          <CardTitle className="text-2xl">{pendingChangesCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Arşivde</p>
+          <CardTitle className="text-2xl">{archivedCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Video</p>
+          <CardTitle className="text-2xl">{videoCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">CTA</p>
+          <CardTitle className="text-2xl">{ctaCount}</CardTitle>
+        </CardHeader>
+      </Card>
+    </div>
   );
 }
 
@@ -602,30 +659,18 @@ export function StoriesWorkspace() {
             Yeni Story
           </Button>
         }
-        description="Story içeriklerini burada oluşturabilir ve düzenleyebilirsiniz."
-        eyebrow="Stories"
         title="Story listesi"
       />
 
       <section className="space-y-4">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/80 p-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
-            <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story kayıtları</h2>
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Story&apos;ler bu tabloda grup, medya ve durum bilgileriyle birlikte listelenir.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{stories.length} story</Badge>
-            <Badge variant="secondary">{publishedCount} yayında</Badge>
-            <Badge variant="secondary">{pendingChangesCount} taslak değişiklik</Badge>
-            <Badge variant="secondary">{archivedCount} arşivde</Badge>
-            <Badge variant="secondary">{videoCount} video</Badge>
-            <Badge variant="secondary">{ctaCount} CTA</Badge>
-          </div>
-        </div>
+        <StoryStats
+          archivedCount={archivedCount}
+          ctaCount={ctaCount}
+          pendingChangesCount={pendingChangesCount}
+          publishedCount={publishedCount}
+          totalCount={stories.length}
+          videoCount={videoCount}
+        />
 
         {actionError ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
@@ -637,17 +682,17 @@ export function StoriesWorkspace() {
           <LoadingState />
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <CardTitle>Story listesi yüklenemedi</CardTitle>
-              <CardDescription>
-                {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                  'Story listesi şu anda alınamıyor.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-                Tekrar dene
-              </Button>
+          <CardHeader>
+            <CardTitle>Story listesi yüklenemedi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
+                'Story listesi şu anda alınamıyor.'}
+            </div>
+            <Button onClick={() => workspaceQuery.refetch()} variant="outline">
+              Tekrar dene
+            </Button>
             </CardContent>
           </Card>
         ) : storyGroups.length === 0 ? (
@@ -657,9 +702,6 @@ export function StoriesWorkspace() {
                 <Clapperboard className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Önce bir Story Group oluşturun</CardTitle>
-              <CardDescription className="max-w-2xl leading-6">
-                Story eklemek için önce bir Story Group seçilebilir durumda olmalıdır.
-              </CardDescription>
             </CardHeader>
           </Card>
         ) : stories.length === 0 ? (
@@ -669,9 +711,6 @@ export function StoriesWorkspace() {
                 <Clapperboard className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Henüz Story kaydı yok</CardTitle>
-              <CardDescription className="max-w-2xl leading-6">
-                İlk Story&apos;yi oluşturduğunuzda burada listelenir.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
@@ -684,9 +723,6 @@ export function StoriesWorkspace() {
           <Card className="border-border/60 border-dashed bg-card/80">
             <CardHeader>
               <CardTitle>Filtrelerle eşleşen Story bulunamadı</CardTitle>
-              <CardDescription>
-                Seçili filtrelerle eşleşen kayıt bulunamadı.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <Button onClick={resetFilters} variant="outline">

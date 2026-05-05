@@ -286,6 +286,32 @@ curl -sS -X POST "$OPEN_STORY_API_BASE_URL/v1/sdk/feed" \
 
 The published group should appear under `resolved_set.groups`, and the published story should appear under that group's `stories`.
 
+## Archive A Story By ID
+
+To move an existing Story to Archive, call the Story archive endpoint with the Story `id`:
+
+```bash
+curl -sS -X POST "$OPEN_STORY_API_BASE_URL/v1/stories/<story_id>/archive" \
+  -H "Authorization: Bearer $OPEN_STORY_ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "archived": true
+  }'
+```
+
+Archived Stories are filtered out of SDK feed resolution. If every Story in a published group becomes archived or otherwise hidden, that empty group is removed from the resolved feed.
+
+To restore the Story from Archive, use the same endpoint with `archived: false`:
+
+```bash
+curl -sS -X POST "$OPEN_STORY_API_BASE_URL/v1/stories/<story_id>/archive" \
+  -H "Authorization: Bearer $OPEN_STORY_ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "archived": false
+  }'
+```
+
 ## Common Failure Cases
 
 - `401 Invalid admin API key`: the key was copied incorrectly or the request is using the `clientSecret` alone instead of `plainTextApiKey`.
@@ -309,4 +335,11 @@ The published group should appear under `resolved_set.groups`, and the published
 8. Create/update Story Group Set with the group id
 9. POST /v1/story-group-sets/:setId/publish
 10. Validate with POST /v1/sdk/feed using SDK static token
+```
+
+Archive later by ID when needed:
+
+```text
+POST /v1/stories/:storyId/archive
+{ "archived": true }
 ```

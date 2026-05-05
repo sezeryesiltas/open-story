@@ -27,11 +27,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        description="Icerik akisiniz, aktif veri hacmi ve sistem ayarlari tek bakista gorunsun."
-        eyebrow="Admin Console"
-        title="Yönetim paneli"
-      />
+      <PageHeader title="Dashboard" />
 
       <DashboardDataVolume errorMessage={errorMessage} snapshot={snapshot} />
     </div>

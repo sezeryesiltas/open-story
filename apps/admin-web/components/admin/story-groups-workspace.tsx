@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -210,6 +210,55 @@ function publishActionLabel(storyGroup: StoryGroupApiRecord): string {
   }
 
   return hasUnpublishedChanges(storyGroup) ? 'Republish' : 'Already published';
+}
+
+function StoryGroupStats({
+  totalCount,
+  publishedCount,
+  pendingChangesCount,
+  archiveCount,
+  sharedReferenceCount,
+}: {
+  totalCount: number;
+  publishedCount: number;
+  pendingChangesCount: number;
+  archiveCount: number;
+  sharedReferenceCount: number;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Toplam</p>
+          <CardTitle className="text-2xl">{totalCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Yayında</p>
+          <CardTitle className="text-2xl">{publishedCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Taslak değişiklik</p>
+          <CardTitle className="text-2xl">{pendingChangesCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Arşivde</p>
+          <CardTitle className="text-2xl">{archiveCount}</CardTitle>
+        </CardHeader>
+      </Card>
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader className="pb-2">
+          <p className="text-sm font-medium text-muted-foreground">Çoklu kullanım</p>
+          <CardTitle className="text-2xl">{sharedReferenceCount}</CardTitle>
+        </CardHeader>
+      </Card>
+    </div>
+  );
 }
 
 export function StoryGroupsWorkspace() {
@@ -614,29 +663,17 @@ export function StoryGroupsWorkspace() {
             Yeni Story Group
           </Button>
         }
-        description="Story gruplarını ve durumlarını burada yönetebilirsiniz."
-        eyebrow="Story Groups"
         title="Story Group listesi"
       />
 
       <section className="space-y-4">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/80 p-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Body</p>
-            <h2 className="text-xl font-semibold tracking-tight">Tanımlı Story Group&apos;lar</h2>
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              Story Group&apos;lar bu tabloda bağlantıları ve durumlarıyla birlikte listelenir.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{storyGroups.length} group</Badge>
-            <Badge variant="secondary">{publishedCount} yayında</Badge>
-            <Badge variant="secondary">{pendingChangesCount} taslak değişiklik</Badge>
-            <Badge variant="secondary">{archiveCount} arşivde</Badge>
-            <Badge variant="secondary">{sharedReferenceCount} çoklu kullanım</Badge>
-          </div>
-        </div>
+        <StoryGroupStats
+          archiveCount={archiveCount}
+          pendingChangesCount={pendingChangesCount}
+          publishedCount={publishedCount}
+          sharedReferenceCount={sharedReferenceCount}
+          totalCount={storyGroups.length}
+        />
 
         {actionError ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
@@ -648,17 +685,17 @@ export function StoryGroupsWorkspace() {
           <LoadingState />
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <CardTitle>Story Group listesi yüklenemedi</CardTitle>
-              <CardDescription>
-                {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                  'Story Group listesi şu anda alınamıyor.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-                Tekrar dene
-              </Button>
+          <CardHeader>
+            <CardTitle>Story Group listesi yüklenemedi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
+                'Story Group listesi şu anda alınamıyor.'}
+            </div>
+            <Button onClick={() => workspaceQuery.refetch()} variant="outline">
+              Tekrar dene
+            </Button>
             </CardContent>
           </Card>
         ) : storyGroups.length === 0 ? (
@@ -668,18 +705,12 @@ export function StoryGroupsWorkspace() {
                 <SquareStack className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Henüz Story Group kaydı yok</CardTitle>
-              <CardDescription className="max-w-2xl leading-6">
-                İlk Story Group&apos;u oluşturduğunuzda burada listelenir.
-              </CardDescription>
             </CardHeader>
           </Card>
         ) : filteredStoryGroups.length === 0 ? (
           <Card className="border-border/60 border-dashed bg-card/80">
             <CardHeader>
               <CardTitle>Filtrelerle eşleşen Story Group bulunamadı</CardTitle>
-              <CardDescription>
-                Seçili filtrelerle eşleşen kayıt bulunamadı.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <Button onClick={resetFilters} variant="outline">
@@ -749,19 +780,19 @@ export function StoryGroupsWorkspace() {
                 />
               </div>
 
-              <Table className="min-w-[980px]">
+              <Table className="min-w-[980px] table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12 border-b border-border/60">
                       <span className="sr-only">Sıra</span>
                     </TableHead>
-                    <TableHead className="border-b border-border/60">Group</TableHead>
-                    <TableHead className="border-b border-border/60">Story Bars</TableHead>
-                    <TableHead className="border-b border-border/60">Archive</TableHead>
-                    <TableHead className="border-b border-border/60">Publish</TableHead>
-                    <TableHead className="border-b border-border/60">Stories</TableHead>
-                    <TableHead className="border-b border-border/60">Last Update</TableHead>
-                    <TableHead className="border-b border-border/60 text-right">Actions</TableHead>
+                    <TableHead className="w-[28%] border-b border-border/60">Group</TableHead>
+                    <TableHead className="w-[20%] border-b border-border/60">Story Bars</TableHead>
+                    <TableHead className="w-[10%] border-b border-border/60">Archive</TableHead>
+                    <TableHead className="w-[16%] border-b border-border/60">Publish</TableHead>
+                    <TableHead className="w-[8%] border-b border-border/60">Stories</TableHead>
+                    <TableHead className="w-[12%] border-b border-border/60">Last Update</TableHead>
+                    <TableHead className="w-20 border-b border-border/60 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -816,7 +847,7 @@ export function StoryGroupsWorkspace() {
                             </Tooltip>
                           </TooltipProvider>
                         </TableCell>
-                        <TableCell className="border-b border-border/60 py-4 align-top">
+                        <TableCell className="w-[28%] border-b border-border/60 py-4 align-top">
                           <div className="flex items-center gap-3">
                             <StoryGroupLogo
                               alt={groupLogoAsset?.name ?? storyGroup.name}
@@ -833,7 +864,7 @@ export function StoryGroupsWorkspace() {
                           </div>
                         </TableCell>
 
-                        <TableCell className="border-b border-border/60 py-4 align-top">
+                        <TableCell className="w-[20%] border-b border-border/60 py-4 align-top">
                           {storyGroup.storyGroupSets.length === 0 ? (
                             <Badge variant="outline">Story Bar bağlantısı yok</Badge>
                           ) : (
@@ -846,21 +877,20 @@ export function StoryGroupsWorkspace() {
                                   <Badge className="w-fit" variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
                                     {storyGroupSet.name}
                                   </Badge>
-                                  <RecordId label="Group Set ID" value={storyGroupSet.id} />
                                 </div>
                               ))}
                             </div>
                           )}
                         </TableCell>
 
-                        <TableCell className="border-b border-border/60 py-4 align-top">
+                        <TableCell className="w-[10%] border-b border-border/60 py-4 align-top">
                           <div className="flex items-center gap-2">
                             <Archive className="h-4 w-4 text-muted-foreground" />
                             <StateBadge type="archive" value={storyGroup.archiveState} />
                           </div>
                         </TableCell>
 
-                        <TableCell className="border-b border-border/60 py-4 align-top">
+                        <TableCell className="w-[16%] border-b border-border/60 py-4 align-top">
                           <div className="flex flex-wrap items-center gap-2">
                             {storyGroup.publishState === 'published' ? (
                               <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -872,18 +902,18 @@ export function StoryGroupsWorkspace() {
                           </div>
                         </TableCell>
 
-                        <TableCell className="border-b border-border/60 py-4 align-top">
+                        <TableCell className="w-[8%] border-b border-border/60 py-4 align-top">
                           <p className="text-xl font-semibold">{storyGroup.storyCount}</p>
                         </TableCell>
 
-                        <TableCell className="border-b border-border/60 py-4 align-top">
+                        <TableCell className="w-[12%] border-b border-border/60 py-4 align-top">
                           <div className="flex items-center gap-2 text-sm font-medium">
                             <CalendarClock className="h-4 w-4 text-muted-foreground" />
                             {formatDate(storyGroup.updatedAt)}
                           </div>
                         </TableCell>
 
-                        <TableCell className="border-b border-border/60 py-4 align-top text-right">
+                        <TableCell className="w-20 border-b border-border/60 py-4 align-top text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button className="ml-auto" size="icon" variant="ghost">

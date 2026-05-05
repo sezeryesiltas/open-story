@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
 import {
@@ -576,11 +576,7 @@ export function SettingsWorkspace() {
   if (settingsQuery.isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader
-          description="Veri bağlantısı ayarlarını buradan yönetebilirsiniz."
-          eyebrow="Settings"
-          title="Veritabanı ayarları"
-        />
+        <PageHeader title="Veritabanı ayarları" />
         <LoadingCards />
       </div>
     );
@@ -596,19 +592,19 @@ export function SettingsWorkspace() {
               Tekrar dene
             </Button>
           }
-          description="Veri bağlantısı ayarlarını buradan yönetebilirsiniz."
-          eyebrow="Settings"
           title="Veritabanı ayarları"
         />
 
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Veritabanı ayarları okunamadı</CardTitle>
-            <CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {(settingsQuery.error as Error | undefined)?.message ??
                 'Ayarlar şu anda alınamıyor.'}
-            </CardDescription>
-          </CardHeader>
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -616,11 +612,7 @@ export function SettingsWorkspace() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        description="Veri bağlantısı ayarlarını buradan yönetebilirsiniz."
-        eyebrow="Settings"
-        title="Veritabanı ayarları"
-      />
+      <PageHeader title="Veritabanı ayarları" />
 
       <div className="space-y-6">
         <Card className="border-border/60 bg-card/80">
@@ -628,9 +620,6 @@ export function SettingsWorkspace() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-2">
                 <CardTitle>Aktif veritabanı</CardTitle>
-                <CardDescription>
-                  Şu anda kullanılan veritabanını görüntüleyin.
-                </CardDescription>
               </div>
               <Badge className="w-fit" variant={settings.isUsingExternalDatabase ? 'default' : 'secondary'}>
                 {getProviderBadgeLabel(settings)}
@@ -681,9 +670,6 @@ export function SettingsWorkspace() {
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle>Harici veritabanı</CardTitle>
-            <CardDescription>
-              SQLite path, MySQL ya da Postgres bağlantı bilgisi tanımlayabilirsiniz.
-            </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-5">

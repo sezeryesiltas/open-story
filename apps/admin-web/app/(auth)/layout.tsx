@@ -1,12 +1,5 @@
-import { Badge } from '@open-story/ui/components/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { ReactNode } from 'react';
-
-const authRules = [
-  'E-posta ve şifre ile giriş yapın',
-  'Geçici şifre verilen kullanıcılar ilk girişte şifrelerini yeniler',
-  'Yeni kullanıcılar yönetici tarafından eklenir'
-];
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -19,28 +12,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
               <span className="h-3 w-3 rounded-full bg-[#28c840]" />
             </div>
-            <Badge
-              className="mt-4 w-fit rounded-full border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-300 hover:bg-white/[0.06]"
-              variant="secondary"
-            >
-              Open Story Admin
-            </Badge>
             <CardTitle className="text-3xl">Hesap erişimi</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm leading-6 text-slate-400">
-            <p>
-              Yönetim paneline giriş yapmak veya şifrenizi yenilemek için bu alanı kullanın.
-            </p>
-
-            <ul className="space-y-3">
-              {authRules.map((rule) => (
-                <li key={rule} className="flex items-start gap-3">
-                  <span className="mt-2 h-2 w-2 rounded-full bg-sky-300" />
-                  <span>{rule}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
         </Card>
 
         <div>{children}</div>

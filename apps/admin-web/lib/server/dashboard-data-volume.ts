@@ -12,14 +12,7 @@ import {
   listStories,
 } from './admin-bff';
 import { backendApiRequest, BackendApiError } from './backend-api';
-import {
-  accessMetricKeys,
-  contentMetricKeys,
-  databaseMetricGroups,
-  getDatabaseMetricCount,
-  revisionMetricKeys,
-  sumDatabaseMetricCounts,
-} from '../database-settings-presentation';
+import { getDatabaseMetricCount } from '../database-settings-presentation';
 
 export type DashboardDataVolumeStat = {
   label: string;
@@ -34,24 +27,10 @@ export type DashboardDataVolumeCard = {
   stats: DashboardDataVolumeStat[];
 };
 
-export type DashboardDataVolumeSupportGroup = {
-  title: string;
-  description: string;
-  total: number;
-  rows: Array<{
-    key: string;
-    label: string;
-    description: string;
-    count: number;
-  }>;
-};
-
 export type DashboardDataVolumeSnapshot = {
   settings: DatabaseSettingsDto;
-  totalCount: number;
   placementsCount: number;
   contentCards: DashboardDataVolumeCard[];
-  supportGroups: DashboardDataVolumeSupportGroup[];
 };
 
 function hasUnpublishedStoryGroupChanges(storyGroup: AdminStoryGroupRecord): boolean {
@@ -86,8 +65,6 @@ function buildContentCards(
   const draftStories = stories.filter((story) => hasUnpublishedStoryChanges(story)).length;
   const activeStories = stories.filter((story) => story.archiveState === 'active').length;
   const archivedStories = stories.length - activeStories;
-  const imageStories = stories.filter((story) => story.mediaType === 'image').length;
-  const videoStories = stories.length - imageStories;
 
   const videoAssets = assets.filter((asset) => asset.type === 'story_video').length;
   const imageAssets = assets.length - videoAssets;
@@ -163,14 +140,6 @@ function buildContentCards(
           label: 'Active',
           value: activeStories,
         },
-        {
-          label: 'Video',
-          value: videoStories,
-        },
-        {
-          label: 'Image',
-          value: imageStories,
-        },
       ],
     },
     {
@@ -190,24 +159,6 @@ function buildContentCards(
       ],
     },
   ];
-}
-
-function buildSupportGroups(settings: DatabaseSettingsDto): DashboardDataVolumeSupportGroup[] {
-  return databaseMetricGroups.map((group) => {
-    const rows = group.metrics.map((metric) => ({
-      key: metric.key,
-      label: metric.label,
-      description: metric.description,
-      count: getDatabaseMetricCount(settings, metric.key),
-    }));
-
-    return {
-      title: group.title,
-      description: group.description,
-      total: rows.reduce((total, row) => total + row.count, 0),
-      rows,
-    };
-  });
 }
 
 export async function loadDashboardDataVolumeSnapshot(
@@ -239,14 +190,8 @@ export async function loadDashboardDataVolumeSnapshot(
 
   return {
     settings,
-    totalCount: sumDatabaseMetricCounts(settings, [
-      ...accessMetricKeys,
-      ...contentMetricKeys,
-      ...revisionMetricKeys,
-    ]),
     placementsCount: settingsResult ? getDatabaseMetricCount(settings, 'placements') : placements.length,
     contentCards: buildContentCards(settings, storyGroupSets, storyGroups, stories, assets),
-    supportGroups: buildSupportGroups(settings),
   };
 }
 
