@@ -6,8 +6,9 @@ import {
   Home,
   Images,
   KeyRound,
-  Layers3,
+  Layers,
   ShieldCheck,
+  Shapes,
   SquareStack,
   Users
 } from 'lucide-react';
@@ -49,14 +50,14 @@ export const adminNavSections: AdminNavSection[] = [
         title: 'Placements',
         description: 'Gösterim alanlarını yönetin.',
         href: '/placements',
-        icon: Layers3,
+        icon: Shapes,
         roles: ['super_admin', 'story_admin'],
       },
       {
         title: 'Story Bars',
         description: 'Story bar listelerini yönetin.',
         href: '/story-group-sets',
-        icon: SquareStack,
+        icon: Layers,
         roles: ['super_admin', 'story_admin'],
       },
       {

@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/compone
 import {
   Clapperboard,
   HardDriveDownload,
+  Layers,
   type LucideIcon,
-  Layers3,
   SquareStack,
 } from 'lucide-react';
 
@@ -15,7 +15,7 @@ import type {
 } from '@/lib/server/dashboard-data-volume';
 
 const contentCardIcons: Record<DashboardDataVolumeCard['key'], LucideIcon> = {
-  'story-bars': Layers3,
+  'story-bars': Layers,
   'story-groups': SquareStack,
   stories: Clapperboard,
   assets: HardDriveDownload,

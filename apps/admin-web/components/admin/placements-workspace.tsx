@@ -5,7 +5,7 @@ import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { CalendarClock, Layers3, PencilLine, Plus, Shapes } from 'lucide-react';
+import { CalendarClock, PencilLine, Plus, Shapes } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
@@ -227,7 +227,7 @@ export function PlacementsWorkspace() {
           <Card className="border-border/60 border-dashed bg-card/80">
             <CardHeader className="items-start text-left">
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                <Layers3 className="h-5 w-5" />
+                <Shapes className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Henüz placement tanımı yok</CardTitle>
             </CardHeader>
