@@ -5,7 +5,7 @@ import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { CalendarClock, CheckCircle2, Layers3, PencilLine, Plus, SquareStack } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Layers, PencilLine, Plus, Shapes } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import {
@@ -409,7 +409,7 @@ export function StoryGroupSetsWorkspace() {
           <Card className="border-border/60 border-dashed bg-card/80">
             <CardHeader className="items-start text-left">
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                <Layers3 className="h-5 w-5" />
+                <Shapes className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Önce placement oluşturulmalı</CardTitle>
             </CardHeader>
@@ -437,7 +437,7 @@ export function StoryGroupSetsWorkspace() {
           <Card className="border-border/60 border-dashed bg-card/80">
             <CardHeader className="items-start text-left">
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                <SquareStack className="h-5 w-5" />
+                <Layers className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Henüz Story Bar tanımı yok</CardTitle>
             </CardHeader>
@@ -466,7 +466,7 @@ export function StoryGroupSetsWorkspace() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-3">
                         <div className="inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                          <SquareStack className="h-5 w-5" />
+                          <Layers className="h-5 w-5" />
                         </div>
                         <div className="space-y-2">
                           <CardTitle className="text-xl">{storyGroupSet.name}</CardTitle>

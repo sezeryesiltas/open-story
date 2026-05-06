@@ -15,9 +15,10 @@ import {
   SidebarSeparator,
 } from '@open-story/ui/components/sidebar';
 import type { AdminRole } from '@open-story/contracts';
+import appIcon from '@/app/icon.png';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutPanelTop } from 'lucide-react';
 
 import { getAdminNavSectionsForRole } from '@/lib/admin-navigation';
 import { adminBuildInfo, adminBuildLabel } from '@/lib/build-info';
@@ -43,12 +44,17 @@ export function AppSidebar({ currentUserRole }: { currentUserRole: AdminRole }) 
       <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg">
+            <SidebarMenuButton asChild className="group-data-[collapsible=icon]:p-1" size="lg">
               <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <LayoutPanelTop className="size-4" />
+                <div className="flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md">
+                  <Image
+                    alt="Open Story"
+                    className="size-8 rounded-lg object-cover group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md"
+                    priority
+                    src={appIcon}
+                  />
                 </div>
-                <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-medium">Open Story</span>
                   <span className="truncate text-xs text-sidebar-foreground/70">Admin Console</span>
                 </div>

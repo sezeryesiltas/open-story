@@ -81,7 +81,7 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.03)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_32px_80px_-44px_rgba(0,0,0,1)]">
+    <Card className="border-border/60 bg-card/90 shadow-sm">
       <CardHeader>
         <CardTitle>Login</CardTitle>
       </CardHeader>
@@ -89,13 +89,20 @@ export default function LoginPage() {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" onChange={(event) => setEmail(event.target.value)} type="email" value={email} />
+            <Input
+              autoComplete="email"
+              id="email"
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              value={email}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              autoComplete="current-password"
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Temporary password"
               type="password"
