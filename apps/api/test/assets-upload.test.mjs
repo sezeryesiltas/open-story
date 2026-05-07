@@ -41,10 +41,12 @@ function createHarness() {
   const adminAccessService = new AdminAccessService(repository, jwtService);
   const contentRepository = new StoryContentRepository(db);
   const publishResolutionService = new PublishResolutionService(new PublishResolutionRepository(db));
+  const assetStorageSettingsStore = new AssetStorageSettingsStore();
 
   return {
     authService: new AuthService(repository, jwtService, adminAccessService),
-    assetsService: new AssetsService(new AssetsRepository(db), adminAccessService, new AssetStorageSettingsStore()),
+    assetStorageSettingsStore,
+    assetsService: new AssetsService(new AssetsRepository(db), adminAccessService, assetStorageSettingsStore),
     groupService: new StoryGroupService(contentRepository, publishResolutionService, adminAccessService),
   };
 }
@@ -293,6 +295,45 @@ test('server upload optimizes PNG images before storing asset records', async ()
   assert.equal(storyAsset.mimeType, 'image/jpeg');
   assert.equal(storyAsset.height, 1600);
   assert.equal(storyAsset.width, 800);
+});
+
+test('server upload is blocked when external asset storage is active', async () => {
+  const { authService, assetsService, assetStorageSettingsStore } = createHarness();
+  const loginResponse = await authService.login({
+    email: 'admin@openstory.local',
+    password: 'admin12345',
+  });
+  const authorization = `Bearer ${loginResponse.accessToken}`;
+
+  assetStorageSettingsStore.updateSettings({
+    activeProvider: 'supabase_s3',
+    supabaseS3: {
+      endpoint: 'https://project-ref.storage.supabase.co/storage/v1/s3',
+      region: 'project_region',
+      bucketName: 'open-story-assets',
+      accessKeyId: 'access-key-id',
+      secretAccessKey: 'secret-access-key',
+      publicAssetBaseUrl: 'https://project-ref.supabase.co/storage/v1/object/public/open-story-assets',
+    },
+  });
+  const imageBuffer = await createPngBuffer(1200, 2400);
+
+  await assert.rejects(
+    () =>
+      assetsService.upload(
+        {
+          type: 'story_image',
+          fileName: 'story.png',
+          mimeType: 'image/png',
+          buffer: imageBuffer,
+        },
+        authorization,
+      ),
+    (error) =>
+      error instanceof ApiServiceError &&
+      error.statusCode === 409 &&
+      error.message.includes('Storage/CDN provider aktifken server upload kullanılamaz'),
+  );
 });
 
 test('cloud upload prepares optimized asset records and delegates binary storage', async () => {

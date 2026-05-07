@@ -27,7 +27,7 @@ pnpm --filter @open-story/admin-web check
 - Query provider wiring ready for API integration.
 - `Settings` ekranı aktif relational Postgres hedefini gösterir ve Postgres bağlantı bilgisini yönetir.
 - `Storage & CDN` ekranı local asset storage, Google Cloud Storage/CDN ve Supabase Storage S3 hedefini yönetir.
-- Asset oluşturma akışında URL, Server Upload ve Cloud Upload seçenekleri bulunur; production için Cloud Upload önerilir.
+- Asset oluşturma akışında URL ve upload seçenekleri bulunur; dış Storage/CDN provider aktifken Server Upload/Bilgisayardan yükle seçenekleri gizlenir.
 
 ## Runtime notes
 

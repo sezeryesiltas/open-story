@@ -14,8 +14,9 @@ Backend API module scaffold.
 
 ## Asset storage behavior
 
-- Local server upload `POST /v1/assets/upload` ile devam eder ve `OPEN_STORY_ASSET_STORAGE_DIR` altına yazar.
+- Local server upload `POST /v1/assets/upload` yalnızca aktif provider `local` iken çalışır ve `OPEN_STORY_ASSET_STORAGE_DIR` altına yazar.
 - Cloud upload `POST /v1/assets/cloud-upload` ile aktif Google Cloud Storage veya Supabase Storage S3 bucket hedefini kullanır.
+- Aktif provider `gcs` veya `supabase_s3` olduğunda server upload kapalıdır; yeni dosyalar Cloud Upload ya da URL import ile eklenmelidir.
 - API, storage ayarlarını `env -> OPEN_STORY_ASSET_STORAGE_CONFIG_PATH içindeki config dosyası -> local disk fallback` sırasıyla çözer.
 - Admin `Storage & CDN` ekranı `GET/PUT /v1/settings/storage` ve `POST /v1/settings/storage/test` üzerinden bucket, object prefix ve CDN public base URL ayarlarını yönetir.
 - Service account JSON/private key admin DB'ye yazılmaz; API runtime'ı Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` kullanır.

@@ -37,6 +37,13 @@ export class AssetsController {
     return this.service.list({ type }, authorization);
   }
 
+  @Get('upload-capabilities')
+  async uploadCapabilities(
+    @Headers('authorization') authorization?: string,
+  ): Promise<{ serverUploadAllowed: boolean }> {
+    return this.service.getUploadCapabilities(authorization);
+  }
+
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(
