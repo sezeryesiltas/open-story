@@ -1070,7 +1070,7 @@ function mapRelationalRowToRecord(
         name: row.name,
         status: row.status,
         platformTargets: platformTargetsFromRow(row),
-        userSegments: toStringArray(row.userSegments),
+        userSegments: parseRelationalPostgresStringArray(row.userSegments),
         createdByAdminUserId: row.createdByAdminUserId ?? null,
         createdAt: row.createdAt,
       };
@@ -1177,7 +1177,7 @@ function normalizedPlatformTargets(value: unknown): {
 }
 
 function platformTargetsFromRow(row: Record<string, unknown>): Array<{ platform: 'ios' | 'android'; minAppVersion: string }> {
-  const platforms = toStringArray(row.targetPlatformsRaw);
+  const platforms = parseRelationalPostgresStringArray(row.targetPlatformsRaw);
   const targets: Array<{ platform: 'ios' | 'android'; minAppVersion: string }> = [];
 
   if (platforms.includes('ios') && row.iosMinAppVersion) {
@@ -1191,8 +1191,68 @@ function platformTargetsFromRow(row: Record<string, unknown>): Array<{ platform:
   return targets;
 }
 
-function toStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+export function parseRelationalPostgresStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry));
+  }
+
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return [];
+  }
+
+  if (!trimmedValue.startsWith('{') || !trimmedValue.endsWith('}')) {
+    return [trimmedValue];
+  }
+
+  const items: string[] = [];
+  const body = trimmedValue.slice(1, -1);
+  let current = '';
+  let isQuoted = false;
+  let tokenWasQuoted = false;
+  let isEscaped = false;
+
+  const pushCurrent = () => {
+    if (current !== 'NULL' || tokenWasQuoted) {
+      items.push(current);
+    }
+
+    current = '';
+    tokenWasQuoted = false;
+  };
+
+  for (const char of body) {
+    if (isEscaped) {
+      current += char;
+      isEscaped = false;
+      continue;
+    }
+
+    if (isQuoted && char === '\\') {
+      isEscaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      isQuoted = !isQuoted;
+      tokenWasQuoted = true;
+      continue;
+    }
+
+    if (!isQuoted && char === ',') {
+      pushCurrent();
+      continue;
+    }
+
+    current += char;
+  }
+
+  pushCurrent();
+  return items;
 }
 
 function badgeParts(value: unknown): { kind: string | null; value: string | null } {
