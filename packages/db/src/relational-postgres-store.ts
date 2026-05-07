@@ -284,7 +284,7 @@ const RELATIONAL_SCHEMA_STATEMENTS: PostgresStatement[] = [
         revision_no INTEGER NOT NULL CHECK (revision_no > 0),
         name TEXT NOT NULL,
         bottom_label TEXT,
-        logo_asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE RESTRICT,
+        logo_asset_id UUID NOT NULL,
         badge_kind TEXT CHECK (badge_kind IS NULL OR badge_kind IN ('emoji', 'svg')),
         badge_value TEXT,
         status TEXT NOT NULL CHECK (status IN ('draft', 'published')),
@@ -306,8 +306,8 @@ const RELATIONAL_SCHEMA_STATEMENTS: PostgresStatement[] = [
         revision_no INTEGER NOT NULL CHECK (revision_no > 0),
         name TEXT NOT NULL,
         media_type media_type NOT NULL,
-        media_asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE RESTRICT,
-        video_poster_asset_id UUID REFERENCES asset(id) ON DELETE RESTRICT,
+        media_asset_id UUID NOT NULL,
+        video_poster_asset_id UUID,
         image_duration_ms INTEGER CHECK (image_duration_ms IS NULL OR image_duration_ms > 0),
         cta_label TEXT,
         cta_type cta_type,
@@ -352,6 +352,15 @@ const RELATIONAL_SCHEMA_STATEMENTS: PostgresStatement[] = [
         UNIQUE (story_group_revision_id, sort_order)
       )
     `,
+  },
+  {
+    sql: 'ALTER TABLE story_group_revision DROP CONSTRAINT IF EXISTS story_group_revision_logo_asset_id_fkey',
+  },
+  {
+    sql: 'ALTER TABLE story_revision DROP CONSTRAINT IF EXISTS story_revision_media_asset_id_fkey',
+  },
+  {
+    sql: 'ALTER TABLE story_revision DROP CONSTRAINT IF EXISTS story_revision_video_poster_asset_id_fkey',
   },
   {
     sql: 'CREATE INDEX IF NOT EXISTS idx_set_revision_published ON story_group_set_revision (story_group_set_id, created_at DESC) WHERE status = \'published\'',
