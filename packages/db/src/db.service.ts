@@ -9,7 +9,6 @@ import {
   isRelationalPostgresMode,
   relationalPostgresCountRows,
   relationalPostgresDeleteRecord,
-  relationalPostgresFindPayload,
   relationalPostgresInsertRecord,
   relationalPostgresListAllRecords,
   relationalPostgresListPayloads,
@@ -1242,7 +1241,7 @@ export class DbService {
 
     if (activeConnection.target.provider === 'postgres') {
       if (isRelationalPostgresMode()) {
-        return relationalPostgresListPayloads(activeConnection.target.config, table).map((row) => JSON.parse(row.payload) as T);
+        return this.listRelationalPayloads(activeConnection.target, table).map((row) => JSON.parse(row.payload) as T);
       }
 
       return this.listSqlPayloads(activeConnection.target, table).map((row) => JSON.parse(row.payload) as T);
@@ -1314,7 +1313,7 @@ export class DbService {
     const activeConnection = this.database();
     const row =
       activeConnection.target.provider === 'postgres' && isRelationalPostgresMode()
-        ? relationalPostgresFindPayload(activeConnection.target.config, table, id)
+        ? this.listRelationalPayloads(activeConnection.target, table).find((record) => record.id === id)
         : activeConnection.target.provider === 'postgres'
         ? this.listSqlPayloads(activeConnection.target, table).find((record) => record.id === id)
         : activeConnection.target.provider === 'mysql'
@@ -1559,7 +1558,7 @@ export class DbService {
 
     if (activeConnection.target.provider === 'postgres') {
       if (isRelationalPostgresMode()) {
-        return relationalPostgresCountRows(activeConnection.target.config);
+        return this.getRelationalTableCounts(activeConnection.target);
       }
 
       return this.getSqlTableCounts(activeConnection.target);
@@ -1653,6 +1652,15 @@ export class DbService {
     }));
   }
 
+  private listRelationalPayloads(target: PostgresDatabaseTarget, table: TableName): StoredRecord[] {
+    const cache = this.getRelationalReadCache(target);
+    if (cache) {
+      return cache.recordsByTable.get(table) ?? [];
+    }
+
+    return relationalPostgresListPayloads(target.config, table);
+  }
+
   private getSqlTableCounts(target: SqlDatabaseTarget): Record<string, number> {
     const cache = this.getSqlReadCache(target);
     if (cache) {
@@ -1662,6 +1670,15 @@ export class DbService {
     return target.provider === 'postgres'
       ? postgresCountRows(target.config)
       : mysqlCountRows(target.config);
+  }
+
+  private getRelationalTableCounts(target: PostgresDatabaseTarget): Record<string, number> {
+    const cache = this.getRelationalReadCache(target);
+    if (cache) {
+      return { ...cache.tableCounts };
+    }
+
+    return relationalPostgresCountRows(target.config);
   }
 
   private getSqlReadCache(target: SqlDatabaseTarget): SqlReadCache | null {
@@ -1694,8 +1711,35 @@ export class DbService {
     return DbService.sqlReadCache;
   }
 
+  private getRelationalReadCache(target: PostgresDatabaseTarget): SqlReadCache | null {
+    const ttlMs = getSqlReadCacheTtlMs();
+    if (ttlMs <= 0) {
+      return null;
+    }
+
+    const now = Date.now();
+    const targetKey = `${target.key}:relational`;
+    if (
+      DbService.sqlReadCache &&
+      DbService.sqlReadCache.targetKey === targetKey &&
+      DbService.sqlReadCache.expiresAtMs > now
+    ) {
+      return DbService.sqlReadCache;
+    }
+
+    const groupedRecords = groupStoredRecordsByTable(relationalPostgresListAllRecords(target.config));
+    DbService.sqlReadCache = {
+      targetKey,
+      expiresAtMs: now + ttlMs,
+      recordsByTable: groupedRecords.recordsByTable,
+      tableCounts: groupedRecords.tableCounts,
+    };
+
+    return DbService.sqlReadCache;
+  }
+
   private static invalidateSqlReadCache(targetKey?: string): void {
-    if (!targetKey || DbService.sqlReadCache?.targetKey === targetKey) {
+    if (!targetKey || DbService.sqlReadCache?.targetKey.startsWith(targetKey)) {
       DbService.sqlReadCache = null;
     }
   }

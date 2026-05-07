@@ -487,16 +487,27 @@ export function relationalPostgresDeleteRecord(
 
 export function relationalPostgresCountRows(config: RelationalPostgresConfig): Record<string, number> {
   const counts = Object.fromEntries(storyPlatformTableNames.map((table) => [table, 0]));
-  for (const table of storyPlatformTableNames) {
-    const [rows] = runPostgresStatements(config, [{ sql: countSqlForTable(table) }]);
-    counts[table] = Number(postgresRows(rows)[0]?.count ?? 0);
-  }
+  const results = runPostgresStatements(
+    config,
+    storyPlatformTableNames.map((table) => ({ sql: countSqlForTable(table) })),
+  );
+
+  storyPlatformTableNames.forEach((table, index) => {
+    counts[table] = Number(postgresRows(results[index])[0]?.count ?? 0);
+  });
 
   return counts;
 }
 
 export function relationalPostgresListAllRecords(config: RelationalPostgresConfig): StoredRecord[] {
-  return storyPlatformTableNames.flatMap((table) => relationalPostgresListPayloads(config, table));
+  const results = runPostgresStatements(
+    config,
+    storyPlatformTableNames.map((table) => ({ sql: selectSqlForTable(table) })),
+  );
+
+  return storyPlatformTableNames.flatMap((table, index) =>
+    postgresRows(results[index]).map((row) => toStoredRecord(table, mapRelationalRowToRecord(table, row))),
+  );
 }
 
 export function relationalPostgresReplaceAllRecords(config: RelationalPostgresConfig, records: StoredRecord[]): void {
