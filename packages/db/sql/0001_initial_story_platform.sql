@@ -260,6 +260,27 @@ CREATE TABLE IF NOT EXISTS story_group_revision_story (
   UNIQUE (story_group_revision_id, sort_order)
 );
 
+DO $$ BEGIN
+  ALTER TABLE story_group_revision
+    ADD CONSTRAINT story_group_revision_logo_asset_id_fkey
+    FOREIGN KEY (logo_asset_id) REFERENCES asset(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE story_revision
+    ADD CONSTRAINT story_revision_media_asset_id_fkey
+    FOREIGN KEY (media_asset_id) REFERENCES asset(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE story_revision
+    ADD CONSTRAINT story_revision_video_poster_asset_id_fkey
+    FOREIGN KEY (video_poster_asset_id) REFERENCES asset(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_set_revision_published
   ON story_group_set_revision (story_group_set_id, created_at DESC)
   WHERE status = 'published';
