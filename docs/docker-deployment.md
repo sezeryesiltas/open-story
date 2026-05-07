@@ -107,9 +107,10 @@ OPEN_STORY_COOKIE_SECURE=true
 Notlar:
 
 - `OPEN_STORY_PUBLIC_ASSET_BASE_URL` dışarıdan erişilen gerçek domain olmalı.
+- Runtime çözümleme sırası DB için `env -> /data/db/database-config.json`, storage için `env -> /data/db/asset-storage-config.json -> local disk fallback` şeklindedir. Production DB için Postgres zorunludur.
 - Supabase/Postgres production kullanımında `OPEN_STORY_POSTGRES_*` değişkenleri dolu olmalı; API relational tabloları otomatik hazırlar.
 - SDK trafiği altında tekrar eden snapshot okumalarını azaltmak için `OPEN_STORY_DB_READ_CACHE_TTL_MS=60000` önerilir.
-- Production ortamında yüksek medya trafiği için Admin Console `Storage & CDN` ekranından Google Cloud Storage veya Supabase Storage S3 provider'ını etkinleştirin ve asset domainini CDN public URL olarak kullanın.
+- Production ortamında yüksek medya trafiği için ya env üzerinden `OPEN_STORY_ASSET_STORAGE_PROVIDER` + ilgili `OPEN_STORY_GCS_*` / `OPEN_STORY_SUPABASE_S3_*` değişkenlerini verin ya da Admin Console `Storage & CDN` ekranındaki config dosyası ayarlarını kullanın.
 - Google Cloud credential'larını admin ayarlarına yazmayın; API container'ına Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` ile verin.
 - Supabase Storage S3 kullanıyorsanız endpoint, region, bucket, S3 access key ID ve secret access key değerlerini Storage & CDN ekranından girin. Endpoint formatı Supabase tarafında `https://project-ref.storage.supabase.co/storage/v1/s3` şeklindedir.
 - Google Cloud VM, Managed Instance Group ve local ADC credential yönergeleri için `docs/gcs-asset-storage-credentials.md` dokümanını kullanın.

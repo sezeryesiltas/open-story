@@ -53,7 +53,7 @@ Feature implementation starts next in this order:
 ## Database
 
 - Production runtime relational Postgres tablolarını kullanır.
-- Aktif Postgres hedefi runtime env değişkenlerinden veya `OPEN_STORY_DB_CONFIG_PATH` altındaki bootstrap config dosyasından okunur.
+- Runtime DB çözümleme sırası `env -> OPEN_STORY_DB_CONFIG_PATH içindeki config file` şeklindedir; local SQLite fallback yalnızca non-production/test kullanım içindir.
 - Admin `Settings` ekranı sadece Postgres bağlantı bilgilerini yönetir.
 - Eski tek tablo Postgres modu ve migration scripti artık runtime yüzeyinin parçası değildir.
 
@@ -61,4 +61,5 @@ Feature implementation starts next in this order:
 
 - Admin asset akışında URL, Server Upload ve Cloud Upload seçenekleri bulunur.
 - Production için Cloud Upload önerilir; Google Cloud Storage bucket ve CDN public URL ayarı `Storage & CDN` ekranından yönetilir.
+- Runtime storage çözümleme sırası `env -> OPEN_STORY_ASSET_STORAGE_CONFIG_PATH içindeki config file -> local disk fallback` şeklindedir.
 - SDK feed sözleşmesi değişmez; mobil SDK'lar yine asset public URL alanını kullanır.

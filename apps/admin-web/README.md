@@ -36,3 +36,4 @@ pnpm --filter @open-story/admin-web check
 - Same-container çalışmada backend varsayılanı `http://localhost:3001` adresidir.
 - Split-container Docker çalışmada `OPEN_STORY_API_BASE_URL=http://api:3001` kullanın.
 - Gerekirse backend adresi `OPEN_STORY_API_BASE_URL` ile override edilir.
+- `Settings` ve `Storage & CDN` ekranları runtime'daki efektif ayarı gösterir; DB için production'da Postgres zorunludur, local fallback yalnızca non-production/test kullanım içindir.

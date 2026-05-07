@@ -5,7 +5,8 @@ Backend API module scaffold.
 ## Current database behavior
 
 - Production runtime gerçek relational Postgres tablolarını kullanır (`client`, `static_token`, `placement`, `story_group_set`, revision ve composition tabloları).
-- API, Postgres bağlantısını `OPEN_STORY_POSTGRES_*` env değişkenlerinden veya `OPEN_STORY_DB_CONFIG_PATH` içindeki bootstrap config dosyasından okur.
+- API, DB ayarlarını `env -> OPEN_STORY_DB_CONFIG_PATH içindeki bootstrap config dosyası` sırasıyla çözer; local SQLite fallback yalnızca non-production/test kullanım içindir.
+- `OPEN_STORY_POSTGRES_*` env değişkenleri aynı alanlar için config dosyası değerlerini override eder.
 - `GET /v1/settings/database` aktif provider, Postgres bağlantı özeti ve relational tablo sayılarını döner.
 - `PUT /v1/settings/database` ile Postgres bağlantı bilgisi kaydedilir ve relational schema hazır hale getirilir.
 - Eski tek tablo Postgres modu, alternatif SQL hedefleri ve migration scripti runtime yüzeyinden kaldırılmıştır.
@@ -15,6 +16,7 @@ Backend API module scaffold.
 
 - Local server upload `POST /v1/assets/upload` ile devam eder ve `OPEN_STORY_ASSET_STORAGE_DIR` altına yazar.
 - Cloud upload `POST /v1/assets/cloud-upload` ile aktif Google Cloud Storage veya Supabase Storage S3 bucket hedefini kullanır.
+- API, storage ayarlarını `env -> OPEN_STORY_ASSET_STORAGE_CONFIG_PATH içindeki config dosyası -> local disk fallback` sırasıyla çözer.
 - Admin `Storage & CDN` ekranı `GET/PUT /v1/settings/storage` ve `POST /v1/settings/storage/test` üzerinden bucket, object prefix ve CDN public base URL ayarlarını yönetir.
 - Service account JSON/private key admin DB'ye yazılmaz; API runtime'ı Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` kullanır.
 - Supabase S3 access key bilgileri admin DB'ye değil `asset-storage-config.json` dosyasına yazılır ve yalnızca server-side kullanılır.
@@ -61,6 +63,11 @@ Password `GET` response içinde geri dönmez; aynı host/port/database/username/
 ```
 
 Supabase S3 client `forcePathStyle: true` ile çalışır. Secret access key `GET` response içinde dönmez; aynı endpoint/region/bucket/access key için boş gönderilirse mevcut secret korunur.
+
+Production veya multi-instance deploy'da aynı ayarlar env ile de verilebilir:
+
+- `OPEN_STORY_ASSET_STORAGE_PROVIDER=gcs` ile `OPEN_STORY_GCS_*`
+- `OPEN_STORY_ASSET_STORAGE_PROVIDER=supabase_s3` ile `OPEN_STORY_SUPABASE_S3_*`
 
 ## Admin API keys
 

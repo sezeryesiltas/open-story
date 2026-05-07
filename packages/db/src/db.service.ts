@@ -226,12 +226,7 @@ function toFileUrl(filePath: string): string {
   return pathToFileURL(filePath).href;
 }
 
-function resolveLocalDatabasePath(): string {
-  const configuredPath = process.env[SQLITE_PATH_ENV]?.trim();
-  if (configuredPath) {
-    return resolveSqlitePath(configuredPath);
-  }
-
+function resolveDefaultLocalDatabasePath(): string {
   return resolve(resolveDefaultDataDir(), SQLITE_FILENAME);
 }
 
@@ -244,16 +239,18 @@ function resolveConfigPath(): string {
   return resolve(resolveDefaultDataDir(), CONFIG_FILENAME);
 }
 
-function createDefaultConfig(): BootstrapConfig {
+function resolveDefaultLocalDatabaseUrl(): string {
+  return toFileUrl(resolveDefaultLocalDatabasePath());
+}
+
+function createFallbackConfig(): BootstrapConfig {
   const now = new Date().toISOString();
-  const envPostgresDatabaseConfig = readEnvPostgresDatabaseConfig();
-  assertProductionPostgresConfigured(envPostgresDatabaseConfig);
 
   return {
     version: 3,
-    activeProvider: envPostgresDatabaseConfig ? 'postgres' : 'sqlite',
-    localDatabaseUrl: toFileUrl(resolveLocalDatabasePath()),
-    externalPostgresDatabase: envPostgresDatabaseConfig,
+    activeProvider: 'sqlite',
+    localDatabaseUrl: resolveDefaultLocalDatabaseUrl(),
+    externalPostgresDatabase: null,
     updatedAt: now,
   };
 }
@@ -291,36 +288,44 @@ function parsePostgresDatabaseConfig(value: unknown): PostgresExternalDatabaseCo
   };
 }
 
-function readEnvPostgresDatabaseConfig(): PostgresExternalDatabaseConfig | null {
-  const host = readString(process.env[POSTGRES_HOST_ENV]);
-  const database = readString(process.env[POSTGRES_DATABASE_ENV]);
-  const username = readString(process.env[POSTGRES_USERNAME_ENV]);
-  const password = typeof process.env[POSTGRES_PASSWORD_ENV] === 'string' ? process.env[POSTGRES_PASSWORD_ENV] : '';
+function hasEnv(key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(process.env, key);
+}
+
+function mergePostgresDatabaseConfig(
+  currentConfig: PostgresExternalDatabaseConfig | null,
+): PostgresExternalDatabaseConfig | null {
+  const host = readString(process.env[POSTGRES_HOST_ENV]) ?? currentConfig?.host ?? null;
+  const database = readString(process.env[POSTGRES_DATABASE_ENV]) ?? currentConfig?.database ?? null;
+  const username = readString(process.env[POSTGRES_USERNAME_ENV]) ?? currentConfig?.username ?? null;
 
   if (!host || !database || !username) {
     return null;
   }
 
-  const port = normalizePostgresPort(process.env[POSTGRES_PORT_ENV]);
+  const port = normalizePostgresPort(
+    readString(process.env[POSTGRES_PORT_ENV]) ?? currentConfig?.port ?? POSTGRES_DEFAULT_PORT,
+  );
 
   return {
     host,
     port,
     database,
     username,
-    password,
-    sslMode: parsePostgresSslMode(process.env[POSTGRES_SSL_MODE_ENV]),
+    password: hasEnv(POSTGRES_PASSWORD_ENV)
+      ? (process.env[POSTGRES_PASSWORD_ENV] ?? '')
+      : (currentConfig?.password ?? ''),
+    sslMode: hasEnv(POSTGRES_SSL_MODE_ENV)
+      ? parsePostgresSslMode(process.env[POSTGRES_SSL_MODE_ENV])
+      : (currentConfig?.sslMode ?? 'require'),
   };
 }
 
 function parseConfig(rawValue: string): BootstrapConfig {
   const parsed = JSON.parse(rawValue) as Partial<BootstrapConfig>;
-  const now = new Date().toISOString();
-  const envPostgresDatabaseConfig = readEnvPostgresDatabaseConfig();
-  const localDatabaseUrl = toFileUrl(resolveLocalDatabasePath());
+  const defaults = createFallbackConfig();
   const externalPostgresDatabase =
-    parsePostgresDatabaseConfig(parsed.externalPostgresDatabase) ?? envPostgresDatabaseConfig;
-  assertProductionPostgresConfigured(externalPostgresDatabase);
+    parsePostgresDatabaseConfig(parsed.externalPostgresDatabase) ?? defaults.externalPostgresDatabase;
   const activeProvider: DatabaseProvider = externalPostgresDatabase ? 'postgres' : 'sqlite';
 
   return {
@@ -329,9 +334,9 @@ function parseConfig(rawValue: string): BootstrapConfig {
     localDatabaseUrl:
       typeof parsed.localDatabaseUrl === 'string' && parsed.localDatabaseUrl.trim()
         ? toFileUrl(resolveSqlitePath(parsed.localDatabaseUrl))
-        : localDatabaseUrl,
+        : defaults.localDatabaseUrl,
     externalPostgresDatabase,
-    updatedAt: typeof parsed.updatedAt === 'string' && parsed.updatedAt.trim() ? parsed.updatedAt : now,
+    updatedAt: typeof parsed.updatedAt === 'string' && parsed.updatedAt.trim() ? parsed.updatedAt : defaults.updatedAt,
   };
 }
 
@@ -348,12 +353,37 @@ function readBootstrapConfig(): BootstrapConfig {
   ensureParentDirectory(configPath);
 
   if (!existsSync(configPath)) {
-    const defaults = createDefaultConfig();
+    const defaults = createFallbackConfig();
     writeFileSync(configPath, JSON.stringify(defaults, null, 2));
     return defaults;
   }
 
   return parseConfig(readFileSync(configPath, 'utf8'));
+}
+
+function resolveRuntimeSqliteUrl(configuredUrl: string): string {
+  const configuredPath = process.env[SQLITE_PATH_ENV]?.trim();
+  if (configuredPath) {
+    return toFileUrl(resolveSqlitePath(configuredPath));
+  }
+
+  if (configuredUrl.trim()) {
+    return toFileUrl(resolveSqlitePath(configuredUrl));
+  }
+
+  return resolveDefaultLocalDatabaseUrl();
+}
+
+function resolveRuntimeBootstrapConfig(config: BootstrapConfig): BootstrapConfig {
+  const externalPostgresDatabase = mergePostgresDatabaseConfig(config.externalPostgresDatabase);
+  assertProductionPostgresConfigured(externalPostgresDatabase);
+
+  return {
+    ...config,
+    activeProvider: externalPostgresDatabase ? 'postgres' : 'sqlite',
+    localDatabaseUrl: resolveRuntimeSqliteUrl(config.localDatabaseUrl),
+    externalPostgresDatabase,
+  };
 }
 
 function writeBootstrapConfig(config: BootstrapConfig): void {
@@ -705,9 +735,15 @@ export class DbService {
   }
 
   getDatabaseSettings(): DatabaseSettingsSnapshot {
-    const config = readBootstrapConfig();
+    const config = resolveRuntimeBootstrapConfig(readBootstrapConfig());
     const activeTarget = getActiveDatabaseTarget(config);
-    const tableCounts = this.getTableCounts();
+    const tableCounts = (() => {
+      try {
+        return this.getTableCounts();
+      } catch {
+        return createEmptyTableCounts();
+      }
+    })();
 
     return {
       defaultSqliteUrl: config.localDatabaseUrl,
@@ -744,7 +780,7 @@ export class DbService {
 
   testDatabaseConnection(input: TestDatabaseConnectionInput): DatabaseConnectionTestResult {
     const payload = normalizeUpdateInput(input);
-    const currentConfig = readBootstrapConfig();
+    const currentConfig = resolveRuntimeBootstrapConfig(readBootstrapConfig());
     const postgresDatabase = normalizePostgresDatabaseSettings(payload.postgres, currentConfig);
 
     if (postgresDatabase) {
@@ -790,7 +826,7 @@ export class DbService {
   }
 
   private database(): ActiveDatabaseConnection {
-    const config = readBootstrapConfig();
+    const config = resolveRuntimeBootstrapConfig(readBootstrapConfig());
     const activeTarget = getActiveDatabaseTarget(config);
 
     if (DbService.activeConnection && targetsEqual(DbService.activeConnection.target, activeTarget)) {

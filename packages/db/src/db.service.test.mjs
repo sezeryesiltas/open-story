@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -17,10 +17,14 @@ const POSTGRES_ENV_KEYS = [
   'OPEN_STORY_POSTGRES_SSL_MODE',
 ];
 
-function configureTempSqliteFallback(prefix) {
-  for (const key of POSTGRES_ENV_KEYS) {
+function clearDbEnv() {
+  for (const key of [...POSTGRES_ENV_KEYS, 'OPEN_STORY_SQLITE_PATH', 'OPEN_STORY_DB_CONFIG_PATH']) {
     delete process.env[key];
   }
+}
+
+function configureTempSqliteFallback(prefix) {
+  clearDbEnv();
 
   const tempDir = mkdtempSync(join(tmpdir(), prefix));
   process.env.OPEN_STORY_SQLITE_PATH = join(tempDir, 'open-story.sqlite');
@@ -100,6 +104,82 @@ test('DbService test connection requires postgres settings', () => {
   assert.equal(result.ok, false);
   assert.equal(result.provider, null);
   assert.match(result.message, /Postgres bağlantı bilgisi/);
+});
+
+test('DbService resolves postgres settings from environment before config file', () => {
+  configureTempSqliteFallback('open-story-db-env-priority-');
+  writeFileSync(
+    process.env.OPEN_STORY_DB_CONFIG_PATH,
+    JSON.stringify(
+      {
+        version: 3,
+        activeProvider: 'postgres',
+        localDatabaseUrl: `file://${process.env.OPEN_STORY_SQLITE_PATH}`,
+        externalPostgresDatabase: {
+          host: 'config-db.internal',
+          port: 5432,
+          database: 'config_db',
+          username: 'config_user',
+          password: 'config_secret',
+          sslMode: 'require',
+        },
+        updatedAt: '2026-05-07T08:00:00.000Z',
+      },
+      null,
+      2,
+    ),
+  );
+
+  process.env.OPEN_STORY_POSTGRES_HOST = 'env-db.internal';
+  process.env.OPEN_STORY_POSTGRES_PORT = '6543';
+  process.env.OPEN_STORY_POSTGRES_DATABASE = 'env_db';
+  process.env.OPEN_STORY_POSTGRES_USERNAME = 'env_user';
+  process.env.OPEN_STORY_POSTGRES_PASSWORD = 'env_secret';
+  process.env.OPEN_STORY_POSTGRES_SSL_MODE = 'disable';
+
+  const settings = new DbService().getDatabaseSettings();
+
+  assert.equal(settings.activeProvider, 'postgres');
+  assert.equal(settings.postgresDatabase?.host, 'env-db.internal');
+  assert.equal(settings.postgresDatabase?.port, 6543);
+  assert.equal(settings.postgresDatabase?.database, 'env_db');
+  assert.equal(settings.postgresDatabase?.username, 'env_user');
+  assert.equal(settings.postgresDatabase?.sslMode, 'disable');
+  assert.match(settings.activeDatabaseUrl, /env-db\.internal:6543\/env_db\?sslmode=disable/);
+});
+
+test('DbService falls back to config file postgres settings when environment is absent', () => {
+  configureTempSqliteFallback('open-story-db-config-fallback-');
+  writeFileSync(
+    process.env.OPEN_STORY_DB_CONFIG_PATH,
+    JSON.stringify(
+      {
+        version: 3,
+        activeProvider: 'postgres',
+        localDatabaseUrl: `file://${process.env.OPEN_STORY_SQLITE_PATH}`,
+        externalPostgresDatabase: {
+          host: 'config-db.internal',
+          port: 5432,
+          database: 'config_db',
+          username: 'config_user',
+          password: 'config_secret',
+          sslMode: 'require',
+        },
+        updatedAt: '2026-05-07T08:00:00.000Z',
+      },
+      null,
+      2,
+    ),
+  );
+
+  const settings = new DbService().getDatabaseSettings();
+
+  assert.equal(settings.activeProvider, 'postgres');
+  assert.equal(settings.postgresDatabase?.host, 'config-db.internal');
+  assert.equal(settings.postgresDatabase?.port, 5432);
+  assert.equal(settings.postgresDatabase?.database, 'config_db');
+  assert.equal(settings.postgresDatabase?.username, 'config_user');
+  assert.equal(settings.postgresDatabase?.sslMode, 'require');
 });
 
 test('DbService requires postgres configuration in production runtime', () => {

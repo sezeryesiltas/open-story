@@ -301,6 +301,10 @@ export function SettingsWorkspace() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <CardTitle>Aktif veritabanı</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Runtime önce `OPEN_STORY_POSTGRES_*` env değerlerine, sonra config dosyasına bakar. Production
+                ortamında Postgres zorunludur; local fallback yalnızca non-production/test kullanım içindir.
+              </p>
             </div>
             <Badge className="w-fit" variant={settings.activeProvider === 'postgres' ? 'default' : 'secondary'}>
               {settings.activeProvider === 'postgres' ? 'Postgres relational aktif' : 'Postgres yapılandırılmamış'}
