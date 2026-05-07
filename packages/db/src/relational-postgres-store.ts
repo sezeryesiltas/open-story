@@ -24,6 +24,11 @@ type StoredRecord = {
   updatedAt: string;
 };
 
+type LegacyRecordPayload = {
+  id: string;
+  [key: string]: unknown;
+};
+
 const POSTGRES_RUNNER_PATH = fileURLToPath(new URL('./postgres-query-runner.mjs', import.meta.url));
 const POSTGRES_MAX_BUFFER_BYTES = 50 * 1024 * 1024;
 const RELATIONAL_MIGRATION_ID = '0001_relational_story_platform';
@@ -455,20 +460,14 @@ export function relationalPostgresListAllRecords(config: RelationalPostgresConfi
 
 export function relationalPostgresReplaceAllRecords(config: RelationalPostgresConfig, records: StoredRecord[]): void {
   initializeRelationalPostgresDatabase(config);
-
-  const recordsByTable = new Map<StoryPlatformTableName, StoredRecord[]>(
-    storyPlatformTableNames.map((table) => [table, []]),
-  );
-  for (const record of records) {
-    recordsByTable.get(record.tableName)?.push(record);
-  }
+  const recordsByTable = buildRelationalImportPlan(records);
 
   const statements: PostgresStatement[] = [
     { sql: 'BEGIN' },
     ...relationalDeleteStatements(),
     ...RELATIONAL_IMPORT_ORDER.flatMap((table) =>
       (recordsByTable.get(table) ?? []).map((record) =>
-        insertStatementForRecord(table, JSON.parse(record.payload) as { id: string; [key: string]: unknown }),
+        insertStatementForRecord(table, record),
       ),
     ),
     { sql: 'COMMIT' },
@@ -480,6 +479,98 @@ export function relationalPostgresReplaceAllRecords(config: RelationalPostgresCo
     runPostgresStatements(config, [{ sql: 'ROLLBACK' }]);
     throw error;
   }
+}
+
+export function buildRelationalImportPlan(records: StoredRecord[]): Map<StoryPlatformTableName, LegacyRecordPayload[]> {
+  const recordsByTable = new Map<StoryPlatformTableName, LegacyRecordPayload[]>(
+    storyPlatformTableNames.map((table) => [table, []]),
+  );
+
+  for (const record of records) {
+    const tableRecords = recordsByTable.get(record.tableName);
+    if (!tableRecords) {
+      continue;
+    }
+
+    tableRecords.push(JSON.parse(record.payload) as LegacyRecordPayload);
+  }
+
+  const assetIds = new Set((recordsByTable.get('assets') ?? []).map((record) => record.id));
+  const currentGroupRevisionIds = collectCurrentRevisionIds(recordsByTable.get('storyGroups') ?? []);
+  const currentStoryRevisionIds = collectCurrentRevisionIds(recordsByTable.get('stories') ?? []);
+  const skippedGroupRevisionIds = new Set<string>();
+  const skippedStoryRevisionIds = new Set<string>();
+  const blockingProblems: string[] = [];
+
+  for (const revision of recordsByTable.get('storyGroupRevisions') ?? []) {
+    const logoAssetId = stringValue(revision.logoAssetId);
+    if (logoAssetId && assetIds.has(logoAssetId)) {
+      continue;
+    }
+
+    if (currentGroupRevisionIds.has(revision.id)) {
+      blockingProblems.push(`current story group revision ${revision.id} references missing logo asset ${logoAssetId || '<empty>'}`);
+      continue;
+    }
+
+    skippedGroupRevisionIds.add(revision.id);
+  }
+
+  for (const revision of recordsByTable.get('storyRevisions') ?? []) {
+    const problem = getStoryRevisionAssetProblem(revision, assetIds);
+    if (!problem) {
+      continue;
+    }
+
+    if (currentStoryRevisionIds.has(revision.id)) {
+      blockingProblems.push(`current story revision ${revision.id} ${problem}`);
+      continue;
+    }
+
+    skippedStoryRevisionIds.add(revision.id);
+  }
+
+  if (blockingProblems.length > 0) {
+    throw new Error(
+      [
+        'Relational migration cannot continue because current draft/published revisions reference missing assets.',
+        ...blockingProblems.map((problem) => `- ${problem}`),
+      ].join('\n'),
+    );
+  }
+
+  if (skippedGroupRevisionIds.size > 0 || skippedStoryRevisionIds.size > 0) {
+    process.stderr.write(
+      [
+        'Relational migration skipped non-current legacy revisions with missing asset references.',
+        `Skipped story group revisions: ${skippedGroupRevisionIds.size}`,
+        `Skipped story revisions: ${skippedStoryRevisionIds.size}`,
+        '',
+      ].join('\n'),
+    );
+  }
+
+  if (skippedGroupRevisionIds.size > 0) {
+    recordsByTable.set(
+      'storyGroupRevisions',
+      (recordsByTable.get('storyGroupRevisions') ?? []).filter((revision) => !skippedGroupRevisionIds.has(revision.id)),
+    );
+    recordsByTable.set(
+      'storyGroupRevisionStories',
+      (recordsByTable.get('storyGroupRevisionStories') ?? []).filter(
+        (record) => !skippedGroupRevisionIds.has(stringValue(record.storyGroupRevisionId)),
+      ),
+    );
+  }
+
+  if (skippedStoryRevisionIds.size > 0) {
+    recordsByTable.set(
+      'storyRevisions',
+      (recordsByTable.get('storyRevisions') ?? []).filter((revision) => !skippedStoryRevisionIds.has(revision.id)),
+    );
+  }
+
+  return recordsByTable;
 }
 
 function runPostgresStatements(config: RelationalPostgresConfig, statements: PostgresStatement[]): unknown[] {
@@ -508,6 +599,55 @@ function runPostgresStatements(config: RelationalPostgresConfig, statements: Pos
 
 function postgresRows(result: unknown): Array<Record<string, unknown>> {
   return Array.isArray(result) ? (result as Array<Record<string, unknown>>) : [];
+}
+
+function collectCurrentRevisionIds(roots: LegacyRecordPayload[]): Set<string> {
+  const revisionIds = new Set<string>();
+
+  for (const root of roots) {
+    const draftRevisionId = stringValue(root.currentDraftRevisionId);
+    const publishedRevisionId = stringValue(root.currentPublishedRevisionId);
+
+    if (draftRevisionId) {
+      revisionIds.add(draftRevisionId);
+    }
+
+    if (publishedRevisionId) {
+      revisionIds.add(publishedRevisionId);
+    }
+  }
+
+  return revisionIds;
+}
+
+function getStoryRevisionAssetProblem(revision: LegacyRecordPayload, assetIds: Set<string>): string | null {
+  const assetId = stringValue(revision.assetId);
+  if (!assetId || !assetIds.has(assetId)) {
+    return `references missing media asset ${assetId || '<empty>'}`;
+  }
+
+  const mediaType = stringValue(revision.mediaType);
+  const posterAssetId = stringValue(revision.posterAssetId);
+
+  if (mediaType === 'video') {
+    if (!posterAssetId) {
+      return 'is a video revision without poster asset';
+    }
+
+    if (!assetIds.has(posterAssetId)) {
+      return `references missing poster asset ${posterAssetId}`;
+    }
+  }
+
+  if (mediaType === 'image' && posterAssetId) {
+    return `is an image revision with unexpected poster asset ${posterAssetId}`;
+  }
+
+  return null;
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 function selectSqlForTable(table: StoryPlatformTableName): string {

@@ -28,6 +28,8 @@ PATH="$HOME/.local/bin:$PATH" pnpm --filter @open-story/db migrate:postgres:rela
 3. API runtime env içine `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` ekleyip API'yi yeniden deploy edin.
 4. `records` tablosunu rollback snapshot olarak tutun; stabilizasyon tamamlanmadan silmeyin.
 
+Migration, current draft/published olmayan eski revision'lardaki eksik asset referanslarını import dışında bırakır. Current draft/published revision eksik asset'e bakıyorsa migration durur; bu içerik canlı feed/admin davranışını etkileyebileceği için önce içerik ya da asset kaydı düzeltilmelidir.
+
 ## Asset storage behavior
 
 - Local server upload `POST /v1/assets/upload` ile devam eder ve `OPEN_STORY_ASSET_STORAGE_DIR` altına yazar.
