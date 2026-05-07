@@ -89,9 +89,13 @@ Minimum production ayarları:
 ```env
 NODE_ENV=production
 OPEN_STORY_API_PORT=3001
-OPEN_STORY_SQLITE_PATH=/data/db/open-story.sqlite
 OPEN_STORY_DB_CONFIG_PATH=/data/db/database-config.json
-OPEN_STORY_POSTGRES_STORAGE_MODE=relational
+OPEN_STORY_POSTGRES_HOST=db.project-ref.supabase.co
+OPEN_STORY_POSTGRES_PORT=5432
+OPEN_STORY_POSTGRES_DATABASE=postgres
+OPEN_STORY_POSTGRES_USERNAME=postgres
+OPEN_STORY_POSTGRES_PASSWORD=<postgres-password>
+OPEN_STORY_POSTGRES_SSL_MODE=require
 OPEN_STORY_DB_READ_CACHE_TTL_MS=60000
 OPEN_STORY_ASSET_STORAGE_CONFIG_PATH=/data/db/asset-storage-config.json
 OPEN_STORY_ASSET_STORAGE_DIR=/data/assets
@@ -103,9 +107,10 @@ OPEN_STORY_COOKIE_SECURE=true
 Notlar:
 
 - `OPEN_STORY_PUBLIC_ASSET_BASE_URL` dışarıdan erişilen gerçek domain olmalı.
-- Supabase/Postgres production kullanımında `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` açık olmalı; rollback için eski image + unset env ile `records` tablosuna dönülebilir.
-- Relational Postgres modunda SDK trafiği altında tekrar eden snapshot okumalarını azaltmak için `OPEN_STORY_DB_READ_CACHE_TTL_MS=60000` önerilir.
-- Production ortamında yüksek medya trafiği için Admin Console `Storage & CDN` ekranından Google Cloud Storage veya Supabase Storage S3 provider'ını etkinleştirin ve asset domainini CDN public URL olarak kullanın.
+- Runtime çözümleme sırası DB için `env -> /data/db/database-config.json`, storage için `env -> /data/db/asset-storage-config.json -> local disk fallback` şeklindedir. Production DB için Postgres zorunludur.
+- Supabase/Postgres production kullanımında `OPEN_STORY_POSTGRES_*` değişkenleri dolu olmalı; API relational tabloları otomatik hazırlar.
+- SDK trafiği altında tekrar eden snapshot okumalarını azaltmak için `OPEN_STORY_DB_READ_CACHE_TTL_MS=60000` önerilir.
+- Production ortamında yüksek medya trafiği için ya env üzerinden `OPEN_STORY_ASSET_STORAGE_PROVIDER` + ilgili `OPEN_STORY_GCS_*` / `OPEN_STORY_SUPABASE_S3_*` değişkenlerini verin ya da Admin Console `Storage & CDN` ekranındaki config dosyası ayarlarını kullanın.
 - Google Cloud credential'larını admin ayarlarına yazmayın; API container'ına Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` ile verin.
 - Supabase Storage S3 kullanıyorsanız endpoint, region, bucket, S3 access key ID ve secret access key değerlerini Storage & CDN ekranından girin. Endpoint formatı Supabase tarafında `https://project-ref.storage.supabase.co/storage/v1/s3` şeklindedir.
 - Google Cloud VM, Managed Instance Group ve local ADC credential yönergeleri için `docs/gcs-asset-storage-credentials.md` dokümanını kullanın.
@@ -242,7 +247,6 @@ Asset görünmüyor:
 Veritabanını sıfırlama:
 
 ```bash
-rm -f /opt/open-story/data/open-story.sqlite
 rm -f /opt/open-story/data/database-config.json
 docker compose -f docker-compose.deploy.yml restart api
 ```

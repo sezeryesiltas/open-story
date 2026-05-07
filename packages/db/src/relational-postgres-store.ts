@@ -24,20 +24,6 @@ type StoredRecord = {
   updatedAt: string;
 };
 
-type LegacyRecordPayload = {
-  id: string;
-  [key: string]: unknown;
-};
-
-type RelationalInitializationOptions = {
-  includeFinalConstraints?: boolean;
-};
-
-type RepairedRevisionRoot = {
-  root: LegacyRecordPayload;
-  changed: boolean;
-};
-
 const POSTGRES_RUNNER_PATH = fileURLToPath(new URL('./postgres-query-runner.mjs', import.meta.url));
 const POSTGRES_MAX_BUFFER_BYTES = 50 * 1024 * 1024;
 const RELATIONAL_MIGRATION_ID = '0001_relational_story_platform';
@@ -415,38 +401,12 @@ const RELATIONAL_FINAL_CONSTRAINT_STATEMENTS: PostgresStatement[] = [
   },
 ];
 
-const RELATIONAL_IMPORT_ORDER: StoryPlatformTableName[] = [
-  'clients',
-  'adminUsers',
-  'adminSessions',
-  'staticTokens',
-  'adminApiKeys',
-  'placements',
-  'assets',
-  'storyGroupSets',
-  'storyGroups',
-  'stories',
-  'storyGroupSetRevisions',
-  'storyGroupRevisions',
-  'storyRevisions',
-  'storyGroupSetRevisionGroups',
-  'storyGroupRevisionStories',
-];
-
-export function isRelationalPostgresMode(): boolean {
-  return process.env.OPEN_STORY_POSTGRES_STORAGE_MODE?.trim().toLowerCase() === 'relational';
+export function initializeRelationalPostgresDatabase(config: RelationalPostgresConfig): void {
+  runPostgresStatements(config, [...RELATIONAL_SCHEMA_STATEMENTS, ...RELATIONAL_FINAL_CONSTRAINT_STATEMENTS]);
 }
 
-export function initializeRelationalPostgresDatabase(
-  config: RelationalPostgresConfig,
-  options: RelationalInitializationOptions = {},
-): void {
-  runPostgresStatements(
-    config,
-    options.includeFinalConstraints === false
-      ? RELATIONAL_SCHEMA_STATEMENTS
-      : [...RELATIONAL_SCHEMA_STATEMENTS, ...RELATIONAL_FINAL_CONSTRAINT_STATEMENTS],
-  );
+export function relationalPostgresTestConnection(config: RelationalPostgresConfig): void {
+  runPostgresStatements(config, [{ sql: 'SELECT 1 AS ok' }]);
 }
 
 export function relationalPostgresListPayloads(
@@ -455,16 +415,6 @@ export function relationalPostgresListPayloads(
 ): StoredRecord[] {
   const [rows] = runPostgresStatements(config, [{ sql: selectSqlForTable(table) }]);
   return postgresRows(rows).map((row) => toStoredRecord(table, mapRelationalRowToRecord(table, row)));
-}
-
-export function relationalPostgresFindPayload(
-  config: RelationalPostgresConfig,
-  table: StoryPlatformTableName,
-  id: string,
-): StoredRecord | undefined {
-  const [rows] = runPostgresStatements(config, [{ sql: `${selectSqlForTable(table)} WHERE id = $1`, params: [id] }]);
-  const row = postgresRows(rows)[0];
-  return row ? toStoredRecord(table, mapRelationalRowToRecord(table, row)) : undefined;
 }
 
 export function relationalPostgresInsertRecord(
@@ -510,260 +460,6 @@ export function relationalPostgresListAllRecords(config: RelationalPostgresConfi
   );
 }
 
-export function relationalPostgresReplaceAllRecords(config: RelationalPostgresConfig, records: StoredRecord[]): void {
-  initializeRelationalPostgresDatabase(config, { includeFinalConstraints: false });
-  const recordsByTable = buildRelationalImportPlan(records);
-
-  const statements: PostgresStatement[] = [
-    { sql: 'BEGIN' },
-    ...relationalDeleteStatements(),
-    ...RELATIONAL_IMPORT_ORDER.flatMap((table) =>
-      (recordsByTable.get(table) ?? []).map((record) =>
-        insertStatementForRecord(table, record),
-      ),
-    ),
-    ...RELATIONAL_FINAL_CONSTRAINT_STATEMENTS,
-    { sql: 'COMMIT' },
-  ];
-
-  try {
-    runPostgresStatements(config, statements);
-  } catch (error) {
-    runPostgresStatements(config, [{ sql: 'ROLLBACK' }]);
-    throw error;
-  }
-}
-
-export function buildRelationalImportPlan(records: StoredRecord[]): Map<StoryPlatformTableName, LegacyRecordPayload[]> {
-  const recordsByTable = new Map<StoryPlatformTableName, LegacyRecordPayload[]>(
-    storyPlatformTableNames.map((table) => [table, []]),
-  );
-
-  for (const record of records) {
-    const tableRecords = recordsByTable.get(record.tableName);
-    if (!tableRecords) {
-      continue;
-    }
-
-    tableRecords.push(JSON.parse(record.payload) as LegacyRecordPayload);
-  }
-
-  cleanBrokenRevisionAssetReferences(recordsByTable);
-
-  return recordsByTable;
-}
-
-function cleanBrokenRevisionAssetReferences(
-  recordsByTable: Map<StoryPlatformTableName, LegacyRecordPayload[]>,
-): void {
-  const assetIds = new Set((recordsByTable.get('assets') ?? []).map((record) => record.id));
-  const storyRootIds = new Set((recordsByTable.get('stories') ?? []).map((record) => record.id));
-  const groupRootIds = new Set((recordsByTable.get('storyGroups') ?? []).map((record) => record.id));
-  const skippedGroupRevisionIds = new Set<string>();
-  const skippedStoryRevisionIds = new Set<string>();
-
-  for (const revision of recordsByTable.get('storyGroupRevisions') ?? []) {
-    if (
-      getStoryGroupRevisionAssetProblem(revision, assetIds)
-      || !groupRootIds.has(stringValue(revision.storyGroupId))
-    ) {
-      skippedGroupRevisionIds.add(revision.id);
-    }
-  }
-
-  for (const revision of recordsByTable.get('storyRevisions') ?? []) {
-    if (
-      getStoryRevisionAssetProblem(revision, assetIds)
-      || !storyRootIds.has(stringValue(revision.storyId))
-    ) {
-      skippedStoryRevisionIds.add(revision.id);
-    }
-  }
-
-  recordsByTable.set(
-    'storyGroupRevisions',
-    (recordsByTable.get('storyGroupRevisions') ?? []).filter((revision) => !skippedGroupRevisionIds.has(revision.id)),
-  );
-  recordsByTable.set(
-    'storyRevisions',
-    (recordsByTable.get('storyRevisions') ?? []).filter((revision) => !skippedStoryRevisionIds.has(revision.id)),
-  );
-
-  const validGroupRevisionsByRootId = groupRecordsByRootId(
-    recordsByTable.get('storyGroupRevisions') ?? [],
-    'storyGroupId',
-  );
-  const validStoryRevisionsByRootId = groupRecordsByRootId(
-    recordsByTable.get('storyRevisions') ?? [],
-    'storyId',
-  );
-  const skippedGroupRootIds = new Set<string>();
-  const skippedStoryRootIds = new Set<string>();
-  let repairedGroupRoots = 0;
-  let repairedStoryRoots = 0;
-
-  const repairedGroupRootsList: LegacyRecordPayload[] = [];
-  for (const root of recordsByTable.get('storyGroups') ?? []) {
-    const repaired = repairCurrentRevisionPointers(root, validGroupRevisionsByRootId.get(root.id) ?? []);
-    if (!repaired) {
-      skippedGroupRootIds.add(root.id);
-      continue;
-    }
-
-    if (repaired.changed) {
-      repairedGroupRoots += 1;
-    }
-    repairedGroupRootsList.push(repaired.root);
-  }
-  recordsByTable.set('storyGroups', repairedGroupRootsList);
-
-  const repairedStoryRootsList: LegacyRecordPayload[] = [];
-  for (const root of recordsByTable.get('stories') ?? []) {
-    const repaired = repairCurrentRevisionPointers(root, validStoryRevisionsByRootId.get(root.id) ?? []);
-    if (!repaired) {
-      skippedStoryRootIds.add(root.id);
-      continue;
-    }
-
-    if (repaired.changed) {
-      repairedStoryRoots += 1;
-    }
-    repairedStoryRootsList.push(repaired.root);
-  }
-  recordsByTable.set('stories', repairedStoryRootsList);
-
-  if (skippedGroupRootIds.size > 0) {
-    for (const revision of recordsByTable.get('storyGroupRevisions') ?? []) {
-      if (skippedGroupRootIds.has(stringValue(revision.storyGroupId))) {
-        skippedGroupRevisionIds.add(revision.id);
-      }
-    }
-    recordsByTable.set(
-      'storyGroupRevisions',
-      (recordsByTable.get('storyGroupRevisions') ?? []).filter(
-        (revision) => !skippedGroupRootIds.has(stringValue(revision.storyGroupId)),
-      ),
-    );
-  }
-
-  if (skippedStoryRootIds.size > 0) {
-    for (const revision of recordsByTable.get('storyRevisions') ?? []) {
-      if (skippedStoryRootIds.has(stringValue(revision.storyId))) {
-        skippedStoryRevisionIds.add(revision.id);
-      }
-    }
-    recordsByTable.set(
-      'storyRevisions',
-      (recordsByTable.get('storyRevisions') ?? []).filter(
-        (revision) => !skippedStoryRootIds.has(stringValue(revision.storyId)),
-      ),
-    );
-  }
-
-  const compositionRowCounts = cleanCompositionRows(recordsByTable);
-
-  if (
-    skippedGroupRevisionIds.size > 0
-    || skippedStoryRevisionIds.size > 0
-    || skippedGroupRootIds.size > 0
-    || skippedStoryRootIds.size > 0
-    || repairedGroupRoots > 0
-    || repairedStoryRoots > 0
-    || compositionRowCounts.groupSetRows > 0
-    || compositionRowCounts.groupStoryRows > 0
-  ) {
-    process.stderr.write(
-      [
-        'Relational migration cleaned legacy records with broken revision references.',
-        `Skipped story group revisions: ${skippedGroupRevisionIds.size}`,
-        `Skipped story revisions: ${skippedStoryRevisionIds.size}`,
-        `Skipped story groups: ${skippedGroupRootIds.size}`,
-        `Skipped stories: ${skippedStoryRootIds.size}`,
-        `Repaired story group current revision pointers: ${repairedGroupRoots}`,
-        `Repaired story current revision pointers: ${repairedStoryRoots}`,
-        `Skipped set/group composition rows: ${compositionRowCounts.groupSetRows}`,
-        `Skipped group/story composition rows: ${compositionRowCounts.groupStoryRows}`,
-        '',
-      ].join('\n'),
-    );
-  }
-}
-
-function cleanCompositionRows(recordsByTable: Map<StoryPlatformTableName, LegacyRecordPayload[]>): {
-  groupSetRows: number;
-  groupStoryRows: number;
-} {
-  const remainingGroupRootIds = new Set((recordsByTable.get('storyGroups') ?? []).map((record) => record.id));
-  const remainingStoryRootIds = new Set((recordsByTable.get('stories') ?? []).map((record) => record.id));
-  const remainingGroupRevisionIds = new Set(
-    (recordsByTable.get('storyGroupRevisions') ?? []).map((record) => record.id),
-  );
-  const remainingSetRevisionIds = new Set(
-    (recordsByTable.get('storyGroupSetRevisions') ?? []).map((record) => record.id),
-  );
-  const groupSetRows = recordsByTable.get('storyGroupSetRevisionGroups') ?? [];
-  const groupStoryRows = recordsByTable.get('storyGroupRevisionStories') ?? [];
-  const keptGroupSetRows = groupSetRows.filter(
-    (record) =>
-      remainingSetRevisionIds.has(stringValue(record.storyGroupSetRevisionId))
-      && remainingGroupRootIds.has(stringValue(record.storyGroupId)),
-  );
-  const keptGroupStoryRows = groupStoryRows.filter(
-    (record) =>
-      remainingGroupRevisionIds.has(stringValue(record.storyGroupRevisionId))
-      && remainingStoryRootIds.has(stringValue(record.storyId)),
-  );
-
-  recordsByTable.set('storyGroupSetRevisionGroups', keptGroupSetRows);
-  recordsByTable.set('storyGroupRevisionStories', keptGroupStoryRows);
-
-  return {
-    groupSetRows: groupSetRows.length - keptGroupSetRows.length,
-    groupStoryRows: groupStoryRows.length - keptGroupStoryRows.length,
-  };
-}
-
-function repairCurrentRevisionPointers(
-  root: LegacyRecordPayload,
-  validRevisions: LegacyRecordPayload[],
-): RepairedRevisionRoot | null {
-  if (validRevisions.length === 0) {
-    return null;
-  }
-
-  const validRevisionIds = new Set(validRevisions.map((revision) => revision.id));
-  const currentDraftRevisionId = stringValue(root.currentDraftRevisionId);
-  const currentPublishedRevisionId = stringValue(root.currentPublishedRevisionId);
-  const selectedDraftRevision =
-    revisionWithIdAndStatus(validRevisions, currentDraftRevisionId, 'draft')
-    ?? latestRevisionWithStatus(validRevisions, 'draft')
-    ?? latestRevision(validRevisions);
-  const selectedPublishedRevision =
-    revisionWithIdAndStatus(validRevisions, currentPublishedRevisionId, 'published')
-    ?? latestRevisionWithStatus(validRevisions, 'published');
-
-  if (!selectedDraftRevision) {
-    return null;
-  }
-
-  const selectedPublishedRevisionId = selectedPublishedRevision?.id ?? null;
-  const currentPublishedRevisionIdAfterCleanup = validRevisionIds.has(currentPublishedRevisionId)
-    ? currentPublishedRevisionId
-    : null;
-  const changed =
-    selectedDraftRevision.id !== currentDraftRevisionId
-    || selectedPublishedRevisionId !== currentPublishedRevisionIdAfterCleanup;
-
-  return {
-    root: {
-      ...root,
-      currentDraftRevisionId: selectedDraftRevision.id,
-      currentPublishedRevisionId: selectedPublishedRevisionId,
-    },
-    changed,
-  };
-}
-
 function runPostgresStatements(config: RelationalPostgresConfig, statements: PostgresStatement[]): unknown[] {
   const result = spawnSync(process.execPath, [POSTGRES_RUNNER_PATH], {
     input: JSON.stringify({ config, statements }),
@@ -790,92 +486,6 @@ function runPostgresStatements(config: RelationalPostgresConfig, statements: Pos
 
 function postgresRows(result: unknown): Array<Record<string, unknown>> {
   return Array.isArray(result) ? (result as Array<Record<string, unknown>>) : [];
-}
-
-function groupRecordsByRootId(records: LegacyRecordPayload[], rootKey: string): Map<string, LegacyRecordPayload[]> {
-  const recordsByRootId = new Map<string, LegacyRecordPayload[]>();
-
-  for (const record of records) {
-    const rootId = stringValue(record[rootKey]);
-    if (!rootId) {
-      continue;
-    }
-
-    const rootRecords = recordsByRootId.get(rootId) ?? [];
-    rootRecords.push(record);
-    recordsByRootId.set(rootId, rootRecords);
-  }
-
-  return recordsByRootId;
-}
-
-function revisionWithIdAndStatus(
-  revisions: LegacyRecordPayload[],
-  revisionId: string,
-  status: string,
-): LegacyRecordPayload | undefined {
-  if (!revisionId) {
-    return undefined;
-  }
-
-  return revisions.find((revision) => revision.id === revisionId && stringValue(revision.status) === status);
-}
-
-function latestRevisionWithStatus(revisions: LegacyRecordPayload[], status: string): LegacyRecordPayload | undefined {
-  return latestRevision(revisions.filter((revision) => stringValue(revision.status) === status));
-}
-
-function latestRevision(revisions: LegacyRecordPayload[]): LegacyRecordPayload | undefined {
-  return [...revisions].sort((left, right) => revisionSortValue(right) - revisionSortValue(left))[0];
-}
-
-function revisionSortValue(revision: LegacyRecordPayload): number {
-  const revisionNumber = Number(revision.revisionNumber);
-  if (Number.isFinite(revisionNumber)) {
-    return revisionNumber;
-  }
-
-  const createdAt = Date.parse(stringValue(revision.createdAt));
-  return Number.isFinite(createdAt) ? createdAt : 0;
-}
-
-function getStoryGroupRevisionAssetProblem(revision: LegacyRecordPayload, assetIds: Set<string>): string | null {
-  const logoAssetId = stringValue(revision.logoAssetId);
-  if (!logoAssetId || !assetIds.has(logoAssetId)) {
-    return `references missing logo asset ${logoAssetId || '<empty>'}`;
-  }
-
-  return null;
-}
-
-function getStoryRevisionAssetProblem(revision: LegacyRecordPayload, assetIds: Set<string>): string | null {
-  const assetId = stringValue(revision.assetId);
-  if (!assetId || !assetIds.has(assetId)) {
-    return `references missing media asset ${assetId || '<empty>'}`;
-  }
-
-  const mediaType = stringValue(revision.mediaType);
-  const posterAssetId = stringValue(revision.posterAssetId);
-
-  if (mediaType === 'video') {
-    if (!posterAssetId) {
-      return 'is a video revision without poster asset';
-    }
-
-    if (!assetIds.has(posterAssetId)) {
-      return `references missing poster asset ${posterAssetId}`;
-    }
-  }
-
-  if (mediaType === 'image' && posterAssetId) {
-    return `is an image revision with unexpected poster asset ${posterAssetId}`;
-  }
-
-  return null;
-}
-
-function stringValue(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
 }
 
 function selectSqlForTable(table: StoryPlatformTableName): string {
@@ -1460,7 +1070,7 @@ function mapRelationalRowToRecord(
         name: row.name,
         status: row.status,
         platformTargets: platformTargetsFromRow(row),
-        userSegments: toStringArray(row.userSegments),
+        userSegments: parseRelationalPostgresStringArray(row.userSegments),
         createdByAdminUserId: row.createdByAdminUserId ?? null,
         createdAt: row.createdAt,
       };
@@ -1567,7 +1177,7 @@ function normalizedPlatformTargets(value: unknown): {
 }
 
 function platformTargetsFromRow(row: Record<string, unknown>): Array<{ platform: 'ios' | 'android'; minAppVersion: string }> {
-  const platforms = toStringArray(row.targetPlatformsRaw);
+  const platforms = parseRelationalPostgresStringArray(row.targetPlatformsRaw);
   const targets: Array<{ platform: 'ios' | 'android'; minAppVersion: string }> = [];
 
   if (platforms.includes('ios') && row.iosMinAppVersion) {
@@ -1581,8 +1191,68 @@ function platformTargetsFromRow(row: Record<string, unknown>): Array<{ platform:
   return targets;
 }
 
-function toStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+export function parseRelationalPostgresStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry));
+  }
+
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return [];
+  }
+
+  if (!trimmedValue.startsWith('{') || !trimmedValue.endsWith('}')) {
+    return [trimmedValue];
+  }
+
+  const items: string[] = [];
+  const body = trimmedValue.slice(1, -1);
+  let current = '';
+  let isQuoted = false;
+  let tokenWasQuoted = false;
+  let isEscaped = false;
+
+  const pushCurrent = () => {
+    if (current !== 'NULL' || tokenWasQuoted) {
+      items.push(current);
+    }
+
+    current = '';
+    tokenWasQuoted = false;
+  };
+
+  for (const char of body) {
+    if (isEscaped) {
+      current += char;
+      isEscaped = false;
+      continue;
+    }
+
+    if (isQuoted && char === '\\') {
+      isEscaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      isQuoted = !isQuoted;
+      tokenWasQuoted = true;
+      continue;
+    }
+
+    if (!isQuoted && char === ',') {
+      pushCurrent();
+      continue;
+    }
+
+    current += char;
+  }
+
+  pushCurrent();
+  return items;
 }
 
 function badgeParts(value: unknown): { kind: string | null; value: string | null } {
@@ -1613,24 +1283,4 @@ function ctaParts(value: unknown): { label: string | null; type: string | null; 
     type: String(record.type ?? ''),
     value: String(record.value ?? ''),
   };
-}
-
-function relationalDeleteStatements(): PostgresStatement[] {
-  return [
-    { sql: 'DELETE FROM story_group_revision_story' },
-    { sql: 'DELETE FROM story_group_set_revision_group' },
-    { sql: 'DELETE FROM story_revision' },
-    { sql: 'DELETE FROM story_group_revision' },
-    { sql: 'DELETE FROM story_group_set_revision' },
-    { sql: 'DELETE FROM story' },
-    { sql: 'DELETE FROM story_group' },
-    { sql: 'DELETE FROM story_group_set' },
-    { sql: 'DELETE FROM asset' },
-    { sql: 'DELETE FROM placement' },
-    { sql: 'DELETE FROM admin_api_key' },
-    { sql: 'DELETE FROM static_token' },
-    { sql: 'DELETE FROM admin_session' },
-    { sql: 'DELETE FROM admin_user' },
-    { sql: 'DELETE FROM client' },
-  ];
 }

@@ -84,20 +84,6 @@ export const databaseMetricGroups: DatabaseVolumeMetricGroup[] = [
   },
 ];
 
-export function formatDatabaseSettingsDate(value: string | null): string {
-  if (!value) {
-    return 'Henüz taşınmadı';
-  }
-
-  return new Intl.DateTimeFormat('tr-TR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
-
 export function formatMetricCount(value: number): string {
   return new Intl.NumberFormat('tr-TR').format(value);
 }

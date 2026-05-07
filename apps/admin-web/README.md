@@ -25,7 +25,7 @@ pnpm --filter @open-story/admin-web check
 - Landing/dashboard skeleton created.
 - Placements ekranı hero + card list + empty state + right sheet create/edit akışı ile çalışıyor.
 - Query provider wiring ready for API integration.
-- `Settings` ekranı aktif database provider hedefini gösterir; harici SQLite URL/path, MySQL ve Postgres bağlantı bilgisi geçişini yapar.
+- `Settings` ekranı aktif relational Postgres hedefini gösterir ve Postgres bağlantı bilgisini yönetir.
 - `Storage & CDN` ekranı local asset storage, Google Cloud Storage/CDN ve Supabase Storage S3 hedefini yönetir.
 - Asset oluşturma akışında URL, Server Upload ve Cloud Upload seçenekleri bulunur; production için Cloud Upload önerilir.
 
@@ -36,3 +36,4 @@ pnpm --filter @open-story/admin-web check
 - Same-container çalışmada backend varsayılanı `http://localhost:3001` adresidir.
 - Split-container Docker çalışmada `OPEN_STORY_API_BASE_URL=http://api:3001` kullanın.
 - Gerekirse backend adresi `OPEN_STORY_API_BASE_URL` ile override edilir.
+- `Settings` ve `Storage & CDN` ekranları runtime'daki efektif ayarı gösterir; DB için production'da Postgres zorunludur, local fallback yalnızca non-production/test kullanım içindir.

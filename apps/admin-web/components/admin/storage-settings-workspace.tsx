@@ -294,6 +294,10 @@ export function StorageSettingsWorkspace() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <CardTitle>Aktif provider</CardTitle>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Runtime önce storage env değerlerini kullanır; env yoksa config dosyasını, o da yoksa local
+                  storage fallback&apos;ını kullanır.
+                </p>
               </div>
               <Badge variant={settings.activeProvider === 'local' ? 'secondary' : 'default'}>
                 {getStorageProviderLabel(settings.activeProvider)}

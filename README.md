@@ -17,7 +17,7 @@ Initial monorepo foundation is created on branch:
     api/             # NestJS + Fastify delivery API
   packages/
     contracts/       # Shared API/domain contracts
-    db/              # SQLite-backed storage and DB utilities
+    db/              # Relational Postgres storage and DB utilities
     config/          # Shared lint/ts/build configs
     ui/              # Shared admin web UI primitives
   sdk/
@@ -52,13 +52,14 @@ Feature implementation starts next in this order:
 
 ## Database
 
-- Varsayılan storage `apps/api/data/open-story.sqlite` dosyasıdır.
-- Aktif DB hedefi local bootstrap config ile saklanır.
-- Admin `Settings` ekranı üzerinden harici SQLite URL/path, MySQL veya Postgres bağlantı bilgileri tanımlanabilir.
-- Postgres için legacy tek `records` tablosu ve yeni relational tablo modu ayrıdır. Production relational mod için `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` kullanılır.
+- Production runtime relational Postgres tablolarını kullanır.
+- Runtime DB çözümleme sırası `env -> OPEN_STORY_DB_CONFIG_PATH içindeki config file` şeklindedir; local SQLite fallback yalnızca non-production/test kullanım içindir.
+- Admin `Settings` ekranı sadece Postgres bağlantı bilgilerini yönetir.
+- Eski tek tablo Postgres modu ve migration scripti artık runtime yüzeyinin parçası değildir.
 
 ## Asset Storage
 
 - Admin asset akışında URL, Server Upload ve Cloud Upload seçenekleri bulunur.
 - Production için Cloud Upload önerilir; Google Cloud Storage bucket ve CDN public URL ayarı `Storage & CDN` ekranından yönetilir.
+- Runtime storage çözümleme sırası `env -> OPEN_STORY_ASSET_STORAGE_CONFIG_PATH içindeki config file -> local disk fallback` şeklindedir.
 - SDK feed sözleşmesi değişmez; mobil SDK'lar yine asset public URL alanını kullanır.

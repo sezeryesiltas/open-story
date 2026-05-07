@@ -49,7 +49,7 @@ const DEFAULT_SUPABASE_S3_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 export class AssetStorageSettingsStore {
   getSettings(): AssetStorageSettingsDto {
-    const config = readConfig();
+    const config = resolveRuntimeConfig(readStoredConfig());
 
     return {
       activeProvider: config.activeProvider,
@@ -65,7 +65,7 @@ export class AssetStorageSettingsStore {
   }
 
   updateSettings(input: UpdateAssetStorageSettingsDto): AssetStorageSettingsDto {
-    const current = readConfig();
+    const current = readStoredConfig();
     const next: AssetStorageConfig = {
       ...current,
       activeProvider: normalizeProvider(input.activeProvider ?? current.activeProvider),
@@ -92,7 +92,7 @@ export class AssetStorageSettingsStore {
     settings: AssetStorageSettingsDto;
     supabaseS3SecretAccessKey: string | null;
   } {
-    const current = readConfig();
+    const current = resolveRuntimeConfig(readStoredConfig());
     const activeProvider = normalizeProvider(input.activeProvider ?? current.activeProvider);
     const gcs = normalizeGcsSettings(input.gcs, current.gcs);
     const supabaseS3 = normalizeSupabaseS3Settings(input.supabaseS3, current.supabaseS3);
@@ -121,7 +121,7 @@ export class AssetStorageSettingsStore {
   }
 
   getCurrentSupabaseS3SecretAccessKey(): string | null {
-    const config = readConfig();
+    const config = resolveRuntimeConfig(readStoredConfig());
     return config.activeProvider === 'supabase_s3' ? config.supabaseS3.secretAccessKey : null;
   }
 }
@@ -162,44 +162,38 @@ export function assertUsableSupabaseS3Settings(settings: SupabaseS3AssetStorageC
   }
 }
 
-function createDefaultConfig(): AssetStorageConfig {
+function createFallbackConfig(): AssetStorageConfig {
   return {
     version: 2,
-    activeProvider: normalizeProvider(process.env[STORAGE_PROVIDER_ENV]),
+    activeProvider: 'local',
     gcs: {
-      projectId: readString(process.env[GCS_PROJECT_ID_ENV]),
-      bucketName: readString(process.env[GCS_BUCKET_ENV]),
-      objectPrefix: normalizeObjectPrefix(process.env[GCS_OBJECT_PREFIX_ENV] ?? DEFAULT_GCS_OBJECT_PREFIX),
-      publicAssetBaseUrl: readString(process.env[GCS_PUBLIC_BASE_URL_ENV]),
-      cacheControl: readString(process.env[GCS_CACHE_CONTROL_ENV]) ?? DEFAULT_GCS_CACHE_CONTROL,
+      projectId: null,
+      bucketName: null,
+      objectPrefix: DEFAULT_GCS_OBJECT_PREFIX,
+      publicAssetBaseUrl: null,
+      cacheControl: DEFAULT_GCS_CACHE_CONTROL,
     },
     supabaseS3: {
-      endpoint: normalizeNullableUrl(process.env[SUPABASE_S3_ENDPOINT_ENV]),
-      region: normalizeRequiredValue(
-        process.env[SUPABASE_S3_REGION_ENV],
-        DEFAULT_SUPABASE_S3_REGION,
-        128,
-      ),
-      bucketName: normalizeNullableString(process.env[SUPABASE_S3_BUCKET_ENV], 256),
-      accessKeyId: normalizeNullableString(process.env[SUPABASE_S3_ACCESS_KEY_ID_ENV], 256),
-      secretAccessKey: readString(process.env[SUPABASE_S3_SECRET_ACCESS_KEY_ENV]) ?? '',
-      objectPrefix: normalizeObjectPrefix(
-        process.env[SUPABASE_S3_OBJECT_PREFIX_ENV] ?? DEFAULT_SUPABASE_S3_OBJECT_PREFIX,
-      ),
-      publicAssetBaseUrl: normalizeNullableUrl(process.env[SUPABASE_S3_PUBLIC_BASE_URL_ENV]),
-      cacheControl: readString(process.env[SUPABASE_S3_CACHE_CONTROL_ENV]) ?? DEFAULT_SUPABASE_S3_CACHE_CONTROL,
+      endpoint: null,
+      region: DEFAULT_SUPABASE_S3_REGION,
+      bucketName: null,
+      accessKeyId: null,
+      secretAccessKey: '',
+      objectPrefix: DEFAULT_SUPABASE_S3_OBJECT_PREFIX,
+      publicAssetBaseUrl: null,
+      cacheControl: DEFAULT_SUPABASE_S3_CACHE_CONTROL,
       forcePathStyle: true,
     },
     updatedAt: null,
   };
 }
 
-function readConfig(): AssetStorageConfig {
+function readStoredConfig(): AssetStorageConfig {
   const configPath = resolveConfigPath();
   mkdirSync(dirname(configPath), { recursive: true });
 
   if (!existsSync(configPath)) {
-    const defaults = createDefaultConfig();
+    const defaults = createFallbackConfig();
     writeFileSync(configPath, JSON.stringify(defaults, null, 2));
     return defaults;
   }
@@ -214,7 +208,7 @@ function writeConfig(config: AssetStorageConfig): void {
 }
 
 function parseConfig(rawValue: string): AssetStorageConfig {
-  const defaults = createDefaultConfig();
+  const defaults = createFallbackConfig();
   const parsed = JSON.parse(rawValue) as Partial<AssetStorageConfig>;
 
   return {
@@ -223,6 +217,71 @@ function parseConfig(rawValue: string): AssetStorageConfig {
     gcs: normalizeGcsSettings(parsed.gcs, defaults.gcs),
     supabaseS3: normalizeSupabaseS3Settings(parsed.supabaseS3, defaults.supabaseS3),
     updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : null,
+  };
+}
+
+function hasEnv(key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(process.env, key);
+}
+
+function resolveRuntimeConfig(config: AssetStorageConfig): AssetStorageConfig {
+  const activeProvider = hasEnv(STORAGE_PROVIDER_ENV)
+    ? normalizeProvider(process.env[STORAGE_PROVIDER_ENV])
+    : config.activeProvider;
+
+  return {
+    ...config,
+    activeProvider,
+    gcs: resolveRuntimeGcsSettings(config.gcs),
+    supabaseS3: resolveRuntimeSupabaseS3Settings(config.supabaseS3),
+  };
+}
+
+function resolveRuntimeGcsSettings(current: AssetStorageConfig['gcs']): AssetStorageConfig['gcs'] {
+  return {
+    projectId: hasEnv(GCS_PROJECT_ID_ENV) ? normalizeNullableString(process.env[GCS_PROJECT_ID_ENV], 128) : current.projectId,
+    bucketName: hasEnv(GCS_BUCKET_ENV) ? normalizeNullableString(process.env[GCS_BUCKET_ENV], 256) : current.bucketName,
+    objectPrefix: hasEnv(GCS_OBJECT_PREFIX_ENV)
+      ? normalizeObjectPrefix(process.env[GCS_OBJECT_PREFIX_ENV])
+      : current.objectPrefix,
+    publicAssetBaseUrl: hasEnv(GCS_PUBLIC_BASE_URL_ENV)
+      ? normalizeNullableUrl(process.env[GCS_PUBLIC_BASE_URL_ENV])
+      : current.publicAssetBaseUrl,
+    cacheControl: hasEnv(GCS_CACHE_CONTROL_ENV)
+      ? normalizeCacheControl(process.env[GCS_CACHE_CONTROL_ENV])
+      : current.cacheControl,
+  };
+}
+
+function resolveRuntimeSupabaseS3Settings(
+  current: SupabaseS3AssetStorageConfig,
+): SupabaseS3AssetStorageConfig {
+  return {
+    endpoint: hasEnv(SUPABASE_S3_ENDPOINT_ENV)
+      ? normalizeNullableUrl(process.env[SUPABASE_S3_ENDPOINT_ENV])
+      : current.endpoint,
+    region: hasEnv(SUPABASE_S3_REGION_ENV)
+      ? normalizeRequiredValue(process.env[SUPABASE_S3_REGION_ENV], DEFAULT_SUPABASE_S3_REGION, 128)
+      : current.region,
+    bucketName: hasEnv(SUPABASE_S3_BUCKET_ENV)
+      ? normalizeNullableString(process.env[SUPABASE_S3_BUCKET_ENV], 256)
+      : current.bucketName,
+    accessKeyId: hasEnv(SUPABASE_S3_ACCESS_KEY_ID_ENV)
+      ? normalizeNullableString(process.env[SUPABASE_S3_ACCESS_KEY_ID_ENV], 256)
+      : current.accessKeyId,
+    secretAccessKey: hasEnv(SUPABASE_S3_SECRET_ACCESS_KEY_ENV)
+      ? (readString(process.env[SUPABASE_S3_SECRET_ACCESS_KEY_ENV]) ?? '')
+      : current.secretAccessKey,
+    objectPrefix: hasEnv(SUPABASE_S3_OBJECT_PREFIX_ENV)
+      ? normalizeObjectPrefix(process.env[SUPABASE_S3_OBJECT_PREFIX_ENV])
+      : current.objectPrefix,
+    publicAssetBaseUrl: hasEnv(SUPABASE_S3_PUBLIC_BASE_URL_ENV)
+      ? normalizeNullableUrl(process.env[SUPABASE_S3_PUBLIC_BASE_URL_ENV])
+      : current.publicAssetBaseUrl,
+    cacheControl: hasEnv(SUPABASE_S3_CACHE_CONTROL_ENV)
+      ? normalizeCacheControl(process.env[SUPABASE_S3_CACHE_CONTROL_ENV])
+      : current.cacheControl,
+    forcePathStyle: true,
   };
 }
 
