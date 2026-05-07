@@ -43,6 +43,15 @@ export class AssetsService {
       .filter((asset) => (query.type ? asset.type === query.type : true));
   }
 
+  async getUploadCapabilities(authorization?: string): Promise<{ serverUploadAllowed: boolean }> {
+    await this.adminAccessService.requireStoryEditorAccess(authorization);
+    const settings = this.assetStorageSettingsStore.getSettings();
+
+    return {
+      serverUploadAllowed: settings.activeProvider === 'local',
+    };
+  }
+
   async upload(input: Omit<AssetUploadInput, 'createdByAdminUserId'>, authorization?: string): Promise<AssetDto> {
     const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
     const settings = this.assetStorageSettingsStore.getSettings();

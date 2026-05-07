@@ -1,6 +1,5 @@
 'use client';
 
-import type { AssetStorageSettingsDto } from '@open-story/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
@@ -18,7 +17,7 @@ import { Clapperboard, CloudUpload, ImagePlus, RefreshCcw, Upload, X } from 'luc
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { ApiRequestError, apiRequest } from '@/lib/api';
-import { ASSET_STORAGE_SETTINGS_QUERY_KEY, canUseServerAssetUpload } from '@/lib/asset-storage-settings';
+import { ASSET_UPLOAD_CAPABILITIES_QUERY_KEY, AssetUploadCapabilitiesDto, canUseServerAssetUpload } from '@/lib/asset-storage-settings';
 
 type AssetApiRecord = {
   id: string;
@@ -264,8 +263,8 @@ export function StoryAssetPicker({
     queryFn: () => apiRequest<AssetApiRecord[]>(`/api/assets?type=${assetType}`),
   });
   const storageSettingsQuery = useQuery({
-    queryKey: ASSET_STORAGE_SETTINGS_QUERY_KEY,
-    queryFn: () => apiRequest<AssetStorageSettingsDto>('/api/settings/storage'),
+    queryKey: ASSET_UPLOAD_CAPABILITIES_QUERY_KEY,
+    queryFn: () => apiRequest<AssetUploadCapabilitiesDto>('/api/assets/upload-capabilities'),
   });
   const serverUploadAllowed = canUseServerAssetUpload(storageSettingsQuery.data);
 
