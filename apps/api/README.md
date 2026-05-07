@@ -10,7 +10,23 @@ Backend API module scaffold.
 - `PUT /v1/settings/database` ile harici SQLite dosya URL/path, MySQL veya Postgres bağlantı bilgisi tanımlanabilir.
 - Harici SQLite URL kaydedildiğinde mevcut aktif SQLite dosyası hedefe kopyalanır ve API o dosya üzerinden çalışmaya devam eder.
 - MySQL bağlantı bilgisi kaydedildiğinde aynı `records` snapshot semantiği MySQL `records` tablosuna taşınır ve aktif provider MySQL olur.
-- Postgres bağlantı bilgisi kaydedildiğinde aynı `records` snapshot semantiği Postgres `records` tablosuna taşınır ve aktif provider Postgres olur. Supabase Postgres için SSL mode varsayılanı `require` olmalıdır.
+- Postgres bağlantı bilgisi kaydedildiğinde varsayılan davranış geriye uyumluluk için aynı `records` snapshot semantiğini kullanır.
+- `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` ayarı açıkken aktif Postgres hedefi gerçek relational tabloları kullanır (`client`, `static_token`, `placement`, `story_group_set`, revision ve composition tabloları).
+- Supabase Postgres için SSL mode varsayılanı `require` olmalıdır.
+
+## Postgres relational migration
+
+Canlı ortamda mevcut `records` verisini relational tablolara taşımak için:
+
+1. Supabase backup alın ve admin yazma işlemlerini bakım moduna alın.
+2. API container'ında mevcut Postgres provider aktifken şu komutu çalıştırın:
+
+```bash
+PATH="$HOME/.local/bin:$PATH" pnpm --filter @open-story/db migrate:postgres:relational
+```
+
+3. API runtime env içine `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` ekleyip API'yi yeniden deploy edin.
+4. `records` tablosunu rollback snapshot olarak tutun; stabilizasyon tamamlanmadan silmeyin.
 
 ## Asset storage behavior
 

@@ -25,7 +25,7 @@ pnpm --filter @open-story/admin-web check
 - Landing/dashboard skeleton created.
 - Placements ekranı hero + card list + empty state + right sheet create/edit akışı ile çalışıyor.
 - Query provider wiring ready for API integration.
-- `Settings` ekranı aktif database provider hedefini gösterir; harici SQLite URL/path ve MySQL bağlantı bilgisi geçişini yapar.
+- `Settings` ekranı aktif database provider hedefini gösterir; harici SQLite URL/path, MySQL ve Postgres bağlantı bilgisi geçişini yapar.
 - `Storage & CDN` ekranı local asset storage, Google Cloud Storage/CDN ve Supabase Storage S3 hedefini yönetir.
 - Asset oluşturma akışında URL, Server Upload ve Cloud Upload seçenekleri bulunur; production için Cloud Upload önerilir.
 

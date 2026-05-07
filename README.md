@@ -54,7 +54,8 @@ Feature implementation starts next in this order:
 
 - Varsayılan storage `apps/api/data/open-story.sqlite` dosyasıdır.
 - Aktif DB hedefi local bootstrap config ile saklanır.
-- Admin `Settings` ekranı üzerinden harici SQLite URL/path veya MySQL bağlantı bilgileri tanımlanabilir.
+- Admin `Settings` ekranı üzerinden harici SQLite URL/path, MySQL veya Postgres bağlantı bilgileri tanımlanabilir.
+- Postgres için legacy tek `records` tablosu ve yeni relational tablo modu ayrıdır. Production relational mod için `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` kullanılır.
 
 ## Asset Storage
 
