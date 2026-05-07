@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS story_group_revision (
   revision_no INTEGER NOT NULL CHECK (revision_no > 0),
   name TEXT NOT NULL,
   bottom_label TEXT,
-  logo_asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE RESTRICT,
+  logo_asset_id UUID NOT NULL,
   badge_kind TEXT CHECK (badge_kind IS NULL OR badge_kind IN ('emoji', 'svg')),
   badge_value TEXT,
   status TEXT NOT NULL CHECK (status IN ('draft', 'published')),
@@ -220,8 +220,8 @@ CREATE TABLE IF NOT EXISTS story_revision (
   revision_no INTEGER NOT NULL CHECK (revision_no > 0),
   name TEXT NOT NULL,
   media_type media_type NOT NULL,
-  media_asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE RESTRICT,
-  video_poster_asset_id UUID REFERENCES asset(id) ON DELETE RESTRICT,
+  media_asset_id UUID NOT NULL,
+  video_poster_asset_id UUID,
   image_duration_ms INTEGER CHECK (image_duration_ms IS NULL OR image_duration_ms > 0),
   cta_label TEXT,
   cta_type cta_type,
@@ -259,6 +259,27 @@ CREATE TABLE IF NOT EXISTS story_group_revision_story (
   UNIQUE (story_group_revision_id, story_id),
   UNIQUE (story_group_revision_id, sort_order)
 );
+
+DO $$ BEGIN
+  ALTER TABLE story_group_revision
+    ADD CONSTRAINT story_group_revision_logo_asset_id_fkey
+    FOREIGN KEY (logo_asset_id) REFERENCES asset(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE story_revision
+    ADD CONSTRAINT story_revision_media_asset_id_fkey
+    FOREIGN KEY (media_asset_id) REFERENCES asset(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE story_revision
+    ADD CONSTRAINT story_revision_video_poster_asset_id_fkey
+    FOREIGN KEY (video_poster_asset_id) REFERENCES asset(id) ON DELETE RESTRICT;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_set_revision_published
   ON story_group_set_revision (story_group_set_id, created_at DESC)
