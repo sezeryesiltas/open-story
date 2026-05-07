@@ -1,5 +1,6 @@
 'use client';
 
+import type { AssetStorageSettingsDto } from '@open-story/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
@@ -30,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@open-story/ui/components/table';
+import { cn } from '@open-story/ui/lib/utils';
 import {
   Clapperboard,
   CloudUpload,
@@ -41,10 +43,11 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { ChangeEvent, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/admin/page-header';
 import { ApiRequestError, apiRequest } from '@/lib/api';
+import { ASSET_STORAGE_SETTINGS_QUERY_KEY, canUseServerAssetUpload } from '@/lib/asset-storage-settings';
 
 type AssetType = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 type UsageFilter = 'all' | 'used' | 'unused';
@@ -247,6 +250,18 @@ export function AssetsWorkspace() {
     queryKey: ['assets-management'],
     queryFn: () => apiRequest<AssetApiRecord[]>('/api/assets'),
   });
+  const storageSettingsQuery = useQuery({
+    queryKey: ASSET_STORAGE_SETTINGS_QUERY_KEY,
+    queryFn: () => apiRequest<AssetStorageSettingsDto>('/api/settings/storage'),
+  });
+  const serverUploadAllowed = canUseServerAssetUpload(storageSettingsQuery.data);
+
+  useEffect(() => {
+    if (!serverUploadAllowed && createMode === 'upload') {
+      setCreateMode('cloud_upload');
+    }
+  }, [createMode, serverUploadAllowed]);
+  const effectiveCreateMode = createMode === 'upload' && !serverUploadAllowed ? 'cloud_upload' : createMode;
 
   const assets = assetsQuery.data ?? emptyAssets;
   const filteredAssets = useMemo(() => {
@@ -350,7 +365,7 @@ export function AssetsWorkspace() {
     setCreateError(null);
 
     try {
-      if (createMode === 'upload' || createMode === 'cloud_upload') {
+      if (effectiveCreateMode === 'upload' || effectiveCreateMode === 'cloud_upload') {
         if (!selectedFile) {
           setCreateError('Upload için dosya seçin.');
           return;
@@ -359,7 +374,7 @@ export function AssetsWorkspace() {
         await uploadAssetMutation.mutateAsync({
           type: createType,
           file: selectedFile,
-          storage: createMode === 'cloud_upload' ? 'cloud' : 'local',
+          storage: effectiveCreateMode === 'cloud_upload' ? 'cloud' : 'local',
         });
         return;
       }
@@ -625,21 +640,28 @@ export function AssetsWorkspace() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg border border-border/60 bg-muted/20 p-1">
-                  <Button
-                    onClick={() => setCreateMode('upload')}
-                    size="sm"
-                    type="button"
-                    variant={createMode === 'upload' ? 'default' : 'ghost'}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Server
-                  </Button>
+                <div
+                  className={cn(
+                    'grid gap-2 rounded-lg border border-border/60 bg-muted/20 p-1',
+                    serverUploadAllowed ? 'grid-cols-3' : 'grid-cols-2',
+                  )}
+                >
+                  {serverUploadAllowed ? (
+                    <Button
+                      onClick={() => setCreateMode('upload')}
+                      size="sm"
+                      type="button"
+                      variant={createMode === 'upload' ? 'default' : 'ghost'}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Server
+                    </Button>
+                  ) : null}
                   <Button
                     onClick={() => setCreateMode('cloud_upload')}
                     size="sm"
                     type="button"
-                    variant={createMode === 'cloud_upload' ? 'default' : 'ghost'}
+                    variant={effectiveCreateMode === 'cloud_upload' ? 'default' : 'ghost'}
                   >
                     <CloudUpload className="mr-2 h-4 w-4" />
                     Cloud
@@ -648,7 +670,7 @@ export function AssetsWorkspace() {
                     onClick={() => setCreateMode('url')}
                     size="sm"
                     type="button"
-                    variant={createMode === 'url' ? 'default' : 'ghost'}
+                    variant={effectiveCreateMode === 'url' ? 'default' : 'ghost'}
                   >
                     <LinkIcon className="mr-2 h-4 w-4" />
                     URL
@@ -657,7 +679,7 @@ export function AssetsWorkspace() {
               </div>
 
               <div className="flex flex-col gap-3">
-                {createMode === 'upload' || createMode === 'cloud_upload' ? (
+                {effectiveCreateMode === 'upload' || effectiveCreateMode === 'cloud_upload' ? (
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="asset-upload">Dosya</Label>
                     <Input
@@ -671,7 +693,7 @@ export function AssetsWorkspace() {
                         {selectedFile.name} / {formatFileSize(selectedFile.size)}
                       </p>
                     ) : null}
-                    {createMode === 'cloud_upload' ? (
+                    {effectiveCreateMode === 'cloud_upload' ? (
                       <p className="text-xs leading-5 text-muted-foreground">
                         Production için önerilen yol. Görseller optimize edilir; medya aktif Cloud Storage/CDN hedefinde saklanır.
                       </p>

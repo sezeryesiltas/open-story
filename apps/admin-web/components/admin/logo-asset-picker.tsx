@@ -1,5 +1,6 @@
 'use client';
 
+import type { AssetStorageSettingsDto } from '@open-story/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
@@ -14,9 +15,10 @@ import {
 import { Input } from '@open-story/ui/components/input';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import { CloudUpload, ImagePlus, RefreshCcw, Upload, X } from 'lucide-react';
-import { ChangeEvent, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { ApiRequestError, apiRequest } from '@/lib/api';
+import { ASSET_STORAGE_SETTINGS_QUERY_KEY, canUseServerAssetUpload } from '@/lib/asset-storage-settings';
 
 type AssetApiRecord = {
   id: string;
@@ -137,6 +139,18 @@ export function LogoAssetPicker({
     queryKey: ['assets', 'group_logo'],
     queryFn: () => apiRequest<AssetApiRecord[]>('/api/assets?type=group_logo'),
   });
+  const storageSettingsQuery = useQuery({
+    queryKey: ASSET_STORAGE_SETTINGS_QUERY_KEY,
+    queryFn: () => apiRequest<AssetStorageSettingsDto>('/api/settings/storage'),
+  });
+  const serverUploadAllowed = canUseServerAssetUpload(storageSettingsQuery.data);
+
+  useEffect(() => {
+    if (!serverUploadAllowed && mode === 'upload') {
+      setMode('cloud_upload');
+    }
+  }, [mode, serverUploadAllowed]);
+  const effectiveMode = mode === 'upload' && !serverUploadAllowed ? 'cloud_upload' : mode;
 
   const selectedAsset = useMemo(
     () => assetsQuery.data?.find((asset) => asset.id === value) ?? null,
@@ -218,7 +232,7 @@ export function LogoAssetPicker({
           file,
           width,
           height,
-          storage: mode === 'cloud_upload' ? 'cloud' : 'local',
+          storage: effectiveMode === 'cloud_upload' ? 'cloud' : 'local',
         });
       } finally {
         URL.revokeObjectURL(objectUrl);
@@ -308,17 +322,19 @@ export function LogoAssetPicker({
           <Button onClick={() => setMode('existing')} type="button" variant={mode === 'existing' ? 'default' : 'outline'}>
             Mevcut assetler
           </Button>
-          <Button onClick={() => setMode('upload')} type="button" variant={mode === 'upload' ? 'default' : 'outline'}>
-            Bilgisayardan yükle
-          </Button>
+          {serverUploadAllowed ? (
+            <Button onClick={() => setMode('upload')} type="button" variant={effectiveMode === 'upload' ? 'default' : 'outline'}>
+              Bilgisayardan yükle
+            </Button>
+          ) : null}
           <Button
             onClick={() => setMode('cloud_upload')}
             type="button"
-            variant={mode === 'cloud_upload' ? 'default' : 'outline'}
+            variant={effectiveMode === 'cloud_upload' ? 'default' : 'outline'}
           >
             CDN&apos;e yükle
           </Button>
-          <Button onClick={() => setMode('url')} type="button" variant={mode === 'url' ? 'default' : 'outline'}>
+          <Button onClick={() => setMode('url')} type="button" variant={effectiveMode === 'url' ? 'default' : 'outline'}>
             URL ile içe al
           </Button>
         </div>
@@ -371,22 +387,22 @@ export function LogoAssetPicker({
           </div>
         ) : null}
 
-        {mode === 'upload' || mode === 'cloud_upload' ? (
+        {effectiveMode === 'upload' || effectiveMode === 'cloud_upload' ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border/60 border-dashed bg-muted/20 p-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  {mode === 'cloud_upload' ? (
+                  {effectiveMode === 'cloud_upload' ? (
                     <CloudUpload className="h-4 w-4 text-muted-foreground" />
                   ) : (
                     <Upload className="h-4 w-4 text-muted-foreground" />
                   )}
                   <p className="font-medium">
-                    {mode === 'cloud_upload' ? "CDN'e kare logo yükle" : 'Bilgisayardan kare logo yükle'}
+                    {effectiveMode === 'cloud_upload' ? "CDN'e kare logo yükle" : 'Bilgisayardan kare logo yükle'}
                   </p>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  {mode === 'cloud_upload'
+                  {effectiveMode === 'cloud_upload'
                     ? 'Production için önerilir. Raster görseller optimize edilip aktif Cloud Storage/CDN hedefinde saklanır.'
                     : 'JPG, PNG, WEBP veya SVG formatlarını yükleyebilirsiniz. Raster görseller için kare kontrolü yapılır.'}
                 </p>

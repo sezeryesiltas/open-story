@@ -45,6 +45,12 @@ export class AssetsService {
 
   async upload(input: Omit<AssetUploadInput, 'createdByAdminUserId'>, authorization?: string): Promise<AssetDto> {
     const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
+    const settings = this.assetStorageSettingsStore.getSettings();
+    if (settings.activeProvider !== 'local') {
+      throw ApiServiceError.conflict(
+        "Storage/CDN provider aktifken server upload kullanılamaz. Asset'i CDN'e yükleyin veya URL ile içe alın.",
+      );
+    }
 
     const record = await createAssetRecordFromUpload({
       ...input,

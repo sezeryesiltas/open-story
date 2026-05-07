@@ -65,10 +65,17 @@ curl -sS -X POST "$OPEN_STORY_API_BASE_URL/v1/assets/import" \
   }'
 ```
 
-Or upload files with multipart:
+Or upload files with multipart. Use `/v1/assets/upload` only when the active asset storage provider is `local`; with an external Storage/CDN provider, use `/v1/assets/cloud-upload` instead:
 
 ```bash
 curl -sS -X POST "$OPEN_STORY_API_BASE_URL/v1/assets/upload" \
+  -H "Authorization: Bearer $OPEN_STORY_ADMIN_API_KEY" \
+  -F "type=story_image" \
+  -F "file=@./story-1.png"
+```
+
+```bash
+curl -sS -X POST "$OPEN_STORY_API_BASE_URL/v1/assets/cloud-upload" \
   -H "Authorization: Bearer $OPEN_STORY_ADMIN_API_KEY" \
   -F "type=story_image" \
   -F "file=@./story-1.png"
