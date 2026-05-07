@@ -4,6 +4,17 @@ import { dirname, isAbsolute, normalize, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { storyPlatformTableNames, type StoryPlatformTableName } from '../../contracts/src/persistence.ts';
+import {
+  initializeRelationalPostgresDatabase,
+  isRelationalPostgresMode,
+  relationalPostgresCountRows,
+  relationalPostgresDeleteRecord,
+  relationalPostgresFindPayload,
+  relationalPostgresInsertRecord,
+  relationalPostgresListAllRecords,
+  relationalPostgresListPayloads,
+  relationalPostgresReplaceAllRecords,
+} from './relational-postgres-store.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -1111,6 +1122,11 @@ function sqliteReplaceAllRecords(filePath: string, records: StoredRecord[]): voi
 
 function listAllRecordsFromTarget(target: DatabaseTarget): StoredRecord[] {
   if (target.provider === 'postgres') {
+    if (isRelationalPostgresMode()) {
+      initializeRelationalPostgresDatabase(target.config);
+      return relationalPostgresListAllRecords(target.config);
+    }
+
     initializePostgresDatabase(target.config);
     return postgresListAllRecords(target.config);
   }
@@ -1126,8 +1142,12 @@ function listAllRecordsFromTarget(target: DatabaseTarget): StoredRecord[] {
 
 function replaceAllRecordsInTarget(target: DatabaseTarget, records: StoredRecord[]): void {
   if (target.provider === 'postgres') {
-    initializePostgresDatabase(target.config);
-    postgresReplaceAllRecords(target.config, records);
+    if (isRelationalPostgresMode()) {
+      relationalPostgresReplaceAllRecords(target.config, toCanonicalStoredRecords(records));
+    } else {
+      initializePostgresDatabase(target.config);
+      postgresReplaceAllRecords(target.config, records);
+    }
     return;
   }
 
@@ -1138,6 +1158,22 @@ function replaceAllRecordsInTarget(target: DatabaseTarget, records: StoredRecord
   }
 
   sqliteReplaceAllRecords(target.path, records);
+}
+
+function toCanonicalStoredRecords(records: StoredRecord[]): Array<{
+  tableName: TableName;
+  id: string;
+  payload: string;
+  updatedAt: string;
+}> {
+  return records
+    .filter((record) => TABLE_NAMES.includes(record.tableName as TableName))
+    .map((record) => ({
+      tableName: record.tableName as TableName,
+      id: record.id,
+      payload: record.payload,
+      updatedAt: record.updatedAt,
+    }));
 }
 
 function migrateRecordsBetweenTargets(currentTarget: DatabaseTarget, nextTarget: DatabaseTarget): void {
@@ -1205,6 +1241,10 @@ export class DbService {
     const activeConnection = this.database();
 
     if (activeConnection.target.provider === 'postgres') {
+      if (isRelationalPostgresMode()) {
+        return relationalPostgresListPayloads(activeConnection.target.config, table).map((row) => JSON.parse(row.payload) as T);
+      }
+
       return this.listSqlPayloads(activeConnection.target, table).map((row) => JSON.parse(row.payload) as T);
     }
 
@@ -1233,6 +1273,12 @@ export class DbService {
     const updatedAt = new Date().toISOString();
 
     if (activeConnection.target.provider === 'postgres') {
+      if (isRelationalPostgresMode()) {
+        relationalPostgresInsertRecord(activeConnection.target.config, table, row);
+        DbService.invalidateSqlReadCache(activeConnection.target.key);
+        return row;
+      }
+
       postgresInsertRecord(activeConnection.target.config, table, row, updatedAt);
       DbService.invalidateSqlReadCache(activeConnection.target.key);
       return row;
@@ -1267,7 +1313,9 @@ export class DbService {
   findById<T extends { id: string }>(table: TableName, id: string): T | undefined {
     const activeConnection = this.database();
     const row =
-      activeConnection.target.provider === 'postgres'
+      activeConnection.target.provider === 'postgres' && isRelationalPostgresMode()
+        ? relationalPostgresFindPayload(activeConnection.target.config, table, id)
+        : activeConnection.target.provider === 'postgres'
         ? this.listSqlPayloads(activeConnection.target, table).find((record) => record.id === id)
         : activeConnection.target.provider === 'mysql'
           ? this.listSqlPayloads(activeConnection.target, table).find((record) => record.id === id)
@@ -1306,6 +1354,14 @@ export class DbService {
     const activeConnection = this.database();
 
     if (activeConnection.target.provider === 'postgres') {
+      if (isRelationalPostgresMode()) {
+        const deleted = relationalPostgresDeleteRecord(activeConnection.target.config, table, id);
+        if (deleted) {
+          DbService.invalidateSqlReadCache(activeConnection.target.key);
+        }
+        return deleted;
+      }
+
       const deleted = postgresDeleteRecord(activeConnection.target.config, table, id);
       if (deleted) {
         DbService.invalidateSqlReadCache(activeConnection.target.key);
@@ -1482,10 +1538,30 @@ export class DbService {
     }
   }
 
+  migrateActivePostgresRecordsToRelational(): DatabaseSettingsSnapshot {
+    const config = readBootstrapConfig();
+    const activeTarget = getActiveDatabaseTarget(config);
+
+    if (activeTarget.provider !== 'postgres') {
+      throw new Error('Relational migration can only run when the active provider is Postgres.');
+    }
+
+    initializePostgresDatabase(activeTarget.config);
+    const legacyRecords = postgresListAllRecords(activeTarget.config);
+    relationalPostgresReplaceAllRecords(activeTarget.config, toCanonicalStoredRecords(legacyRecords));
+    DbService.closeDatabase();
+
+    return this.getDatabaseSettings();
+  }
+
   private getTableCounts(): Record<string, number> {
     const activeConnection = this.database();
 
     if (activeConnection.target.provider === 'postgres') {
+      if (isRelationalPostgresMode()) {
+        return relationalPostgresCountRows(activeConnection.target.config);
+      }
+
       return this.getSqlTableCounts(activeConnection.target);
     }
 
@@ -1520,7 +1596,11 @@ export class DbService {
     DbService.closeDatabase();
 
     if (activeTarget.provider === 'postgres') {
-      initializePostgresDatabase(activeTarget.config);
+      if (isRelationalPostgresMode()) {
+        initializeRelationalPostgresDatabase(activeTarget.config);
+      } else {
+        initializePostgresDatabase(activeTarget.config);
+      }
       DbService.activeConnection = {
         target: activeTarget,
         sqlite: null,

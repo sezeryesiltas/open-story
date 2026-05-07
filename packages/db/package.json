@@ -11,6 +11,7 @@
   "scripts": {
     "build": "echo \"db package scaffold pending\"",
     "lint": "echo \"db lint scaffold pending\"",
+    "migrate:postgres:relational": "node --experimental-strip-types --experimental-specifier-resolution=node src/migrate-active-postgres-records-to-relational.mjs",
     "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/**/*.test.mjs",
     "check": "node --test --experimental-strip-types --experimental-specifier-resolution=node src/**/*.test.mjs"
   },

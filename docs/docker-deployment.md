@@ -91,6 +91,7 @@ NODE_ENV=production
 OPEN_STORY_API_PORT=3001
 OPEN_STORY_SQLITE_PATH=/data/db/open-story.sqlite
 OPEN_STORY_DB_CONFIG_PATH=/data/db/database-config.json
+OPEN_STORY_POSTGRES_STORAGE_MODE=relational
 OPEN_STORY_ASSET_STORAGE_CONFIG_PATH=/data/db/asset-storage-config.json
 OPEN_STORY_ASSET_STORAGE_DIR=/data/assets
 OPEN_STORY_PUBLIC_ASSET_BASE_URL=https://openstory.cloud/uploads/assets
@@ -101,6 +102,7 @@ OPEN_STORY_COOKIE_SECURE=true
 Notlar:
 
 - `OPEN_STORY_PUBLIC_ASSET_BASE_URL` dışarıdan erişilen gerçek domain olmalı.
+- Supabase/Postgres production kullanımında `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` açık olmalı; rollback için eski image + unset env ile `records` tablosuna dönülebilir.
 - Production ortamında yüksek medya trafiği için Admin Console `Storage & CDN` ekranından Google Cloud Storage veya Supabase Storage S3 provider'ını etkinleştirin ve asset domainini CDN public URL olarak kullanın.
 - Google Cloud credential'larını admin ayarlarına yazmayın; API container'ına Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` ile verin.
 - Supabase Storage S3 kullanıyorsanız endpoint, region, bucket, S3 access key ID ve secret access key değerlerini Storage & CDN ekranından girin. Endpoint formatı Supabase tarafında `https://project-ref.storage.supabase.co/storage/v1/s3` şeklindedir.
