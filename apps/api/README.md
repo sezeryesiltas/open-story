@@ -4,31 +4,12 @@ Backend API module scaffold.
 
 ## Current database behavior
 
-- Varsayılan veri kaynağı `apps/api/data/open-story.sqlite` dosyasıdır.
-- Aktif DB bağlantı ayarı `apps/api/data/database-config.json` içinde tutulur.
-- `GET /v1/settings/database` aktif provider, local SQLite durumu, harici SQLite URL/path, MySQL ve Postgres bağlantı özetini döner.
-- `PUT /v1/settings/database` ile harici SQLite dosya URL/path, MySQL veya Postgres bağlantı bilgisi tanımlanabilir.
-- Harici SQLite URL kaydedildiğinde mevcut aktif SQLite dosyası hedefe kopyalanır ve API o dosya üzerinden çalışmaya devam eder.
-- MySQL bağlantı bilgisi kaydedildiğinde aynı `records` snapshot semantiği MySQL `records` tablosuna taşınır ve aktif provider MySQL olur.
-- Postgres bağlantı bilgisi kaydedildiğinde varsayılan davranış geriye uyumluluk için aynı `records` snapshot semantiğini kullanır.
-- `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` ayarı açıkken aktif Postgres hedefi gerçek relational tabloları kullanır (`client`, `static_token`, `placement`, `story_group_set`, revision ve composition tabloları).
+- Production runtime gerçek relational Postgres tablolarını kullanır (`client`, `static_token`, `placement`, `story_group_set`, revision ve composition tabloları).
+- API, Postgres bağlantısını `OPEN_STORY_POSTGRES_*` env değişkenlerinden veya `OPEN_STORY_DB_CONFIG_PATH` içindeki bootstrap config dosyasından okur.
+- `GET /v1/settings/database` aktif provider, Postgres bağlantı özeti ve relational tablo sayılarını döner.
+- `PUT /v1/settings/database` ile Postgres bağlantı bilgisi kaydedilir ve relational schema hazır hale getirilir.
+- Eski tek tablo Postgres modu, alternatif SQL hedefleri ve migration scripti runtime yüzeyinden kaldırılmıştır.
 - Supabase Postgres için SSL mode varsayılanı `require` olmalıdır.
-
-## Postgres relational migration
-
-Canlı ortamda mevcut `records` verisini relational tablolara taşımak için:
-
-1. Supabase backup alın ve admin yazma işlemlerini bakım moduna alın.
-2. API container'ında mevcut Postgres provider aktifken şu komutu çalıştırın:
-
-```bash
-PATH="$HOME/.local/bin:$PATH" pnpm --filter @open-story/db migrate:postgres:relational
-```
-
-3. API runtime env içine `OPEN_STORY_POSTGRES_STORAGE_MODE=relational` ekleyip API'yi yeniden deploy edin.
-4. `records` tablosunu rollback snapshot olarak tutun; stabilizasyon tamamlanmadan silmeyin.
-
-Migration, eksik asset referansı olan legacy story/group revision'ları import dışında bırakır. Current draft/published pointer bu revision'lardan birine bakıyorsa kalan en güncel valid revision'a taşınır; aynı story/group için valid revision kalmadıysa root kayıt ve composition referansları import edilmez. Import sonunda asset FK constraint'leri eklenir, bu yüzden relational model yeni kırık asset referanslarını kabul etmez.
 
 ## Asset storage behavior
 
@@ -39,30 +20,6 @@ Migration, eksik asset referansı olan legacy story/group revision'ları import 
 - Supabase S3 access key bilgileri admin DB'ye değil `asset-storage-config.json` dosyasına yazılır ve yalnızca server-side kullanılır.
 - Upload edilen raster PNG görseller JPEG'e çevrilir. Group logo 500x500 sınırına, story image/poster ise yüksekliği en fazla 1600 px olacak şekilde aspect ratio korunarak optimize edilir.
 - URL import dış URL'yi korur; bu yol dosyayı Open Story storage hedefine yeniden yazmaz.
-
-## Supported external DB formats
-
-- `file:///absolute/path/open-story.sqlite`
-- `sqlite:///absolute/path/open-story.sqlite`
-- `/absolute/path/open-story.sqlite`
-
-## Supported MySQL settings
-
-`PUT /v1/settings/database` payload içinde `mysql` alanı doluysa MySQL hedefi aktif edilir:
-
-```json
-{
-  "mysql": {
-    "host": "mysql.example.internal",
-    "port": 3306,
-    "database": "open_story",
-    "username": "open_story_user",
-    "password": "secret"
-  }
-}
-```
-
-Password `GET` response içinde geri dönmez; aynı host/port/database/username için boş gönderilirse mevcut password korunur.
 
 ## Supported Postgres settings
 

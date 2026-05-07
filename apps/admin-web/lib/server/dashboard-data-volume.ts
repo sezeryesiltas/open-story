@@ -212,11 +212,8 @@ function createContentOnlyDatabaseSettings({
     defaultSqliteUrl: '',
     activeProvider: 'sqlite',
     activeDatabaseUrl: '',
-    externalDatabaseUrl: null,
-    mysqlDatabase: null,
     postgresDatabase: null,
     isUsingExternalDatabase: false,
-    migratedAt: null,
     tableCounts: {
       clients: 0,
       staticTokens: 0,
