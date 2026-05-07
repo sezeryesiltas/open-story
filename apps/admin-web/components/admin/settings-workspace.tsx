@@ -342,7 +342,7 @@ export function SettingsWorkspace() {
                 Runtime modeli
               </div>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                Normalize Postgres tabloları, revision ve composition ilişkileri DB constraint'leri ile korunur.
+                Normalize Postgres tabloları, revision ve composition ilişkileri DB constraint&apos;leri ile korunur.
               </p>
             </div>
           </div>
