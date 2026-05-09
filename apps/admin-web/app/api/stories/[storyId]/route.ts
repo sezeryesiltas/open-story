@@ -33,6 +33,13 @@ export async function PUT(
       } | null;
     };
     const { storyId } = await context.params;
+    const existingStory = await getStory(storyId, authToken);
+    const membershipChanged =
+      existingStory.groupId !== payload.group_id || existingStory.position !== payload.position;
+
+    if (membershipChanged) {
+      await syncStoryMembership(storyId, payload.group_id, payload.position, authToken);
+    }
 
     await updateStory(
       storyId,
@@ -46,7 +53,6 @@ export async function PUT(
       },
       authToken,
     );
-    await syncStoryMembership(storyId, payload.group_id, payload.position, authToken);
 
     return NextResponse.json(await getStory(storyId, authToken));
   } catch (error) {

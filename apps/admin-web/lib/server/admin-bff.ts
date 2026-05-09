@@ -11,6 +11,7 @@ import type {
   CreateStoryGroupSetDto,
   CreateStaticTokenDto,
   CreateStaticTokenResponseDto,
+  MoveStoryDto,
   PlacementDto,
   PublishStoryDto,
   PublishStoryGroupDto,
@@ -509,13 +510,6 @@ export function mapStory(story: StoryDto, storyGroups: StoryGroupDto[]): AdminSt
   };
 }
 
-export function insertAtPosition(ids: string[], value: string, position: number): string[] {
-  const nextIds = ids.filter((id) => id !== value);
-  const targetIndex = Math.max(0, Math.min(nextIds.length, position - 1));
-  nextIds.splice(targetIndex, 0, value);
-  return nextIds;
-}
-
 export function removeId(ids: string[], value: string): string[] {
   return ids.filter((id) => id !== value);
 }
@@ -550,53 +544,30 @@ export async function syncStoryGroupSetReferences(
   return storyGroupSets;
 }
 
+export async function moveStoryMembership(
+  storyId: string,
+  payload: MoveStoryDto,
+  authToken?: string | null,
+): Promise<StoryDto> {
+  return backendApiRequest<StoryDto>(`/v1/stories/${storyId}/move`, {
+    method: 'POST',
+    authToken,
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function syncStoryMembership(
   storyId: string,
   nextGroupId: string,
   position: number,
   authToken?: string | null,
 ): Promise<void> {
-  const storyGroups = await backendApiRequest<StoryGroupDto[]>('/v1/story-groups', { authToken });
-  const previousGroup = storyGroups.find((storyGroup) => storyGroup.story_ids.includes(storyId)) ?? null;
-  const nextGroup = storyGroups.find((storyGroup) => storyGroup.id === nextGroupId) ?? null;
-
-  if (!nextGroup) {
-    throw new Error(`Target story group ${nextGroupId} not found.`);
-  }
-
-  const nextStoryIds = insertAtPosition(
-    previousGroup?.id === nextGroupId ? nextGroup.story_ids : [...nextGroup.story_ids, storyId],
+  await moveStoryMembership(
     storyId,
-    position,
-  );
-
-  await backendApiRequest<StoryGroupDto>(`/v1/story-groups/${nextGroupId}`, {
-    method: 'PATCH',
+    {
+      group_id: nextGroupId,
+      position,
+    },
     authToken,
-    body: JSON.stringify({
-      story_ids: nextStoryIds,
-    }),
-  });
-
-  if (previousGroup && previousGroup.id !== nextGroupId) {
-    try {
-      await backendApiRequest<StoryGroupDto>(`/v1/story-groups/${previousGroup.id}`, {
-        method: 'PATCH',
-        authToken,
-        body: JSON.stringify({
-          story_ids: removeId(previousGroup.story_ids, storyId),
-        }),
-      });
-    } catch (error) {
-      await backendApiRequest<StoryGroupDto>(`/v1/story-groups/${nextGroupId}`, {
-        method: 'PATCH',
-        authToken,
-        body: JSON.stringify({
-          story_ids: removeId(nextStoryIds, storyId),
-        }),
-      });
-
-      throw error;
-    }
-  }
+  );
 }

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Headers, Inject, Param, Patch, Post } from '@nes
 import type {
   ArchiveStoryDto,
   CreateStoryDto,
+  MoveStoryDto,
   PublishStoryDto,
   StoryDto,
   UpdateStoryDto,
@@ -42,6 +43,15 @@ export class StoryController {
     @Headers('authorization') authorization?: string,
   ): Promise<StoryDto> {
     return this.service.update(storyId, payload, authorization);
+  }
+
+  @Post(':storyId/move')
+  async move(
+    @Param('storyId') storyId: string,
+    @Body() payload: MoveStoryDto,
+    @Headers('authorization') authorization?: string,
+  ): Promise<StoryDto> {
+    return this.service.move(storyId, payload, authorization);
   }
 
   @Post(':storyId/publish')

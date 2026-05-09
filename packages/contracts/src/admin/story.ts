@@ -38,6 +38,13 @@ export const updateStoryDtoSchema = createStoryDtoSchema
   .partial()
   .strict();
 
+export const moveStoryDtoSchema = z
+  .object({
+    group_id: rootIdSchema,
+    position: z.number().int().positive(),
+  })
+  .strict();
+
 export const publishStoryDtoSchema = z
   .object({
     expected_draft_revision_id: revisionIdSchema.optional(),
@@ -53,5 +60,6 @@ export const archiveStoryDtoSchema = z
 export type Story = z.infer<typeof storySchema>;
 export type CreateStoryDto = z.infer<typeof createStoryDtoSchema>;
 export type UpdateStoryDto = z.infer<typeof updateStoryDtoSchema>;
+export type MoveStoryDto = z.infer<typeof moveStoryDtoSchema>;
 export type PublishStoryDto = z.infer<typeof publishStoryDtoSchema>;
 export type ArchiveStoryDto = z.infer<typeof archiveStoryDtoSchema>;

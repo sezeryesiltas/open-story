@@ -267,8 +267,14 @@ export function StoryForm({
                   <SelectContent>
                     <SelectGroup>
                       {storyGroupOptions.map((storyGroup) => (
-                        <SelectItem key={storyGroup.id} value={storyGroup.id}>
-                          {storyGroup.name}
+                        <SelectItem
+                          disabled={storyGroup.archiveState === 'archived'}
+                          key={storyGroup.id}
+                          value={storyGroup.id}
+                        >
+                          {storyGroup.archiveState === 'archived'
+                            ? `${storyGroup.name} (Arşivde)`
+                            : storyGroup.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>

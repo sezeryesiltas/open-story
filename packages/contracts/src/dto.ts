@@ -7,6 +7,7 @@ import type {
 import type {
   ArchiveStoryDto as AdminArchiveStoryDto,
   CreateStoryDto as AdminCreateStoryDto,
+  MoveStoryDto as AdminMoveStoryDto,
   PublishStoryDto as AdminPublishStoryDto,
   Story as AdminStory,
   UpdateStoryDto as AdminUpdateStoryDto,
@@ -226,6 +227,7 @@ export type StoryGroupDto = AdminStoryGroup;
 
 export type CreateStoryDto = AdminCreateStoryDto;
 export type UpdateStoryDto = AdminUpdateStoryDto;
+export type MoveStoryDto = AdminMoveStoryDto;
 export type PublishStoryDto = AdminPublishStoryDto;
 export type ArchiveStoryDto = AdminArchiveStoryDto;
 export type StoryDto = AdminStory;
