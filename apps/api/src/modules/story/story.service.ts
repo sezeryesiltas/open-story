@@ -4,6 +4,7 @@ import { adminStory } from '@open-story/contracts';
 import type {
   ArchiveStoryDto,
   CreateStoryDto,
+  MoveStoryDto,
   PublishStoryDto,
   StoryDto,
   StoryGroupRevisionRecord,
@@ -60,6 +61,7 @@ export class StoryService {
     this.validateDraftPayload(normalizedPayload);
 
     const targetGroup = this.getGroupRootOrThrow(normalizedPayload.groupId);
+    this.assertCanAssignStoryToGroup(targetGroup);
     const now = new Date().toISOString();
     const storyId = randomUUID();
     const draftRevisionId = randomUUID();
@@ -174,6 +176,33 @@ export class StoryService {
     return this.toDto(updatedRoot);
   }
 
+  async move(
+    storyId: string,
+    payload: MoveStoryDto,
+    authorization?: string,
+  ): Promise<StoryDto> {
+    const access = await this.adminAccessService.requireStoryEditorAccess(authorization);
+    const parsedPayload = adminStory.moveStoryDtoSchema.safeParse(payload);
+
+    if (!parsedPayload.success) {
+      throw ApiServiceError.badRequest(parsedPayload.error.issues[0]?.message ?? 'Story move payload is invalid.');
+    }
+
+    const storyRoot = this.getStoryRootOrThrow(storyId);
+    const targetGroup = this.getGroupRootOrThrow(parsedPayload.data.group_id);
+    this.assertCanAssignStoryToGroup(targetGroup);
+
+    this.moveStoryToGroupDraft({
+      storyId: storyRoot.id,
+      targetGroup,
+      position: parsedPayload.data.position,
+      adminUserId: access.adminUserId,
+      now: new Date().toISOString(),
+    });
+
+    return this.toDto(storyRoot);
+  }
+
   async publish(
     storyId: string,
     payload: PublishStoryDto | undefined,
@@ -260,6 +289,81 @@ export class StoryService {
     });
   }
 
+  private moveStoryToGroupDraft(params: {
+    storyId: string;
+    targetGroup: StoryGroupRootRecord;
+    position: number;
+    adminUserId: string | null;
+    now: string;
+  }): void {
+    const draftGroupIds = this.repository.findDraftGroupIdsForStory(params.storyId);
+    const sourceGroupIds = draftGroupIds.filter((groupId) => groupId !== params.targetGroup.id);
+
+    for (const sourceGroupId of sourceGroupIds) {
+      const sourceGroup = this.getGroupRootOrThrow(sourceGroupId);
+      const sourceStoryIds = this.getGroupDraftStoryIds(sourceGroup);
+      const nextSourceStoryIds = sourceStoryIds.filter((storyId) => storyId !== params.storyId);
+
+      if (!areStringArraysEqual(sourceStoryIds, nextSourceStoryIds)) {
+        this.replaceGroupDraftStories(sourceGroup, nextSourceStoryIds, params.adminUserId, params.now);
+      }
+    }
+
+    const targetStoryIds = this.getGroupDraftStoryIds(params.targetGroup);
+    const nextTargetStoryIds = insertStoryIdAtPosition(
+      targetStoryIds,
+      params.storyId,
+      params.position,
+    );
+
+    if (!areStringArraysEqual(targetStoryIds, nextTargetStoryIds)) {
+      this.replaceGroupDraftStories(params.targetGroup, nextTargetStoryIds, params.adminUserId, params.now);
+    }
+  }
+
+  private replaceGroupDraftStories(
+    groupRoot: StoryGroupRootRecord,
+    storyIds: string[],
+    adminUserId: string | null,
+    now: string,
+  ): StoryGroupRootRecord {
+    const draftRevision = this.getGroupDraftRevision(groupRoot);
+    const nextDraftRevisionId = randomUUID();
+    const nextRevision: StoryGroupRevisionRecord = {
+      id: nextDraftRevisionId,
+      storyGroupId: groupRoot.id,
+      revisionNumber: this.nextGroupRevisionNumber(groupRoot.id),
+      name: draftRevision.name,
+      bottomLabel: draftRevision.bottomLabel,
+      logoAssetId: draftRevision.logoAssetId,
+      badge: draftRevision.badge,
+      status: 'draft',
+      createdByAdminUserId: adminUserId,
+      createdAt: now,
+    };
+
+    this.repository.createGroupRevision(nextRevision);
+    this.repository.replaceGroupRevisionStories(nextRevision.id, storyIds, now);
+
+    const updatedRoot = this.repository.updateGroupRoot(groupRoot.id, {
+      name: draftRevision.name,
+      currentDraftRevisionId: nextDraftRevisionId,
+      updatedAt: now,
+    });
+
+    if (!updatedRoot) {
+      throw ApiServiceError.notFound('Story group not found.');
+    }
+
+    return updatedRoot;
+  }
+
+  private getGroupDraftStoryIds(groupRoot: StoryGroupRootRecord): string[] {
+    return this.repository
+      .listGroupRevisionStories(groupRoot.currentDraftRevisionId)
+      .map((record) => record.storyId);
+  }
+
   private getStoryRootOrThrow(storyId: string): StoryRootRecord {
     const root = this.repository.findStoryRootById(storyId);
     if (!root) {
@@ -267,6 +371,12 @@ export class StoryService {
     }
 
     return root;
+  }
+
+  private assertCanAssignStoryToGroup(groupRoot: StoryGroupRootRecord): void {
+    if (groupRoot.isArchived) {
+      throw ApiServiceError.conflict('Story cannot be assigned to an archived story group.');
+    }
   }
 
   private getGroupRootOrThrow(groupId: string): StoryGroupRootRecord {
@@ -313,7 +423,40 @@ export class StoryService {
       return publishedGroupIds[0];
     }
 
+    const historicalGroupId = this.resolveLatestHistoricalGroupIdForStory(storyId);
+    if (historicalGroupId) {
+      return historicalGroupId;
+    }
+
     throw ApiServiceError.conflict(`Story ${storyId} is not assigned to any story group.`);
+  }
+
+  private resolveLatestHistoricalGroupIdForStory(storyId: string): string | null {
+    const candidates = this.repository
+      .listGroupRoots()
+      .flatMap((groupRoot) =>
+        this.repository
+          .listGroupRevisionsByGroupId(groupRoot.id)
+          .filter((revision) =>
+            this.repository
+              .listGroupRevisionStories(revision.id)
+              .some((record) => record.storyId === storyId),
+          )
+          .map((revision) => ({
+            groupId: groupRoot.id,
+            revision,
+          })),
+      )
+      .sort((left, right) => {
+        const createdAtComparison = right.revision.createdAt.localeCompare(left.revision.createdAt);
+        if (createdAtComparison !== 0) {
+          return createdAtComparison;
+        }
+
+        return right.revision.revisionNumber - left.revision.revisionNumber;
+      });
+
+    return candidates[0]?.groupId ?? null;
   }
 
   private nextStoryRevisionNumber(storyId: string): number {
@@ -412,4 +555,19 @@ function areCtasEqual(
   }
 
   return left.label === right.label && left.type === right.type && left.value === right.value;
+}
+
+function insertStoryIdAtPosition(storyIds: string[], storyId: string, position: number): string[] {
+  const nextStoryIds = storyIds.filter((candidateStoryId) => candidateStoryId !== storyId);
+  const targetIndex = Math.max(0, Math.min(nextStoryIds.length, position - 1));
+  nextStoryIds.splice(targetIndex, 0, storyId);
+  return nextStoryIds;
+}
+
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((value, index) => value === right[index]);
 }

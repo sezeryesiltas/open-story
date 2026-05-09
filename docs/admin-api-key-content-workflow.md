@@ -172,6 +172,20 @@ Response fields to keep:
 }
 ```
 
+## Move A Story Between Groups
+
+Use the move action instead of editing two Story Group drafts manually. The target Story Group must be active; archived groups cannot receive new Story assignments. Moving changes draft group composition only, so publish the affected Story Group draft before expecting feed visibility to change.
+
+```bash
+curl -sS -X POST "$OPEN_STORY_API_BASE_URL/v1/stories/<story_id>/move" \
+  -H "Authorization: Bearer $OPEN_STORY_ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "group_id": "<target_story_group_id>",
+    "position": 1
+  }'
+```
+
 ## 4. Publish The Story
 
 Publish the Story draft revision:

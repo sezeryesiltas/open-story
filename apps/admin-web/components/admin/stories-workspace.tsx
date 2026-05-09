@@ -573,6 +573,14 @@ export function StoriesWorkspace() {
 
       return undefined;
     } catch (error) {
+      if (error instanceof ApiRequestError && error.message.includes('archived story group')) {
+        return {
+          fieldErrors: {
+            groupId: error.message,
+          },
+        };
+      }
+
       if (error instanceof ApiRequestError && error.code === 'validation_error') {
         if (error.message.includes('Group')) {
           return {

@@ -133,6 +133,7 @@ export class StoryGroupService {
       story_ids: parsedPayload.data.story_ids ?? existingStoryIds,
     });
 
+    this.ensureArchivedGroupDoesNotGainStories(existingRoot, existingStoryIds, normalizedPayload.storyIds);
     this.validateDraftPayload(normalizedPayload, existingRoot.id);
     this.ensureStoriesRemainAssigned(existingStoryIds, normalizedPayload.storyIds);
 
@@ -302,6 +303,23 @@ export class StoryGroupService {
           `Story ${storyId} cannot be removed from its only assigned group draft before it is published elsewhere.`,
         );
       }
+    }
+  }
+
+  private ensureArchivedGroupDoesNotGainStories(
+    groupRoot: StoryGroupRootRecord,
+    previousStoryIds: string[],
+    nextStoryIds: string[],
+  ): void {
+    if (!groupRoot.isArchived) {
+      return;
+    }
+
+    const previousStoryIdSet = new Set(previousStoryIds);
+    const addedStoryIds = nextStoryIds.filter((storyId) => !previousStoryIdSet.has(storyId));
+
+    if (addedStoryIds.length > 0) {
+      throw ApiServiceError.conflict('Stories cannot be assigned to an archived story group.');
     }
   }
 }

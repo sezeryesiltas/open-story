@@ -334,6 +334,181 @@ test('group draft update blocks removing an unpublished story from its only grou
   );
 });
 
+test('story admin reads use latest historical group when current group pointers drift', async () => {
+  const { db, authService, groupService, storyService } = createHarness();
+  seedAsset(db, { id: ASSET_LOGO_DRAFT_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo.png' });
+  seedAsset(db, { id: ASSET_STORY_DRAFT_ID, kind: 'story_image', mediaType: 'image', publicUrl: 'https://cdn.example.com/story.png' });
+
+  const authorization = await loginAsAdmin(authService);
+  const group = await groupService.create(
+    {
+      name: 'Recovery Group',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_DRAFT_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+  await groupService.publish(group.id, {}, authorization);
+
+  const story = await storyService.create(
+    {
+      group_id: group.id,
+      name: 'Recoverable Story',
+      media_type: 'image',
+      asset_id: ASSET_STORY_DRAFT_ID,
+      cta: null,
+    },
+    authorization,
+  );
+  await storyService.publish(story.id, {}, authorization);
+  await groupService.publish(group.id, {}, authorization);
+
+  db.updateById('storyGroups', group.id, {
+    currentDraftRevisionId: group.current_draft_revision_id,
+    currentPublishedRevisionId: group.current_draft_revision_id,
+    updatedAt: new Date().toISOString(),
+  });
+
+  const listedStory = (await storyService.list(authorization)).find((candidate) => candidate.id === story.id);
+  assert.equal(listedStory?.group_id, group.id);
+
+  const fetchedStory = await storyService.get(story.id, authorization);
+  assert.equal(fetchedStory.group_id, group.id);
+});
+
+test('story move rejects archived target groups and can rescue stories from archived source drafts', async () => {
+  const { db, authService, groupService, storyService } = createHarness();
+  seedAsset(db, { id: ASSET_LOGO_1_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-1.png' });
+  seedAsset(db, { id: ASSET_LOGO_2_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-2.png' });
+  seedAsset(db, { id: ASSET_STORY_1_ID, kind: 'story_image', mediaType: 'image', publicUrl: 'https://cdn.example.com/story-1.png' });
+
+  const authorization = await loginAsAdmin(authService);
+  const activeGroup = await groupService.create(
+    {
+      name: 'Active Group',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_1_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+  const archivedGroup = await groupService.create(
+    {
+      name: 'Archived Group',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_2_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+  const story = await storyService.create(
+    {
+      group_id: activeGroup.id,
+      name: 'Movable Story',
+      media_type: 'image',
+      asset_id: ASSET_STORY_1_ID,
+      cta: null,
+    },
+    authorization,
+  );
+
+  await storyService.move(story.id, { group_id: archivedGroup.id, position: 1 }, authorization);
+  await groupService.archive(archivedGroup.id, { archived: true }, authorization);
+
+  await assert.rejects(
+    () => storyService.move(story.id, { group_id: archivedGroup.id, position: 1 }, authorization),
+    (error) =>
+      error instanceof ApiServiceError &&
+      error.statusCode === 409 &&
+      error.message.includes('archived story group'),
+  );
+
+  const rescuedStory = await storyService.move(story.id, { group_id: activeGroup.id, position: 1 }, authorization);
+  assert.equal(rescuedStory.group_id, activeGroup.id);
+
+  const activeGroupAfterMove = await groupService.get(activeGroup.id, authorization);
+  const archivedGroupAfterMove = await groupService.get(archivedGroup.id, authorization);
+  assert.deepEqual(activeGroupAfterMove.story_ids, [story.id]);
+  assert.deepEqual(archivedGroupAfterMove.story_ids, []);
+});
+
+test('story group draft update blocks assigning new stories to archived groups', async () => {
+  const { db, authService, groupService, storyService } = createHarness();
+  seedAsset(db, { id: ASSET_LOGO_1_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-1.png' });
+  seedAsset(db, { id: ASSET_LOGO_2_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-2.png' });
+  seedAsset(db, { id: ASSET_STORY_1_ID, kind: 'story_image', mediaType: 'image', publicUrl: 'https://cdn.example.com/story-1.png' });
+
+  const authorization = await loginAsAdmin(authService);
+  const activeGroup = await groupService.create(
+    {
+      name: 'Active Group',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_1_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+  const archivedGroup = await groupService.create(
+    {
+      name: 'Archived Group',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_2_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+  const story = await storyService.create(
+    {
+      group_id: activeGroup.id,
+      name: 'Blocked Story',
+      media_type: 'image',
+      asset_id: ASSET_STORY_1_ID,
+      cta: null,
+    },
+    authorization,
+  );
+  await groupService.archive(archivedGroup.id, { archived: true }, authorization);
+
+  await assert.rejects(
+    () =>
+      storyService.create(
+        {
+          group_id: archivedGroup.id,
+          name: 'Create Into Archived Group',
+          media_type: 'image',
+          asset_id: ASSET_STORY_1_ID,
+          cta: null,
+        },
+        authorization,
+      ),
+    (error) =>
+      error instanceof ApiServiceError &&
+      error.statusCode === 409 &&
+      error.message.includes('archived story group'),
+  );
+
+  await assert.rejects(
+    () =>
+      groupService.update(
+        archivedGroup.id,
+        {
+          story_ids: [story.id],
+        },
+        authorization,
+      ),
+    (error) =>
+      error instanceof ApiServiceError &&
+      error.statusCode === 409 &&
+      error.message.includes('archived story group'),
+  );
+});
+
 test('story group draft update can clear nullable display fields', async () => {
   const { db, authService, groupService } = createHarness();
   seedAsset(db, { id: ASSET_LOGO_DRAFT_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo.png' });
