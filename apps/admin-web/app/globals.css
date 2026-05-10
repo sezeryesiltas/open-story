@@ -4,34 +4,41 @@
 
 :root {
   color-scheme: dark;
-  --background: 250 8% 9%;
+  --background: 222 29% 6%;
   --foreground: 0 0% 96%;
-  --card: 250 8% 12%;
+  --card: 222 19% 12%;
   --card-foreground: 0 0% 96%;
-  --popover: 250 8% 12%;
+  --popover: 222 19% 12%;
   --popover-foreground: 0 0% 96%;
-  --primary: 326 72% 60%;
-  --primary-foreground: 250 8% 9%;
-  --secondary: 250 7% 16%;
+  --primary: 166 84% 48%;
+  --primary-foreground: 222 29% 6%;
+  --secondary: 222 16% 15%;
   --secondary-foreground: 0 0% 96%;
-  --muted: 250 7% 16%;
-  --muted-foreground: 240 5% 65%;
-  --accent: 250 7% 18%;
+  --muted: 222 16% 15%;
+  --muted-foreground: 220 9% 66%;
+  --accent: 222 16% 17%;
   --accent-foreground: 0 0% 96%;
   --destructive: 0 72% 58%;
   --destructive-foreground: 0 0% 98%;
-  --border: 250 8% 23%;
-  --input: 250 8% 23%;
-  --ring: 326 72% 60%;
-  --sidebar-background: 250 10% 8%;
+  --border: 222 16% 21%;
+  --input: 222 16% 21%;
+  --ring: 166 84% 48%;
+  --sidebar-background: 222 23% 9%;
   --sidebar-foreground: 0 0% 96%;
-  --sidebar-primary: 326 72% 60%;
-  --sidebar-primary-foreground: 250 8% 9%;
-  --sidebar-accent: 250 8% 16%;
-  --sidebar-accent-foreground: 0 0% 96%;
-  --sidebar-border: 250 8% 18%;
-  --sidebar-ring: 250 10% 34%;
-  --radius: 0.75rem;
+  --sidebar-primary: 166 84% 48%;
+  --sidebar-primary-foreground: 222 29% 6%;
+  --sidebar-accent: 169 73% 10%;
+  --sidebar-accent-foreground: 166 84% 54%;
+  --sidebar-border: 222 16% 16%;
+  --sidebar-ring: 166 84% 36%;
+  --metric-teal: 176 68% 46%;
+  --metric-purple: 267 88% 66%;
+  --metric-pink: 326 84% 60%;
+  --metric-yellow: 45 96% 53%;
+  --metric-orange: 24 95% 54%;
+  --metric-blue: 217 91% 63%;
+  --metric-neutral: 220 9% 52%;
+  --radius: 0.5rem;
 }
 
 html {

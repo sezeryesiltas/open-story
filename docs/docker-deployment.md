@@ -264,3 +264,25 @@ open-story/
 ├── Dockerfile
 └── nginx/default.conf
 ```
+
+## GCP VM Üzerinde manuel deployment:
+```bash
+sudo google_metadata_script_runner startup
+```
+
+## GCP Üzerinde log
+```bash
+docker compose -f docker-compose.deploy.yml logs --tail=100 api
+```
+
+## METADATA Update
+```bash
+base64 < .env.production | tr -d '\n'
+```
+
+## Sadece spesifik servis restart
+```bash
+docker compose -f docker-compose.deploy.yml up -d --no-deps --force-recreate nginx
+docker compose -f docker-compose.deploy.yml up -d --no-deps --force-recreate admin-web
+docker compose -f docker-compose.deploy.yml up -d --no-deps --force-recreate api
+```

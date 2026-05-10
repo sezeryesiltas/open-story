@@ -117,7 +117,7 @@ function buildContentCards(
     {
       key: 'stories',
       title: 'Stories',
-      description: 'Durum ve medya turu dagilimini birlikte gosterir.',
+      description: 'Publish, draft ve archive akisi tek kartta izlenir.',
       total: getDatabaseMetricCount(settings, 'stories'),
       stats: [
         {

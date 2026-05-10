@@ -32,7 +32,7 @@ export type AdminNavSection = {
 
 export const adminNavSections: AdminNavSection[] = [
   {
-    title: 'Console',
+    title: 'Genel',
     items: [
       {
         title: 'Ana Sayfa',
@@ -44,7 +44,7 @@ export const adminNavSections: AdminNavSection[] = [
     ]
   },
   {
-    title: 'Content',
+    title: 'İçerik',
     items: [
       {
         title: 'Placements',
@@ -91,7 +91,7 @@ export const adminNavSections: AdminNavSection[] = [
     ]
   },
   {
-    title: 'Settings',
+    title: 'Ayarlar',
     items: [
       {
         title: 'Client & Tokens',

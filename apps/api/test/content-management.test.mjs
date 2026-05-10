@@ -290,6 +290,44 @@ test('set draft changes require republish and archived groups are filtered at ru
   assert.equal(feedAfterArchive?.groups[0]?.id, groupOne.group.id);
 });
 
+test('archiving published stories and groups clears their published revision pointer', async () => {
+  const { db, authService, groupService, storyService } = createHarness();
+  seedAsset(db, { id: ASSET_LOGO_1_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-1.png' });
+  seedAsset(db, { id: ASSET_STORY_1_ID, kind: 'story_image', mediaType: 'image', publicUrl: 'https://cdn.example.com/story-1.png' });
+
+  const authorization = await loginAsAdmin(authService);
+  const { group, story } = await createPublishedGroup(
+    { groupService, storyService },
+    authorization,
+    {
+      name: 'Published Group',
+      logoAssetId: ASSET_LOGO_1_ID,
+      storyName: 'Published Story',
+      assetId: ASSET_STORY_1_ID,
+    },
+  );
+  const publishedStory = await storyService.get(story.id, authorization);
+
+  assert.ok(group.current_published_revision_id);
+  assert.ok(publishedStory.current_published_revision_id);
+
+  const archivedStory = await storyService.archive(story.id, { archived: true }, authorization);
+  assert.equal(archivedStory.archived_at !== null, true);
+  assert.equal(archivedStory.current_published_revision_id, null);
+
+  const restoredStory = await storyService.archive(story.id, { archived: false }, authorization);
+  assert.equal(restoredStory.archived_at, null);
+  assert.equal(restoredStory.current_published_revision_id, null);
+
+  const archivedGroup = await groupService.archive(group.id, { archived: true }, authorization);
+  assert.equal(archivedGroup.archived_at !== null, true);
+  assert.equal(archivedGroup.current_published_revision_id, null);
+
+  const restoredGroup = await groupService.archive(group.id, { archived: false }, authorization);
+  assert.equal(restoredGroup.archived_at, null);
+  assert.equal(restoredGroup.current_published_revision_id, null);
+});
+
 test('group draft update blocks removing an unpublished story from its only group', async () => {
   const { db, authService, groupService, storyService } = createHarness();
   seedPlacement(db, { id: PLACEMENT_HOME_ID, key: 'home_top_story_bar' });

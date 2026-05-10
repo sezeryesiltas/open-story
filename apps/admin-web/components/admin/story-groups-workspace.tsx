@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { type DragEvent, useMemo, useState } from 'react';
 
-import { PageHeader } from '@/components/admin/page-header';
+import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
 import { RecordId } from '@/components/admin/record-id';
 import { StoryGroupLogo } from '@/components/admin/story-group-logo';
 import {
@@ -658,10 +658,10 @@ export function StoryGroupsWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button className="gap-2" onClick={openCreateSheet}>
-            <Plus className="h-4 w-4" />
+          <PageHeaderActionButton onClick={openCreateSheet}>
+            <Plus aria-hidden data-icon="inline-start" />
             Yeni Story Group
-          </Button>
+          </PageHeaderActionButton>
         }
         title="Story Group listesi"
       />

@@ -26,8 +26,11 @@ export default async function DashboardPage() {
   const { snapshot, errorMessage } = await loadDashboardDataVolume();
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title="Dashboard" />
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        description="Genel bakış ve içerik özetleri"
+        title="Dashboard"
+      />
 
       <DashboardDataVolume errorMessage={errorMessage} snapshot={snapshot} />
     </div>

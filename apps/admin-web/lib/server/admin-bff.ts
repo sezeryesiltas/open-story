@@ -32,6 +32,10 @@ import type {
 } from '@open-story/contracts';
 
 import { backendApiRequest } from './backend-api';
+import {
+  getAdminCurrentPublishedRevisionId,
+  getAdminPublishState,
+} from './admin-record-state';
 
 export type AdminPlacementRecord = PlacementDto & {
   connectedSetCount: number;
@@ -458,18 +462,24 @@ export function mapStoryGroupSet(storyGroupSet: StoryGroupSetDto): AdminStoryGro
 }
 
 export function mapStoryGroup(storyGroup: StoryGroupDto, storyGroupSets: StoryGroupSetDto[]): AdminStoryGroupRecord {
+  const isArchived = Boolean(storyGroup.archived_at);
+  const currentPublishedRevisionId = getAdminCurrentPublishedRevisionId(
+    storyGroup.archived_at,
+    storyGroup.current_published_revision_id,
+  );
+
   return {
     id: storyGroup.id,
     name: storyGroup.name,
     bottomLabel: storyGroup.bottom_label,
     currentDraftRevisionId: storyGroup.current_draft_revision_id,
-    currentPublishedRevisionId: storyGroup.current_published_revision_id,
+    currentPublishedRevisionId,
     logoAssetId: storyGroup.logo_asset_id,
     badge: storyGroup.badge,
     storyIds: [...storyGroup.story_ids],
     storyCount: storyGroup.story_ids.length,
-    archiveState: storyGroup.archived_at ? 'archived' : 'active',
-    publishState: storyGroup.current_published_revision_id ? 'published' : 'unpublished',
+    archiveState: isArchived ? 'archived' : 'active',
+    publishState: getAdminPublishState(storyGroup.archived_at, storyGroup.current_published_revision_id),
     archivedAt: storyGroup.archived_at,
     storyGroupSets: storyGroupSets
       .filter((storyGroupSet) => storyGroupSet.group_ids.includes(storyGroup.id))
@@ -487,12 +497,17 @@ export function mapStoryGroup(storyGroup: StoryGroupDto, storyGroupSets: StoryGr
 export function mapStory(story: StoryDto, storyGroups: StoryGroupDto[]): AdminStoryRecord {
   const storyGroup = storyGroups.find((group) => group.id === story.group_id) ?? null;
   const position = storyGroup ? storyGroup.story_ids.indexOf(story.id) + 1 : null;
+  const isArchived = Boolean(story.archived_at);
+  const currentPublishedRevisionId = getAdminCurrentPublishedRevisionId(
+    story.archived_at,
+    story.current_published_revision_id,
+  );
 
   return {
     id: story.id,
     name: story.name,
     currentDraftRevisionId: story.current_draft_revision_id,
-    currentPublishedRevisionId: story.current_published_revision_id,
+    currentPublishedRevisionId,
     groupId: story.group_id,
     groupName: storyGroup?.name ?? 'Unknown Story Group',
     position: position && position > 0 ? position : null,
@@ -501,12 +516,12 @@ export function mapStory(story: StoryDto, storyGroups: StoryGroupDto[]): AdminSt
     posterAssetId: story.poster_asset_id,
     imageDurationMs: story.image_duration_ms,
     cta: story.cta,
-    archiveState: story.archived_at ? 'archived' : 'active',
-    publishState: story.current_published_revision_id ? 'published' : 'unpublished',
+    archiveState: isArchived ? 'archived' : 'active',
+    publishState: getAdminPublishState(story.archived_at, story.current_published_revision_id),
     archivedAt: story.archived_at,
     createdAt: story.created_at,
     updatedAt: story.updated_at,
-    canDelete: !story.current_published_revision_id,
+    canDelete: !currentPublishedRevisionId,
   };
 }
 

@@ -40,7 +40,7 @@ import {
   StoryFormValues,
 } from '@/components/admin/story-form';
 import { StorySheet } from '@/components/admin/story-sheet';
-import { PageHeader } from '@/components/admin/page-header';
+import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
 import { ApiRequestError, apiRequest } from '@/lib/api';
 
 type StoryApiRecord = {
@@ -662,10 +662,10 @@ export function StoriesWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button className="gap-2" disabled={storyGroups.length === 0} onClick={openCreateSheet}>
-            <Plus className="h-4 w-4" />
+          <PageHeaderActionButton disabled={storyGroups.length === 0} onClick={openCreateSheet}>
+            <Plus aria-hidden data-icon="inline-start" />
             Yeni Story
-          </Button>
+          </PageHeaderActionButton>
         }
         title="Story listesi"
       />

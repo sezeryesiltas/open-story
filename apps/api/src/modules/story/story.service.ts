@@ -238,6 +238,7 @@ export class StoryService {
     const root = this.getStoryRootOrThrow(storyId);
     const updatedRoot = this.repository.updateStoryRoot(root.id, {
       isArchived: parsedPayload.data.archived,
+      ...(parsedPayload.data.archived ? { currentPublishedRevisionId: null } : {}),
       updatedAt: new Date().toISOString(),
     });
 

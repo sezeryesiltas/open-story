@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { getAdminNavSectionsForRole } from '@/lib/admin-navigation';
-import { adminBuildInfo, adminBuildLabel } from '@/lib/build-info';
+import { adminBuildInfo } from '@/lib/build-info';
 
 function isActive(pathname: string, href: string) {
   if (href === '/') {
@@ -40,23 +40,27 @@ export function AppSidebar({ currentUserRole }: { currentUserRole: AdminRole }) 
   const adminNavSections = getAdminNavSectionsForRole(currentUserRole);
 
   return (
-    <Sidebar collapsible="icon" variant="inset">
-      <SidebarHeader className="border-b border-sidebar-border">
+    <Sidebar className="border-sidebar-border" collapsible="icon" variant="sidebar">
+      <SidebarHeader className="px-5 py-6">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="group-data-[collapsible=icon]:p-1" size="lg">
+            <SidebarMenuButton
+              asChild
+              className="h-auto gap-3 rounded-[8px] px-0 py-0 hover:bg-transparent hover:text-sidebar-foreground group-data-[collapsible=icon]:justify-center"
+              size="lg"
+            >
               <Link href="/">
-                <div className="flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md">
+                <div className="flex aspect-square size-10 shrink-0 items-center justify-center overflow-hidden rounded-[8px] group-data-[collapsible=icon]:size-8">
                   <Image
-                    alt="Open Story"
-                    className="size-8 rounded-lg object-cover group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md"
+                    alt="OpenStory"
+                    className="size-10 rounded-[8px] object-cover group-data-[collapsible=icon]:size-8"
                     priority
                     src={appIcon}
                   />
                 </div>
                 <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="truncate font-medium">Open Story</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">Admin Console</span>
+                  <span className="truncate font-semibold">OpenStory</span>
+                  <span className="truncate text-xs text-sidebar-foreground/55">Admin</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -64,10 +68,12 @@ export function AppSidebar({ currentUserRole }: { currentUserRole: AdminRole }) 
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="gap-6 px-5 py-5">
         {adminNavSections.map((section) => (
-          <SidebarGroup key={section.title}>
-            <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+          <SidebarGroup className="p-0" key={section.title}>
+            <SidebarGroupLabel className="h-auto px-3 pb-3 text-[11px] font-semibold tracking-[0.22em] text-sidebar-foreground/40">
+              {section.title}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item) => {
@@ -75,7 +81,12 @@ export function AppSidebar({ currentUserRole }: { currentUserRole: AdminRole }) 
 
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive(pathname, item.href)} tooltip={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        className="h-12 gap-3 rounded-[8px] border border-transparent px-3 text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground data-[active=true]:border-sidebar-primary/35 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-primary group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
+                        isActive={isActive(pathname, item.href)}
+                        tooltip={item.title}
+                      >
                         <Link href={item.href}>
                           <Icon />
                           <span>{item.title}</span>
@@ -92,12 +103,17 @@ export function AppSidebar({ currentUserRole }: { currentUserRole: AdminRole }) 
 
       <SidebarSeparator />
 
-      <SidebarFooter className="border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-sidebar-border p-4 group-data-[collapsible=icon]:items-center">
         <div
-          className="flex min-w-0 flex-col px-2 py-2 text-[11px] leading-4 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
+          className="flex min-w-0 items-center gap-3 text-[11px] leading-4 text-sidebar-foreground/60"
           title={`Build ${adminBuildInfo.buildNumber}`}
         >
-          <span className="truncate">{adminBuildLabel}</span>
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-sidebar-primary/55 text-[10px] font-semibold uppercase text-sidebar-primary">
+            OS
+          </span>
+          <span className="truncate group-data-[collapsible=icon]:hidden">
+            v{adminBuildInfo.version} · {adminBuildInfo.buildNumber}
+          </span>
         </div>
       </SidebarFooter>
 
