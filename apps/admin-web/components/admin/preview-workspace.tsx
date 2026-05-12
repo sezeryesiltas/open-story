@@ -4,14 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import type { SdkFeedGroup, SdkFeedStory } from '@open-story/contracts';
 import { useEffect, useMemo, useState } from 'react';
@@ -20,10 +12,12 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
+  ListFilter,
   MousePointerClick,
   X,
 } from 'lucide-react';
 
+import { AdminFilterSelect } from '@/components/admin/admin-table-panel';
 import { PageHeader } from '@/components/admin/page-header';
 import { StoryGroupLogo } from '@/components/admin/story-group-logo';
 import { apiRequest } from '@/lib/api';
@@ -432,59 +426,43 @@ export function PreviewWorkspace() {
 
       {!previewQuery.isPending && !previewQuery.isError && data && data.placements.length > 0 ? (
         <div className="flex flex-col gap-6">
-          <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <CardTitle>Önizleme</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Placement</span>
-                  <Select onValueChange={handlePlacementChange} value={selectedPlacementId ?? NO_SELECTION}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Placement seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {data.placements.map((placement) => (
-                          <SelectItem key={placement.id} value={placement.id}>
-                            {placement.name} ({placement.placementKey})
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Story Bar</span>
-                  <Select
-                    disabled={data.candidateSets.length === 0}
-                    onValueChange={handleSetChange}
-                    value={selectedSetId ?? NO_SELECTION}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Story Bar seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {data.candidateSets.length === 0 ? (
-                          <SelectItem disabled value={NO_SELECTION}>
-                            Story Bar bulunamadı
-                          </SelectItem>
-                        ) : (
-                          data.candidateSets.map((storyGroupSet) => (
-                            <SelectItem key={storyGroupSet.id} value={storyGroupSet.id}>
-                              {storyGroupSet.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <Card className="overflow-hidden rounded-lg border-border/60 bg-card/80 shadow-2xl">
+            <CardHeader className="gap-5 space-y-0 border-b border-border/60 bg-muted/20 p-5">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <ListFilter aria-hidden className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Filtreler
+                </CardTitle>
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)]">
+                <AdminFilterSelect
+                  label="Placement"
+                  onChange={handlePlacementChange}
+                  options={data.placements.map((placement) => ({
+                    label: `${placement.name} (${placement.placementKey})`,
+                    value: placement.id,
+                  }))}
+                  value={selectedPlacementId ?? NO_SELECTION}
+                />
+
+                <AdminFilterSelect
+                  disabled={data.candidateSets.length === 0}
+                  label="Story Bar"
+                  onChange={handleSetChange}
+                  options={
+                    data.candidateSets.length === 0
+                      ? [{ disabled: true, label: 'Story Bar bulunamadı', value: NO_SELECTION }]
+                      : data.candidateSets.map((storyGroupSet) => ({
+                          label: storyGroupSet.name,
+                          value: storyGroupSet.id,
+                        }))
+                  }
+                  value={selectedSetId ?? NO_SELECTION}
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-5 p-5">
               {data ? <PreviewWarnings warnings={data.warnings} /> : null}
 
               {groups.length > 0 ? (

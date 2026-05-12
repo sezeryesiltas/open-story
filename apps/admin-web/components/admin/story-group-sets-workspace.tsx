@@ -9,6 +9,7 @@ import { cn } from '@open-story/ui/lib/utils';
 import {
   CalendarClock,
   CheckCircle2,
+  Copy,
   Layers,
   PencilLine,
   Plus,
@@ -27,7 +28,6 @@ import {
 } from '@/components/admin/story-group-set-form';
 import { StoryGroupSetSheet } from '@/components/admin/story-group-set-sheet';
 import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
-import { RecordId } from '@/components/admin/record-id';
 import { ApiRequestError, apiRequest } from '@/lib/api';
 import { formatMetricCount } from '@/lib/database-settings-presentation';
 
@@ -80,13 +80,6 @@ const emptyStoryGroupSetFormValues: StoryGroupSetFormValues = {
 };
 const emptyPlacements: PlacementRecord[] = [];
 const emptyStoryGroupSets: StoryGroupSetApiRecord[] = [];
-
-type MetricTone = 'teal' | 'yellow';
-
-const metricToneClasses: Record<MetricTone, string> = {
-  teal: 'bg-[hsl(var(--metric-teal)_/_0.12)] text-[hsl(var(--metric-teal))]',
-  yellow: 'bg-[hsl(var(--metric-yellow)_/_0.12)] text-[hsl(var(--metric-yellow))]',
-};
 
 function mapPlacement(apiPlacement: PlacementApiRecord): PlacementRecord {
   return {
@@ -196,6 +189,48 @@ function LoadingState() {
   );
 }
 
+function copyText(value: string) {
+  return navigator.clipboard?.writeText(value);
+}
+
+function CopyableCode({
+  ariaLabel,
+  className,
+  label,
+  value,
+}: {
+  ariaLabel: string;
+  className?: string;
+  label?: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      {label ? (
+        <span className="shrink-0 text-xs font-medium leading-5 text-foreground">{label}:</span>
+      ) : null}
+      <code
+        className={cn(
+          'min-w-0 truncate font-mono text-sm font-medium text-primary sm:text-base',
+          className,
+        )}
+      >
+        {value}
+      </code>
+      <Button
+        aria-label={ariaLabel}
+        className="shrink-0 text-muted-foreground hover:text-primary"
+        onClick={() => copyText(value)}
+        size="icon"
+        type="button"
+        variant="ghost"
+      >
+        <Copy aria-hidden className="size-4" />
+      </Button>
+    </div>
+  );
+}
+
 function StoryBarStats({
   storyBarCount,
   publishedCount,
@@ -208,60 +243,58 @@ function StoryBarStats({
   placementsCount: number;
 }) {
   const stats: Array<{
-    caption: string;
     icon: LucideIcon;
     label: string;
-    tone: MetricTone;
+    unit: string;
     value: number;
   }> = [
     {
-      caption: 'Toplam',
       icon: Layers,
       label: 'Story Bars',
-      tone: 'teal',
+      unit: 'Set',
       value: storyBarCount,
     },
     {
-      caption: 'Aktif',
       icon: CheckCircle2,
       label: 'Live',
-      tone: 'teal',
+      unit: 'Live',
       value: publishedCount,
     },
     {
-      caption: 'Republish gerekli',
       icon: CalendarClock,
       label: 'Taslak değişiklik',
-      tone: 'yellow',
+      unit: 'Draft',
       value: pendingChangesCount,
     },
     {
-      caption: 'Toplam',
       icon: Shapes,
       label: 'Placements',
-      tone: 'teal',
+      unit: 'Placement',
       value: placementsCount,
     },
   ];
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
 
         return (
-          <Card className="rounded-[8px] border-border/70 bg-card/95 shadow-sm" key={stat.label}>
-            <CardHeader className="p-6 pb-0">
-              <div className={cn('flex size-10 items-center justify-center rounded-[8px]', metricToneClasses[stat.tone])}>
-                <Icon aria-hidden className="size-5" />
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 p-6 pt-5">
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className="text-3xl font-semibold tracking-tight tabular-nums">{formatMetricCount(stat.value)}</p>
-              <p className="text-xs text-muted-foreground">{stat.caption}</p>
-            </CardContent>
-          </Card>
+          <div
+            className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6"
+            key={stat.label}
+          >
+            <Icon aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {stat.label}
+            </p>
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
+                {formatMetricCount(stat.value)}
+              </span>
+              <span className="text-lg font-medium text-primary">{stat.unit}</span>
+            </div>
+          </div>
         );
       })}
     </section>
@@ -503,6 +536,7 @@ export function StoryGroupSetsWorkspace() {
           <div className="flex flex-col gap-6">
             {storyGroupSets.map((storyGroupSet) => {
               const placement = placementById.get(storyGroupSet.placementId);
+              const placementKey = placement?.placementKey ?? 'missing_placement';
               const isLive = isPublished(storyGroupSet);
               const draftChangesPending = hasUnpublishedChanges(storyGroupSet);
               const canPublishDraft = canPublish(storyGroupSet);
@@ -540,10 +574,17 @@ export function StoryGroupSetsWorkspace() {
                             {storyGroupSet.name}
                           </CardTitle>
                           <div className="flex min-w-0 flex-col gap-3">
-                            <code className="w-fit max-w-full truncate rounded-[8px] bg-muted/70 px-3 py-2 font-mono text-sm font-medium text-primary sm:text-base">
-                              {placement?.placementKey ?? 'missing_placement'}
-                            </code>
-                            <RecordId label="Group Set ID" value={storyGroupSet.id} />
+                            <CopyableCode
+                              ariaLabel={`${placementKey} anahtarını kopyala`}
+                              className="rounded-[8px] bg-muted/70 px-3 py-2"
+                              value={placementKey}
+                            />
+                            <CopyableCode
+                              ariaLabel={`${storyGroupSet.id} Group Set ID bilgisini kopyala`}
+                              className="text-foreground sm:text-sm"
+                              label="Group Set ID"
+                              value={storyGroupSet.id}
+                            />
                           </div>
                         </div>
                       </div>

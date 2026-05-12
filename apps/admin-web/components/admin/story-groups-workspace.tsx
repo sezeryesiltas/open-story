@@ -11,17 +11,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@open-story/ui/components/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@open-story/ui/components/tooltip';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@open-story/ui/components/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@open-story/ui/components/tooltip';
 import { cn } from '@open-story/ui/lib/utils';
 import {
   Archive,
@@ -30,14 +34,19 @@ import {
   CircleSlash,
   Copy,
   GripVertical,
-  ListFilter,
   MoreHorizontal,
   PencilLine,
   Plus,
   SquareStack,
+  type LucideIcon,
 } from 'lucide-react';
-import { type DragEvent, useMemo, useState } from 'react';
+import { type DragEvent, useEffect, useMemo, useState } from 'react';
 
+import {
+  ADMIN_TABLE_PAGE_SIZE,
+  AdminFilterSelect,
+  AdminTablePanel,
+} from '@/components/admin/admin-table-panel';
 import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
 import { RecordId } from '@/components/admin/record-id';
 import { StoryGroupLogo } from '@/components/admin/story-group-logo';
@@ -48,6 +57,7 @@ import {
 } from '@/components/admin/story-group-form';
 import { StoryGroupSheet } from '@/components/admin/story-group-sheet';
 import { ApiRequestError, apiRequest } from '@/lib/api';
+import { formatMetricCount } from '@/lib/database-settings-presentation';
 
 type StoryGroupSetApiRecord = {
   id: string;
@@ -116,41 +126,6 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{
-    value: string;
-    label: string;
-  }>;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
-      <Select onValueChange={onChange} value={value}>
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
 function LoadingState() {
   return (
     <Card className="border-border/60 bg-card/80">
@@ -192,7 +167,7 @@ function StateBadge({
 function hasUnpublishedChanges(storyGroup: StoryGroupApiRecord): boolean {
   return Boolean(
     storyGroup.currentPublishedRevisionId &&
-      storyGroup.currentPublishedRevisionId !== storyGroup.currentDraftRevisionId,
+    storyGroup.currentPublishedRevisionId !== storyGroup.currentDraftRevisionId,
   );
 }
 
@@ -217,47 +192,68 @@ function StoryGroupStats({
   publishedCount,
   pendingChangesCount,
   archiveCount,
-  sharedReferenceCount,
 }: {
   totalCount: number;
   publishedCount: number;
   pendingChangesCount: number;
   archiveCount: number;
-  sharedReferenceCount: number;
 }) {
+  const stats: Array<{
+    icon: LucideIcon;
+    label: string;
+    unit: string;
+    value: number;
+  }> = [
+    {
+      icon: SquareStack,
+      label: 'Story Groups',
+      unit: 'Group',
+      value: totalCount,
+    },
+    {
+      icon: CheckCircle2,
+      label: 'Yayında',
+      unit: 'Live',
+      value: publishedCount,
+    },
+    {
+      icon: CalendarClock,
+      label: 'Taslak değişiklik',
+      unit: 'Draft',
+      value: pendingChangesCount,
+    },
+    {
+      icon: Archive,
+      label: 'Arşivde',
+      unit: 'Archive',
+      value: archiveCount,
+    },
+  ];
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Toplam</p>
-          <CardTitle className="text-2xl">{totalCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Yayında</p>
-          <CardTitle className="text-2xl">{publishedCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Taslak değişiklik</p>
-          <CardTitle className="text-2xl">{pendingChangesCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Arşivde</p>
-          <CardTitle className="text-2xl">{archiveCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Çoklu kullanım</p>
-          <CardTitle className="text-2xl">{sharedReferenceCount}</CardTitle>
-        </CardHeader>
-      </Card>
-    </div>
+    <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
+
+        return (
+          <div
+            className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6"
+            key={stat.label}
+          >
+            <Icon aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {stat.label}
+            </p>
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
+                {formatMetricCount(stat.value)}
+              </span>
+              <span className="text-lg font-medium text-primary">{stat.unit}</span>
+            </div>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
@@ -266,12 +262,14 @@ export function StoryGroupsWorkspace() {
   const [selectedStoryGroupSetId, setSelectedStoryGroupSetId] = useState('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [publishFilter, setPublishFilter] = useState<PublishFilterValue>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<'create' | 'edit' | 'copy'>('create');
   const [activeStoryGroupId, setActiveStoryGroupId] = useState<string | null>(null);
   const [draggedStoryGroupId, setDraggedStoryGroupId] = useState<string | null>(null);
   const [dragOverStoryGroupId, setDragOverStoryGroupId] = useState<string | null>(null);
-  const [sheetInitialValues, setSheetInitialValues] = useState<StoryGroupFormValues>(emptyStoryGroupFormValues);
+  const [sheetInitialValues, setSheetInitialValues] =
+    useState<StoryGroupFormValues>(emptyStoryGroupFormValues);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -299,12 +297,19 @@ export function StoryGroupsWorkspace() {
     [storyGroupSets],
   );
   const selectedStoryGroupSet = useMemo(
-    () => storyGroupSets.find((storyGroupSet) => storyGroupSet.id === selectedStoryGroupSetId) ?? null,
+    () =>
+      storyGroupSets.find((storyGroupSet) => storyGroupSet.id === selectedStoryGroupSetId) ?? null,
     [selectedStoryGroupSetId, storyGroupSets],
   );
   const canReorderStoryGroups = Boolean(selectedStoryGroupSet);
   const groupLogoAssetById = useMemo(
-    () => new Map((workspaceQuery.data?.groupLogoAssets ?? emptyAssetRecords).map((asset) => [asset.id, asset])),
+    () =>
+      new Map(
+        (workspaceQuery.data?.groupLogoAssets ?? emptyAssetRecords).map((asset) => [
+          asset.id,
+          asset,
+        ]),
+      ),
     [workspaceQuery.data?.groupLogoAssets],
   );
 
@@ -316,7 +321,9 @@ export function StoryGroupsWorkspace() {
         }
       } else if (
         selectedStoryGroupSetId !== 'all' &&
-        !storyGroup.storyGroupSets.some((storyGroupSet) => storyGroupSet.id === selectedStoryGroupSetId)
+        !storyGroup.storyGroupSets.some(
+          (storyGroupSet) => storyGroupSet.id === selectedStoryGroupSetId,
+        )
       ) {
         return false;
       }
@@ -336,7 +343,9 @@ export function StoryGroupsWorkspace() {
       return nextStoryGroups;
     }
 
-    const groupOrder = new Map(selectedStoryGroupSet.groupIds.map((groupId, index) => [groupId, index]));
+    const groupOrder = new Map(
+      selectedStoryGroupSet.groupIds.map((groupId, index) => [groupId, index]),
+    );
     return [...nextStoryGroups].sort(
       (left, right) =>
         (groupOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
@@ -344,16 +353,32 @@ export function StoryGroupsWorkspace() {
     );
   }, [archiveFilter, publishFilter, selectedStoryGroupSet, selectedStoryGroupSetId, storyGroups]);
 
+  const storyGroupPageCount = useMemo(
+    () => Math.max(1, Math.ceil(filteredStoryGroups.length / ADMIN_TABLE_PAGE_SIZE)),
+    [filteredStoryGroups.length],
+  );
+  const paginatedStoryGroups = useMemo(() => {
+    const safeCurrentPage = Math.min(Math.max(currentPage, 1), storyGroupPageCount);
+    const pageStart = (safeCurrentPage - 1) * ADMIN_TABLE_PAGE_SIZE;
+    return filteredStoryGroups.slice(pageStart, pageStart + ADMIN_TABLE_PAGE_SIZE);
+  }, [currentPage, filteredStoryGroups, storyGroupPageCount]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [archiveFilter, publishFilter, selectedStoryGroupSetId]);
+
+  useEffect(() => {
+    if (currentPage > storyGroupPageCount) {
+      setCurrentPage(storyGroupPageCount);
+    }
+  }, [currentPage, storyGroupPageCount]);
+
   const archiveCount = useMemo(
     () => storyGroups.filter((storyGroup) => storyGroup.archiveState === 'archived').length,
     [storyGroups],
   );
   const publishedCount = useMemo(
     () => storyGroups.filter((storyGroup) => storyGroup.publishState === 'published').length,
-    [storyGroups],
-  );
-  const sharedReferenceCount = useMemo(
-    () => storyGroups.filter((storyGroup) => storyGroup.storyGroupSets.length > 1).length,
     [storyGroups],
   );
   const pendingChangesCount = useMemo(
@@ -383,7 +408,9 @@ export function StoryGroupsWorkspace() {
         body: JSON.stringify(values),
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['story-groups-workspace'],
+      });
       handleSheetChange(false);
     },
   });
@@ -401,18 +428,14 @@ export function StoryGroupsWorkspace() {
         body: JSON.stringify({ action }),
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['story-groups-workspace'],
+      });
     },
   });
 
   const reorderStoryGroupsMutation = useMutation({
-    mutationFn: ({
-      storyGroupSetId,
-      groupIds,
-    }: {
-      storyGroupSetId: string;
-      groupIds: string[];
-    }) =>
+    mutationFn: ({ storyGroupSetId, groupIds }: { storyGroupSetId: string; groupIds: string[] }) =>
       apiRequest<StoryGroupSetApiRecord>(`/api/story-group-sets/${storyGroupSetId}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -421,7 +444,9 @@ export function StoryGroupsWorkspace() {
         }),
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['story-groups-workspace'],
+      });
     },
   });
 
@@ -432,7 +457,9 @@ export function StoryGroupsWorkspace() {
         body: JSON.stringify(values),
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['story-groups-workspace'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['story-groups-workspace'],
+      });
       handleSheetChange(false);
     },
   });
@@ -671,7 +698,6 @@ export function StoryGroupsWorkspace() {
           archiveCount={archiveCount}
           pendingChangesCount={pendingChangesCount}
           publishedCount={publishedCount}
-          sharedReferenceCount={sharedReferenceCount}
           totalCount={storyGroups.length}
         />
 
@@ -685,17 +711,17 @@ export function StoryGroupsWorkspace() {
           <LoadingState />
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-          <CardHeader>
-            <CardTitle>Story Group listesi yüklenemedi</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                'Story Group listesi şu anda alınamıyor.'}
-            </div>
-            <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-              Tekrar dene
-            </Button>
+            <CardHeader>
+              <CardTitle>Story Group listesi yüklenemedi</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
+                  'Story Group listesi şu anda alınamıyor.'}
+              </div>
+              <Button onClick={() => workspaceQuery.refetch()} variant="outline">
+                Tekrar dene
+              </Button>
             </CardContent>
           </Card>
         ) : storyGroups.length === 0 ? (
@@ -707,43 +733,13 @@ export function StoryGroupsWorkspace() {
               <CardTitle className="text-xl">Henüz Story Group kaydı yok</CardTitle>
             </CardHeader>
           </Card>
-        ) : filteredStoryGroups.length === 0 ? (
-          <Card className="border-border/60 border-dashed bg-card/80">
-            <CardHeader>
-              <CardTitle>Filtrelerle eşleşen Story Group bulunamadı</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={resetFilters} variant="outline">
-                Filtreleri temizle
-              </Button>
-            </CardContent>
-          </Card>
         ) : (
-          <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    <ListFilter className="h-4 w-4" />
-                    Filtreler
-                  </div>
-                  <CardTitle>Story Group tablosu</CardTitle>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {hasActiveFilters ? (
-                    <Button onClick={resetFilters} size="sm" variant="outline">
-                      Filtreleri temizle
-                    </Button>
-                  ) : null}
-                  <Badge variant="secondary">{filteredStoryGroups.length} görünür satır</Badge>
-                  {canReorderStoryGroups ? <Badge variant="outline">Sürükle-bırak sıralama açık</Badge> : null}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-3">
-                <FilterSelect
+          <AdminTablePanel
+            currentPage={currentPage}
+            filterGridClassName="md:grid-cols-3"
+            filters={
+              <>
+                <AdminFilterSelect
                   label="Story Bar"
                   onChange={setSelectedStoryGroupSetId}
                   options={[
@@ -757,7 +753,7 @@ export function StoryGroupsWorkspace() {
                   value={selectedStoryGroupSetId}
                 />
 
-                <FilterSelect
+                <AdminFilterSelect
                   label="Archive State"
                   onChange={(value) => setArchiveFilter(value as ArchiveFilterValue)}
                   options={[
@@ -768,7 +764,7 @@ export function StoryGroupsWorkspace() {
                   value={archiveFilter}
                 />
 
-                <FilterSelect
+                <AdminFilterSelect
                   label="Publish State"
                   onChange={(value) => setPublishFilter(value as PublishFilterValue)}
                   options={[
@@ -778,25 +774,48 @@ export function StoryGroupsWorkspace() {
                   ]}
                   value={publishFilter}
                 />
-              </div>
-
-              <Table className="min-w-[980px] table-fixed">
-                <TableHeader>
+              </>
+            }
+            hasActiveFilters={hasActiveFilters}
+            onPageChange={setCurrentPage}
+            onResetFilters={resetFilters}
+            pageCount={storyGroupPageCount}
+            toolbarContent={
+              canReorderStoryGroups ? (
+                <Badge variant="outline">Sürükle-bırak sıralama açık</Badge>
+              ) : null
+            }
+            visibleCount={filteredStoryGroups.length}
+          >
+            <Table className="min-w-[980px] table-fixed">
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-12 border-b border-border/60">
+                    <span className="sr-only">Sıra</span>
+                  </TableHead>
+                  <TableHead className="w-[28%] border-b border-border/60">Group</TableHead>
+                  <TableHead className="w-[20%] border-b border-border/60">Story Bars</TableHead>
+                  <TableHead className="w-[10%] border-b border-border/60">Archive</TableHead>
+                  <TableHead className="w-[16%] border-b border-border/60">Publish</TableHead>
+                  <TableHead className="w-[8%] border-b border-border/60">Stories</TableHead>
+                  <TableHead className="w-[12%] border-b border-border/60">Last Update</TableHead>
+                  <TableHead className="w-20 border-b border-border/60 text-right">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedStoryGroups.length === 0 ? (
                   <TableRow>
-                    <TableHead className="w-12 border-b border-border/60">
-                      <span className="sr-only">Sıra</span>
-                    </TableHead>
-                    <TableHead className="w-[28%] border-b border-border/60">Group</TableHead>
-                    <TableHead className="w-[20%] border-b border-border/60">Story Bars</TableHead>
-                    <TableHead className="w-[10%] border-b border-border/60">Archive</TableHead>
-                    <TableHead className="w-[16%] border-b border-border/60">Publish</TableHead>
-                    <TableHead className="w-[8%] border-b border-border/60">Stories</TableHead>
-                    <TableHead className="w-[12%] border-b border-border/60">Last Update</TableHead>
-                    <TableHead className="w-20 border-b border-border/60 text-right">Actions</TableHead>
+                    <TableCell
+                      className="py-10 text-center text-sm text-muted-foreground"
+                      colSpan={8}
+                    >
+                      Filtrelerle eşleşen Story Group bulunamadı.
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStoryGroups.map((storyGroup) => {
+                ) : (
+                  paginatedStoryGroups.map((storyGroup) => {
                     const groupLogoAsset = groupLogoAssetById.get(storyGroup.logoAssetId);
                     const badgeLabel =
                       storyGroup.badge?.type === 'emoji'
@@ -805,7 +824,8 @@ export function StoryGroupsWorkspace() {
                           ? 'SVG'
                           : null;
                     const draftChangesPending = hasUnpublishedChanges(storyGroup);
-                    const canPublishDraft = canPublish(storyGroup) && storyGroup.archiveState !== 'archived';
+                    const canPublishDraft =
+                      canPublish(storyGroup) && storyGroup.archiveState !== 'archived';
                     const publishLabel = publishActionLabel(storyGroup);
                     const isDragging = draggedStoryGroupId === storyGroup.id;
                     const isDragOver = dragOverStoryGroupId === storyGroup.id;
@@ -832,7 +852,9 @@ export function StoryGroupsWorkspace() {
                                 <Button
                                   aria-label="Story Group sırasını değiştir"
                                   className="cursor-grab active:cursor-grabbing"
-                                  disabled={!canReorderStoryGroups || reorderStoryGroupsMutation.isPending}
+                                  disabled={
+                                    !canReorderStoryGroups || reorderStoryGroupsMutation.isPending
+                                  }
                                   size="icon"
                                   variant="ghost"
                                 >
@@ -874,7 +896,10 @@ export function StoryGroupsWorkspace() {
                                   className="flex max-w-80 flex-col gap-1 rounded-md border border-border/60 px-2.5 py-2"
                                   key={storyGroupSet.id}
                                 >
-                                  <Badge className="w-fit" variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
+                                  <Badge
+                                    className="w-fit"
+                                    variant={storyGroupSet.isFallback ? 'default' : 'outline'}
+                                  >
                                     {storyGroupSet.name}
                                   </Badge>
                                 </div>
@@ -898,7 +923,9 @@ export function StoryGroupsWorkspace() {
                               <CircleSlash className="h-4 w-4 text-muted-foreground" />
                             )}
                             <StateBadge type="publish" value={storyGroup.publishState} />
-                            {draftChangesPending ? <Badge variant="secondary">Taslak değişiklik var</Badge> : null}
+                            {draftChangesPending ? (
+                              <Badge variant="secondary">Taslak değişiklik var</Badge>
+                            ) : null}
                           </div>
                         </TableCell>
 
@@ -944,9 +971,7 @@ export function StoryGroupsWorkspace() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={!canPublishDraft}
-                                onSelect={() =>
-                                  handleRowAction(storyGroup, 'publish')
-                                }
+                                onSelect={() => handleRowAction(storyGroup, 'publish')}
                               >
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                 {publishLabel}
@@ -956,11 +981,11 @@ export function StoryGroupsWorkspace() {
                         </TableCell>
                       </TableRow>
                     );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </AdminTablePanel>
         )}
       </section>
 

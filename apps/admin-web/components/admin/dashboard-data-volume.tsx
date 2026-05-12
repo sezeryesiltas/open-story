@@ -181,12 +181,32 @@ function getStatTone(cardKey: DashboardDataVolumeCard['key'], label: string): Me
     return label === 'Video' ? 'yellow' : 'orange';
   }
 
+  if (cardKey === 'story-groups' || cardKey === 'stories') {
+    if (label === 'Published') {
+      return 'purple';
+    }
+
+    if (label === 'Unpublished') {
+      return 'pink';
+    }
+
+    if (label === 'Draft') {
+      return 'yellow';
+    }
+
+    if (label === 'Active') {
+      return 'blue';
+    }
+
+    return 'neutral';
+  }
+
   if (label === 'Published') {
-    return cardKey === 'stories' ? 'pink' : 'purple';
+    return 'purple';
   }
 
   if (label === 'Unpublished') {
-    return cardKey === 'stories' ? 'purple' : 'pink';
+    return 'pink';
   }
 
   if (label === 'Draft') {
@@ -194,7 +214,7 @@ function getStatTone(cardKey: DashboardDataVolumeCard['key'], label: string): Me
   }
 
   if (label === 'Active') {
-    return cardKey === 'story-groups' ? 'blue' : 'teal';
+    return 'teal';
   }
 
   return 'neutral';
@@ -220,10 +240,14 @@ function RingChart({
   total,
   value,
   tone,
+  centerValue = total,
+  centerLabel = 'Toplam',
 }: {
   total: number;
   value: number;
   tone: MetricTone;
+  centerValue?: number;
+  centerLabel?: string;
 }) {
   const progress = getRingProgress(total, value);
   const dashOffset = chartCircumference * (1 - progress);
@@ -254,8 +278,8 @@ function RingChart({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-semibold tracking-tight tabular-nums">{formatMetricCount(total)}</span>
-        <span className="text-xs text-muted-foreground">Toplam</span>
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">{formatMetricCount(centerValue)}</span>
+        <span className="text-xs text-muted-foreground">{centerLabel}</span>
       </div>
     </div>
   );
@@ -264,12 +288,16 @@ function RingChart({
 function SegmentedRingChart({
   total,
   segments,
+  centerValue = total,
+  centerLabel = 'Toplam',
 }: {
   total: number;
   segments: Array<{
     tone: MetricTone;
     value: number;
   }>;
+  centerValue?: number;
+  centerLabel?: string;
 }) {
   let cumulativeLength = 0;
 
@@ -312,8 +340,8 @@ function SegmentedRingChart({
           : null}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-semibold tracking-tight tabular-nums">{formatMetricCount(total)}</span>
-        <span className="text-xs text-muted-foreground">Toplam</span>
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">{formatMetricCount(centerValue)}</span>
+        <span className="text-xs text-muted-foreground">{centerLabel}</span>
       </div>
     </div>
   );
@@ -348,6 +376,10 @@ function GaugeBlock({
   gauge: DashboardGauge;
 }) {
   const total = getStatsTotal(gauge.stats);
+  const centerLabel =
+    gauge.key === 'archive-state' ? 'Active' : gauge.key === 'publish-state' ? 'Published' : 'Toplam';
+  const centerValue =
+    centerLabel === 'Toplam' ? total : gauge.stats.find((stat) => stat.label === centerLabel)?.value ?? 0;
   const segments = gauge.stats.map((stat) => ({
     tone: getStatTone(cardKey, stat.label),
     value: stat.value,
@@ -359,7 +391,7 @@ function GaugeBlock({
         <p className="text-sm font-medium text-foreground">{gauge.title}</p>
       </div>
 
-      <SegmentedRingChart total={total} segments={segments} />
+      <SegmentedRingChart centerLabel={centerLabel} centerValue={centerValue} total={total} segments={segments} />
 
       <div className="flex w-full min-w-0 flex-col gap-3">
         {gauge.stats.map((stat) => (
@@ -515,7 +547,13 @@ export function DashboardDataVolume({
                     {card.key === 'assets' ? (
                       <SegmentedRingChart total={chartTotal} segments={assetSegments} />
                     ) : (
-                      <RingChart total={chartTotal} value={primaryValue} tone={meta.tone} />
+                      <RingChart
+                        centerLabel={card.key === 'story-bars' ? 'Aktif' : undefined}
+                        centerValue={card.key === 'story-bars' ? primaryValue : undefined}
+                        total={chartTotal}
+                        value={primaryValue}
+                        tone={meta.tone}
+                      />
                     )}
 
                     <div className="flex w-full min-w-0 flex-1 flex-col gap-3">
