@@ -38,12 +38,12 @@ export function StoryGroupSetMultiSelect({
   );
 
   const filteredOptions = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase('tr');
+    const normalizedSearch = search.trim().toLocaleLowerCase('en');
     if (!normalizedSearch) {
       return options;
     }
 
-    return options.filter((option) => option.name.toLocaleLowerCase('tr').includes(normalizedSearch));
+    return options.filter((option) => option.name.toLocaleLowerCase('en').includes(normalizedSearch));
   }, [options, search]);
 
   const toggleValue = (optionId: string, checked: boolean | 'indeterminate') => {
@@ -62,8 +62,8 @@ export function StoryGroupSetMultiSelect({
           <Button className="w-full justify-between" type="button" variant="outline">
             <span className="truncate text-left">
               {selectedOptions.length > 0
-                ? `${selectedOptions.length} Story Bar secildi`
-                : 'Story Bar sec'}
+                ? `${selectedOptions.length} Story Bars selected`
+                : 'Select Story Bar'}
             </span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           </Button>
@@ -72,14 +72,14 @@ export function StoryGroupSetMultiSelect({
           <div className="p-2">
             <Input
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Story Bar ara..."
+              placeholder="Search Story Bar..."
               value={search}
             />
           </div>
           <DropdownMenuSeparator />
           <div className="max-h-64 overflow-y-auto p-1">
             {filteredOptions.length === 0 ? (
-              <p className="px-2 py-3 text-sm text-muted-foreground">Arama ile eslesen Story Bar bulunamadi.</p>
+              <p className="px-2 py-3 text-sm text-muted-foreground">No Story Bars match the search.</p>
             ) : (
               filteredOptions.map((option) => (
                 <DropdownMenuCheckboxItem
@@ -103,7 +103,7 @@ export function StoryGroupSetMultiSelect({
               <Check className="h-3 w-3" />
               <span>{option.name}</span>
               <button
-                aria-label={`${option.name} Story Bar secimini kaldir`}
+                aria-label={`Remove ${option.name} Story Bar selection`}
                 className="rounded-sm p-0.5 transition-colors hover:bg-foreground/10"
                 onClick={() => onChange(selectedValues.filter((value) => value !== option.id))}
                 type="button"
@@ -115,7 +115,7 @@ export function StoryGroupSetMultiSelect({
         </div>
       ) : (
         <p className="text-xs leading-5 text-muted-foreground">
-          Secilen Story Bar&apos;lar bu group&apos;u referanslayan liste olur. Chip uzerindeki `X` ile tek tek kaldirabilirsiniz.
+          Selected Story Bars become the list that references this group. Use `X` on a chip to remove items one by one.
         </p>
       )}
     </div>

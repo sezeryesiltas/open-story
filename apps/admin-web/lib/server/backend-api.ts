@@ -76,7 +76,7 @@ export async function backendApiRequest<T>(
     response = await fetch(`${getBackendApiBaseUrl()}${path}`, requestInit);
   } catch {
     throw new BackendApiError(
-      `Backend servisine ulaşılamadı: ${getBackendApiBaseUrl()}. API servisi çalışmıyor olabilir.`,
+      `Backend service could not be reached: ${getBackendApiBaseUrl()}. The API service may not be running.`,
       503,
       'backend_unreachable',
     );
@@ -96,10 +96,10 @@ export async function backendApiRequest<T>(
     const fallbackMessage =
       typeof payload === 'string' && payload.trim()
         ? payload
-        : `Backend isteği başarısız oldu (${response.status} ${response.statusText}).`;
+        : `Backend request failed (${response.status} ${response.statusText}).`;
     const safeMessage =
       response.status === 404 && typeof payload === 'string' && payload.includes('<!DOCTYPE html>')
-        ? `Backend endpoint bulunamadı: ${getBackendApiBaseUrl()}${path}. API servisi çalışmıyor veya yanlış porta gidiliyor.`
+        ? `Backend endpoint was not found: ${getBackendApiBaseUrl()}${path}. The API service may not be running, or the request is using the wrong port.`
         : fallbackMessage;
 
     throw new BackendApiError(

@@ -20,6 +20,6 @@ export async function DELETE(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Asset silinemedi.', 500, 'validation_error');
+    return jsonError('Asset could not be deleted.', 500, 'validation_error');
   }
 }

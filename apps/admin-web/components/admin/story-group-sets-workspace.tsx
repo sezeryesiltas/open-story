@@ -5,7 +5,20 @@ import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { CalendarClock, CheckCircle2, Layers, PencilLine, Plus, Shapes } from 'lucide-react';
+import { cn } from '@open-story/ui/lib/utils';
+import {
+  CalendarClock,
+  CheckCircle2,
+  Copy,
+  Layers,
+  PencilLine,
+  Plus,
+  Shapes,
+  SquareStack,
+  Target,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import {
@@ -14,9 +27,9 @@ import {
   StoryGroupSetSubmitValues,
 } from '@/components/admin/story-group-set-form';
 import { StoryGroupSetSheet } from '@/components/admin/story-group-set-sheet';
-import { PageHeader } from '@/components/admin/page-header';
-import { RecordId } from '@/components/admin/record-id';
+import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
 import { ApiRequestError, apiRequest } from '@/lib/api';
+import { formatMetricCount } from '@/lib/database-settings-presentation';
 
 type PlacementApiRecord = {
   id: string;
@@ -77,7 +90,7 @@ function mapPlacement(apiPlacement: PlacementApiRecord): PlacementRecord {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
 
     month: 'short',
@@ -91,7 +104,7 @@ function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): str
   }
 
   if (storyGroupSet.platformTargets.length === 0) {
-    return 'Tüm platformlar';
+    return 'All platforms';
   }
 
   return storyGroupSet.platformTargets
@@ -101,11 +114,11 @@ function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): str
 
 function formatSegmentSummary(storyGroupSet: StoryGroupSetApiRecord): string {
   if (storyGroupSet.isFallback) {
-    return 'Eşleşme olmadığında kullanılır.';
+    return 'Used when there is no match.';
   }
 
   if (storyGroupSet.userSegments.length === 0) {
-    return 'Tüm kullanıcılar';
+    return 'All users';
   }
 
   return storyGroupSet.userSegments.join(', ');
@@ -176,6 +189,48 @@ function LoadingState() {
   );
 }
 
+function copyText(value: string) {
+  return navigator.clipboard?.writeText(value);
+}
+
+function CopyableCode({
+  ariaLabel,
+  className,
+  label,
+  value,
+}: {
+  ariaLabel: string;
+  className?: string;
+  label?: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      {label ? (
+        <span className="shrink-0 text-xs font-medium leading-5 text-foreground">{label}:</span>
+      ) : null}
+      <code
+        className={cn(
+          'min-w-0 truncate font-mono text-sm font-medium text-primary sm:text-base',
+          className,
+        )}
+      >
+        {value}
+      </code>
+      <Button
+        aria-label={ariaLabel}
+        className="shrink-0 text-muted-foreground hover:text-primary"
+        onClick={() => copyText(value)}
+        size="icon"
+        type="button"
+        variant="ghost"
+      >
+        <Copy aria-hidden className="size-4" />
+      </Button>
+    </div>
+  );
+}
+
 function StoryBarStats({
   storyBarCount,
   publishedCount,
@@ -187,33 +242,62 @@ function StoryBarStats({
   pendingChangesCount: number;
   placementsCount: number;
 }) {
+  const stats: Array<{
+    icon: LucideIcon;
+    label: string;
+    unit: string;
+    value: number;
+  }> = [
+    {
+      icon: Layers,
+      label: 'Story Bars',
+      unit: 'Set',
+      value: storyBarCount,
+    },
+    {
+      icon: CheckCircle2,
+      label: 'Live',
+      unit: 'Live',
+      value: publishedCount,
+    },
+    {
+      icon: CalendarClock,
+      label: 'Draft changes',
+      unit: 'Draft',
+      value: pendingChangesCount,
+    },
+    {
+      icon: Shapes,
+      label: 'Placements',
+      unit: 'Placement',
+      value: placementsCount,
+    },
+  ];
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Story Bar</p>
-          <CardTitle className="text-2xl">{storyBarCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Live</p>
-          <CardTitle className="text-2xl">{publishedCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Taslak değişiklik</p>
-          <CardTitle className="text-2xl">{pendingChangesCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Placement</p>
-          <CardTitle className="text-2xl">{placementsCount}</CardTitle>
-        </CardHeader>
-      </Card>
-    </div>
+    <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
+
+        return (
+          <div
+            className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6"
+            key={stat.label}
+          >
+            <Icon aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {stat.label}
+            </p>
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
+                {formatMetricCount(stat.value)}
+              </span>
+              <span className="text-lg font-medium text-primary">{stat.unit}</span>
+            </div>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
@@ -329,7 +413,7 @@ export function StoryGroupSetsWorkspace() {
         action,
       });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Story Bar aksiyonu uygulanamadı.');
+      setActionError(error instanceof Error ? error.message : 'Story Bar action could not be applied.');
     }
   };
 
@@ -353,12 +437,12 @@ export function StoryGroupSetsWorkspace() {
       if (error instanceof ApiRequestError && error.code === 'not_found') {
         return {
           fieldErrors: {
-            placementId: 'Seçili placement artık bulunamıyor. Listeyi yenileyin.',
+            placementId: 'The selected placement can no longer be found. Refresh the list.',
           },
         };
       }
 
-      setSubmitError(error instanceof Error ? error.message : 'Story Bar kaydedilemedi.');
+      setSubmitError(error instanceof Error ? error.message : 'Story Bar could not be saved.');
       return undefined;
     }
   };
@@ -380,18 +464,18 @@ export function StoryGroupSetsWorkspace() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         actions={
-          <Button className="gap-2" disabled={!canCreateStoryGroupSet} onClick={openCreateSheet}>
-            <Plus className="h-4 w-4" />
-            Yeni Story Bar
-          </Button>
+          <PageHeaderActionButton disabled={!canCreateStoryGroupSet} onClick={openCreateSheet}>
+            <Plus aria-hidden data-icon="inline-start" />
+            New Story Bar
+          </PageHeaderActionButton>
         }
-        title="Story Bar listesi"
+        title="Story Bar List"
       />
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         <StoryBarStats
           pendingChangesCount={pendingChangesCount}
           placementsCount={placements.length}
@@ -411,7 +495,7 @@ export function StoryGroupSetsWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Shapes className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Önce placement oluşturulmalı</CardTitle>
+              <CardTitle className="text-xl">Create a placement first</CardTitle>
             </CardHeader>
           </Card>
         ) : null}
@@ -420,17 +504,17 @@ export function StoryGroupSetsWorkspace() {
           <LoadingState />
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-          <CardHeader>
-            <CardTitle>Story Bar listesi yüklenemedi</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {(workspaceQuery.error as Error | undefined)?.message ??
-                'Story Bar listesi şu anda alınamıyor.'}
-            </div>
-            <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-              Tekrar dene
-            </Button>
+            <CardHeader>
+              <CardTitle>Story Bar list could not be loaded</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {(workspaceQuery.error as Error | undefined)?.message ??
+                  'Story Bar list cannot be fetched right now.'}
+              </div>
+              <Button onClick={() => workspaceQuery.refetch()} variant="outline">
+                Try again
+              </Button>
             </CardContent>
           </Card>
         ) : !canCreateStoryGroupSet ? null : storyGroupSets.length === 0 ? (
@@ -439,19 +523,20 @@ export function StoryGroupSetsWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Layers className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz Story Bar tanımı yok</CardTitle>
+              <CardTitle className="text-xl">No Story Bar definitions yet</CardTitle>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
                 <Plus className="h-4 w-4" />
-                İlk Story Bar&apos;ı oluştur
+                Create the first Story Bar
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="flex flex-col gap-6">
             {storyGroupSets.map((storyGroupSet) => {
               const placement = placementById.get(storyGroupSet.placementId);
+              const placementKey = placement?.placementKey ?? 'missing_placement';
               const isLive = isPublished(storyGroupSet);
               const draftChangesPending = hasUnpublishedChanges(storyGroupSet);
               const canPublishDraft = canPublish(storyGroupSet);
@@ -460,97 +545,122 @@ export function StoryGroupSetsWorkspace() {
               return (
                 <Card
                   key={storyGroupSet.id}
-                  className="border-border/60 bg-card/80 transition-colors hover:bg-card"
+                  className="group relative overflow-hidden rounded-2xl border-border/70 bg-card/80 shadow-sm backdrop-blur-xl transition-colors hover:bg-card/95"
                 >
-                  <CardHeader className="space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-3">
-                        <div className="inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                          <Layers className="h-5 w-5" />
+                  <div className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-primary/10 opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
+                  <CardHeader className="relative flex flex-col gap-8 p-6 md:p-8">
+                    <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+                      <div className="flex min-w-0 flex-col gap-5">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge className="w-fit gap-2 rounded-full border-border/70 bg-muted/50 px-4 py-1.5 uppercase tracking-[0.18em] text-muted-foreground" variant="outline">
+                            <Layers aria-hidden className="size-3.5 text-primary" />
+                            Story Bar Set
+                          </Badge>
+                          <Badge className="w-fit rounded-full px-4 py-1.5" variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
+                            {storyGroupSet.isFallback ? 'Fallback' : 'Targeted'}
+                          </Badge>
+                          <Badge className="w-fit rounded-full px-4 py-1.5" variant={isLive ? 'default' : 'outline'}>
+                            {isLive ? 'Live' : 'Draft'}
+                          </Badge>
+                          {draftChangesPending ? (
+                            <Badge className="w-fit rounded-full px-4 py-1.5" variant="secondary">
+                              Has draft changes
+                            </Badge>
+                          ) : null}
                         </div>
-                        <div className="space-y-2">
-                          <CardTitle className="text-xl">{storyGroupSet.name}</CardTitle>
-                          <RecordId label="Group Set ID" value={storyGroupSet.id} />
+
+                        <div className="flex min-w-0 flex-col gap-5">
+                          <CardTitle className="break-words text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl">
+                            {storyGroupSet.name}
+                          </CardTitle>
+                          <div className="flex min-w-0 flex-col gap-3">
+                            <CopyableCode
+                              ariaLabel={`Copy ${placementKey} key`}
+                              className="rounded-[8px] bg-muted/70 px-3 py-2"
+                              value={placementKey}
+                            />
+                            <CopyableCode
+                              ariaLabel={`Copy ${storyGroupSet.id} Group Set ID`}
+                              className="text-foreground sm:text-sm"
+                              label="Group Set ID"
+                              value={storyGroupSet.id}
+                            />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-end gap-2">
+                      <div className="flex flex-wrap items-center gap-2 md:justify-end">
                         <Button
-                          className="gap-2"
+                          className="h-12 shrink-0 rounded-xl px-5"
                           disabled={!canPublishDraft}
                           onClick={() => handleRowAction(storyGroupSet, 'publish')}
-                          size="sm"
                           variant={canPublishDraft ? 'default' : 'secondary'}
                         >
-                          <CheckCircle2 className="h-4 w-4" />
+                          <CheckCircle2 aria-hidden data-icon="inline-start" />
                           {publishLabel}
                         </Button>
                         <Button
-                          className="gap-2"
+                          className="h-12 shrink-0 rounded-xl border-border/80 bg-muted/45 px-5 hover:border-primary/70 hover:bg-muted/70 hover:text-primary"
                           onClick={() => openEditSheet(storyGroupSet.id)}
-                          size="sm"
                           variant="outline"
                         >
-                          <PencilLine className="h-4 w-4" />
-                          Edit
+                          <PencilLine aria-hidden data-icon="inline-start" />
+                          Edit Settings
                         </Button>
                       </div>
                     </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Badge className="w-fit uppercase tracking-[0.16em]" variant="secondary">
-                        {placement?.placementKey ?? 'missing_placement'}
-                      </Badge>
-                      <Badge className="w-fit" variant={storyGroupSet.isFallback ? 'default' : 'outline'}>
-                        {storyGroupSet.isFallback ? 'Fallback' : 'Targeted'}
-                      </Badge>
-                      <Badge className="w-fit" variant={isLive ? 'default' : 'outline'}>
-                        {isLive ? 'Live' : 'Draft'}
-                      </Badge>
-                      {draftChangesPending ? (
-                        <Badge className="w-fit" variant="secondary">
-                          Taslak değişiklik var
-                        </Badge>
-                      ) : null}
-                    </div>
                   </CardHeader>
 
-                  <CardContent className="grid gap-3 border-t border-border/60 pt-6 text-sm sm:grid-cols-2">
-                    <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                  <CardContent className="relative grid gap-6 p-6 pt-0 md:grid-cols-2 md:p-8 md:pt-0 xl:grid-cols-4">
+                    <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
+                      <Target aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                         Platform
                       </p>
-                      <p className="mt-3 text-base font-semibold">{formatPlatformTargetSummary(storyGroupSet)}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        {storyGroupSet.platformTargets.length} aktif platform hedefi.
+                      <p className="mt-6 break-words text-base font-semibold leading-7 text-foreground">
+                        {formatPlatformTargetSummary(storyGroupSet)}
+                      </p>
+                      <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                        {storyGroupSet.platformTargets.length} active platform targets.
                       </p>
                     </div>
 
-                    <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                    <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
+                      <UsersRound aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                         Kitle
                       </p>
-                      <p className="mt-3 text-base font-semibold">{formatSegmentSummary(storyGroupSet)}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        {storyGroupSet.userSegments.length} segment kuralı.
+                      <p className="mt-6 break-words text-base font-semibold leading-7 text-foreground">
+                        {formatSegmentSummary(storyGroupSet)}
+                      </p>
+                      <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                        {storyGroupSet.userSegments.length} segment rules.
                       </p>
                     </div>
 
-                    <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                    <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
+                      <SquareStack aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        Bağlı Group
+                        Linked Groups
                       </p>
-                      <p className="mt-3 text-2xl font-semibold">{storyGroupSet.groupIds.length}</p>
+                      <div className="mt-6 flex items-baseline gap-3">
+                        <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
+                          {storyGroupSet.groupIds.length}
+                        </span>
+                        <span className="text-lg font-medium text-primary">Group</span>
+                      </div>
                     </div>
 
-                    <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        <CalendarClock className="h-4 w-4" />
-                        Son güncelleme
-                      </div>
-                      <p className="mt-3 text-2xl font-semibold">{formatDate(storyGroupSet.updatedAt)}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        Oluşturulma: {formatDate(storyGroupSet.createdAt)}
+                    <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
+                      <CalendarClock aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        Last Update
+                      </p>
+                      <p className="mt-6 text-3xl font-bold tracking-tight text-foreground">
+                        {formatDate(storyGroupSet.updatedAt)}
+                      </p>
+                      <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                        Created: {formatDate(storyGroupSet.createdAt)}
                       </p>
                     </div>
                   </CardContent>

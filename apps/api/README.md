@@ -4,29 +4,29 @@ Backend API module scaffold.
 
 ## Current database behavior
 
-- Production runtime gerçek relational Postgres tablolarını kullanır (`client`, `static_token`, `placement`, `story_group_set`, revision ve composition tabloları).
-- API, DB ayarlarını `env -> OPEN_STORY_DB_CONFIG_PATH içindeki bootstrap config dosyası` sırasıyla çözer; local SQLite fallback yalnızca non-production/test kullanım içindir.
-- `OPEN_STORY_POSTGRES_*` env değişkenleri aynı alanlar için config dosyası değerlerini override eder.
-- `GET /v1/settings/database` aktif provider, Postgres bağlantı özeti ve relational tablo sayılarını döner.
-- `PUT /v1/settings/database` ile Postgres bağlantı bilgisi kaydedilir ve relational schema hazır hale getirilir.
-- Eski tek tablo Postgres modu, alternatif SQL hedefleri ve migration scripti runtime yüzeyinden kaldırılmıştır.
-- Supabase Postgres için SSL mode varsayılanı `require` olmalıdır.
+- Production runtime uses real relational Postgres tables (`client`, `static_token`, `placement`, `story_group_set`, revision, and composition tables).
+- The API resolves DB settings in this order: `env -> bootstrap config file inside OPEN_STORY_DB_CONFIG_PATH`; local SQLite fallback is only for non-production/test use.
+- `OPEN_STORY_POSTGRES_*` env variables override config file values for the same fields.
+- `GET /v1/settings/database` returns the active provider, Postgres connection summary, and relational table counts.
+- `PUT /v1/settings/database` saves Postgres connection details and prepares the relational schema.
+- The legacy single-table Postgres mode, alternate SQL targets, and migration script have been removed from the runtime surface.
+- The default SSL mode for Supabase Postgres should be `require`.
 
 ## Asset storage behavior
 
-- Local server upload `POST /v1/assets/upload` yalnızca aktif provider `local` iken çalışır ve `OPEN_STORY_ASSET_STORAGE_DIR` altına yazar.
-- Cloud upload `POST /v1/assets/cloud-upload` ile aktif Google Cloud Storage veya Supabase Storage S3 bucket hedefini kullanır.
-- Aktif provider `gcs` veya `supabase_s3` olduğunda server upload kapalıdır; yeni dosyalar Cloud Upload ya da URL import ile eklenmelidir.
-- API, storage ayarlarını `env -> OPEN_STORY_ASSET_STORAGE_CONFIG_PATH içindeki config dosyası -> local disk fallback` sırasıyla çözer.
-- Admin `Storage & CDN` ekranı `GET/PUT /v1/settings/storage` ve `POST /v1/settings/storage/test` üzerinden bucket, object prefix ve CDN public base URL ayarlarını yönetir.
-- Service account JSON/private key admin DB'ye yazılmaz; API runtime'ı Application Default Credentials veya `GOOGLE_APPLICATION_CREDENTIALS` kullanır.
-- Supabase S3 access key bilgileri admin DB'ye değil `asset-storage-config.json` dosyasına yazılır ve yalnızca server-side kullanılır.
-- Upload edilen raster PNG görseller JPEG'e çevrilir. Group logo 500x500 sınırına, story image/poster ise yüksekliği en fazla 1600 px olacak şekilde aspect ratio korunarak optimize edilir.
-- URL import dış URL'yi korur; bu yol dosyayı Open Story storage hedefine yeniden yazmaz.
+- Local server upload `POST /v1/assets/upload` works only when the active provider is `local` and writes under `OPEN_STORY_ASSET_STORAGE_DIR`.
+- Cloud upload `POST /v1/assets/cloud-upload` uses the active Google Cloud Storage or Supabase Storage S3 bucket target.
+- When the active provider is `gcs` or `supabase_s3`, server upload is disabled; new files must be added with Cloud Upload or URL import.
+- The API resolves storage settings in this order: `env -> config file inside OPEN_STORY_ASSET_STORAGE_CONFIG_PATH -> local disk fallback`.
+- The admin `Storage & CDN` screen manages bucket, object prefix, and CDN public base URL settings through `GET/PUT /v1/settings/storage` and `POST /v1/settings/storage/test`.
+- Service account JSON/private key values are not written to the admin DB; the API runtime uses Application Default Credentials or `GOOGLE_APPLICATION_CREDENTIALS`.
+- Supabase S3 access key information is written to `asset-storage-config.json`, not the admin DB, and is only used server-side.
+- Uploaded raster PNG images are converted to JPEG. Group logos are constrained to 500x500, while story images/posters are optimized with aspect ratio preserved and height capped at 1600 px.
+- URL import preserves the external URL; this path does not rewrite the file into the Open Story storage target.
 
 ## Supported Postgres settings
 
-`PUT /v1/settings/database` payload içinde `postgres` alanı doluysa Postgres hedefi aktif edilir:
+If the `postgres` field is filled in the `PUT /v1/settings/database` payload, the Postgres target is activated:
 
 ```json
 {
@@ -41,11 +41,11 @@ Backend API module scaffold.
 }
 ```
 
-Password `GET` response içinde geri dönmez; aynı host/port/database/username/sslMode için boş gönderilirse mevcut Postgres password korunur.
+Password is not returned in the `GET` response; if it is sent empty for the same host/port/database/username/sslMode, the existing Postgres password is preserved.
 
 ## Supported Supabase Storage S3 settings
 
-`PUT /v1/settings/storage` payload içinde `activeProvider: "supabase_s3"` ve `supabaseS3` alanı doluysa Supabase bucket hedefi aktif edilir:
+If `activeProvider: "supabase_s3"` and the `supabaseS3` field are filled in the `PUT /v1/settings/storage` payload, the Supabase bucket target is activated:
 
 ```json
 {
@@ -63,12 +63,12 @@ Password `GET` response içinde geri dönmez; aynı host/port/database/username/
 }
 ```
 
-Supabase S3 client `forcePathStyle: true` ile çalışır. Secret access key `GET` response içinde dönmez; aynı endpoint/region/bucket/access key için boş gönderilirse mevcut secret korunur.
+The Supabase S3 client runs with `forcePathStyle: true`. Secret access key is not returned in the `GET` response; if it is sent empty for the same endpoint/region/bucket/access key, the existing secret is preserved.
 
-Production veya multi-instance deploy'da aynı ayarlar env ile de verilebilir:
+In production or multi-instance deploys, the same settings can also be provided with env:
 
-- `OPEN_STORY_ASSET_STORAGE_PROVIDER=gcs` ile `OPEN_STORY_GCS_*`
-- `OPEN_STORY_ASSET_STORAGE_PROVIDER=supabase_s3` ile `OPEN_STORY_SUPABASE_S3_*`
+- `OPEN_STORY_ASSET_STORAGE_PROVIDER=gcs` with `OPEN_STORY_GCS_*`
+- `OPEN_STORY_ASSET_STORAGE_PROVIDER=supabase_s3` with `OPEN_STORY_SUPABASE_S3_*`
 
 ## Admin API keys
 

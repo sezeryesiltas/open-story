@@ -11,7 +11,7 @@ import {
 
 export class StoryPublishService {
   validateStoryPublishPreconditions(groupDraftRevision: GroupRevisionSnapshot, groupPublishedRevision?: GroupRevisionSnapshot): void {
-    // Story content publish akışı içinde composition farkı taşınmamalı.
+    // Story content publish flow must not carry composition differences.
     requireGroupRepublishForCompositionChange(groupDraftRevision, groupPublishedRevision);
   }
 }

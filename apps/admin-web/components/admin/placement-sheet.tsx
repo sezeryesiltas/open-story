@@ -29,11 +29,11 @@ export function PlacementSheet({
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="p-0">
         <SheetHeader>
-          <SheetTitle>{mode === 'create' ? 'Yeni placement oluştur' : 'Placement düzenle'}</SheetTitle>
+          <SheetTitle>{mode === 'create' ? 'Create new placement' : 'Edit placement'}</SheetTitle>
           <SheetDescription>
             {mode === 'create'
-              ? 'Yeni bir placement ekleyin.'
-              : 'Seçili placement bilgilerini güncelleyin.'}
+              ? 'Add a new placement.'
+              : 'Update the selected placement details.'}
           </SheetDescription>
         </SheetHeader>
 

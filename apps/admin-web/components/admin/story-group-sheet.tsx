@@ -45,17 +45,17 @@ export function StoryGroupSheet({
         <SheetHeader>
           <SheetTitle>
             {mode === 'edit'
-              ? 'Story Group düzenle'
+              ? 'Edit Story Group'
               : mode === 'copy'
-                ? 'Story Group kopyala'
-                : 'Yeni Story Group oluştur'}
+                ? 'Copy Story Group'
+                : 'Create new Story Group'}
           </SheetTitle>
           <SheetDescription>
             {mode === 'edit'
-              ? 'Seçili Story Group bilgilerini güncelleyin.'
+              ? 'Update the selected Story Group details.'
               : mode === 'copy'
-                ? 'Seçili Story Group bilgilerini kopyalayın.'
-                : 'Yeni bir Story Group ekleyin.'}
+                ? 'Copy the selected Story Group details.'
+                : 'Add a new Story Group.'}
           </SheetDescription>
         </SheetHeader>
 

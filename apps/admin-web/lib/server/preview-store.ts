@@ -110,7 +110,7 @@ function buildPreviewStoryGroupSets(): PreviewStoryGroupSetRecord[] {
 }
 
 function sortPlacements(placements: PreviewPlacementOption[]) {
-  return [...placements].sort((left, right) => left.name.localeCompare(right.name, 'tr'));
+  return [...placements].sort((left, right) => left.name.localeCompare(right.name, 'en'));
 }
 
 function sortStoryGroupSets(storyGroupSets: PreviewStoryGroupSetRecord[]) {
@@ -119,7 +119,7 @@ function sortStoryGroupSets(storyGroupSets: PreviewStoryGroupSetRecord[]) {
       return left.isFallback ? 1 : -1;
     }
 
-    return left.name.localeCompare(right.name, 'tr');
+    return left.name.localeCompare(right.name, 'en');
   });
 }
 
@@ -151,7 +151,7 @@ export function buildPreviewWorkspaceSnapshot({
       stats: null,
       issues: [],
       groupMetaById: {},
-      warnings: ['Preview başlatmak için önce en az bir placement oluşturulmalıdır.'],
+      warnings: ['Create at least one placement before starting preview.'],
     };
   }
 
@@ -212,7 +212,7 @@ export function buildPreviewWorkspaceSnapshot({
       issues: [],
       groupMetaById: {},
       warnings: [
-        'Seçili placement altında henüz preview edilebilecek bir Story Bar bulunmuyor.',
+        'The selected placement does not have a Story Bar available for preview yet.',
       ],
     };
   }
@@ -234,19 +234,19 @@ export function buildPreviewWorkspaceSnapshot({
 
   if (!selectedStoryGroupSet.currentPublishedRevisionId) {
     warnings.push(
-      'Story Bar publish lifecycle henüz admin verisinde bulunmadığı için preview Story Bar revision olarak current draft id kullanır.',
+      'Because the Story Bar publish lifecycle is not available in admin data yet, preview uses the current draft id as the Story Bar revision.',
     );
   }
 
   if (candidateSets.length > 1) {
     warnings.push(
-      'Targeting context simülasyonu yerine placement altındaki Story Bar seçimi manuel yapılır.',
+      'Instead of simulating targeting context, preview uses a manual Story Bar selection under the placement.',
     );
   }
 
   if (selectedInspection.stats.visibleGroupCount === 0) {
     warnings.push(
-      'Seçili Story Bar child filtering sonrasında boş feed üretiyor. Preview yalnızca görünür group ve story kayıtlarını render eder.',
+      'The selected Story Bar produces an empty feed after child filtering. Preview only renders visible group and story records.',
     );
   }
 

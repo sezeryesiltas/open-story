@@ -73,7 +73,7 @@ function buildContentCards(
     {
       key: 'story-bars',
       title: 'Story Bars',
-      description: 'Placement bazli yayin setlerinin canli ve pasif dagilimi.',
+      description: 'Live and inactive distribution of placement-based publish sets.',
       total: getDatabaseMetricCount(settings, 'storyGroupSets'),
       stats: [
         {
@@ -81,7 +81,7 @@ function buildContentCards(
           value: activeStoryBars,
         },
         {
-          label: 'Deactive',
+          label: 'Inactive',
           value: deactiveStoryBars,
         },
       ],
@@ -89,7 +89,7 @@ function buildContentCards(
     {
       key: 'story-groups',
       title: 'Story Groups',
-      description: 'Publish, draft ve archive akisi tek kartta izlenir.',
+      description: 'Publish, draft, and archive flow is tracked in one card.',
       total: getDatabaseMetricCount(settings, 'storyGroups'),
       stats: [
         {
@@ -117,7 +117,7 @@ function buildContentCards(
     {
       key: 'stories',
       title: 'Stories',
-      description: 'Durum ve medya turu dagilimini birlikte gosterir.',
+      description: 'Publish, draft, and archive flow is tracked in one card.',
       total: getDatabaseMetricCount(settings, 'stories'),
       stats: [
         {
@@ -145,7 +145,7 @@ function buildContentCards(
     {
       key: 'assets',
       title: 'Assets',
-      description: 'Tum medya kayitlarinin image ve video kirilimi.',
+      description: 'Image and video breakdown of all media records.',
       total: getDatabaseMetricCount(settings, 'assets'),
       stats: [
         {

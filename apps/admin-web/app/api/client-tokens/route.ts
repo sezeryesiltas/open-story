@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Static token listesi okunamadı.', 500, 'validation_error');
+    return jsonError('Static token list could not be read.', 500, 'validation_error');
   }
 }
 
@@ -29,6 +29,6 @@ export async function POST(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Static token oluşturulamadı.', 500, 'validation_error');
+    return jsonError('Static token could not be created.', 500, 'validation_error');
   }
 }

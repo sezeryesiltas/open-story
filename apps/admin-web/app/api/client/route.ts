@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Client bilgisi okunamadı.', 500, 'validation_error');
+    return jsonError('Client information could not be read.', 500, 'validation_error');
   }
 }
 
@@ -27,6 +27,6 @@ export async function PATCH(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Client güncellenemedi.', 500, 'validation_error');
+    return jsonError('Client could not be updated.', 500, 'validation_error');
   }
 }

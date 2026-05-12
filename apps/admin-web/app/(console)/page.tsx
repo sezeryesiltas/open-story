@@ -17,7 +17,7 @@ async function loadDashboardDataVolume() {
       errorMessage:
         error instanceof BackendApiError || error instanceof Error
           ? error.message
-          : 'Aktif veri hacmi okunamadi.',
+          : 'Active data volume could not be read.',
     };
   }
 }
@@ -26,8 +26,11 @@ export default async function DashboardPage() {
   const { snapshot, errorMessage } = await loadDashboardDataVolume();
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title="Dashboard" />
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        description="Overview and content summaries"
+        title="Dashboard"
+      />
 
       <DashboardDataVolume errorMessage={errorMessage} snapshot={snapshot} />
     </div>

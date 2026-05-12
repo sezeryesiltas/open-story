@@ -46,11 +46,11 @@ export function StorySheet({
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="p-0">
         <SheetHeader>
-          <SheetTitle>{mode === 'edit' ? 'Story düzenle' : 'Yeni Story oluştur'}</SheetTitle>
+          <SheetTitle>{mode === 'edit' ? 'Edit Story' : 'Create New Story'}</SheetTitle>
           <SheetDescription>
             {mode === 'edit'
-              ? 'Seçili Story bilgilerini güncelleyin.'
-              : 'Yeni bir Story ekleyin.'}
+              ? 'Update the selected Story details.'
+              : 'Add a new Story.'}
           </SheetDescription>
         </SheetHeader>
 

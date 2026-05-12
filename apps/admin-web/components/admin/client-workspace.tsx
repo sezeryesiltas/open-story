@@ -66,7 +66,7 @@ function formatDate(value: string | null): string {
     return 'Never';
   }
 
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -220,14 +220,14 @@ export function ClientWorkspace() {
     setFormError(null);
 
     if (!name.trim()) {
-      setFormError('Client adı zorunludur.');
+      setFormError('Client name is required.');
       return;
     }
 
     try {
       await updateClientMutation.mutateAsync();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Client güncellenemedi.');
+      setFormError(error instanceof Error ? error.message : 'Client could not be updated.');
     }
   };
 
@@ -235,14 +235,14 @@ export function ClientWorkspace() {
     setTokenError(null);
 
     if (!tokenLabel.trim()) {
-      setTokenError('Token label zorunludur.');
+      setTokenError('Token label is required.');
       return;
     }
 
     try {
       await createTokenMutation.mutateAsync();
     } catch (error) {
-      setTokenError(error instanceof Error ? error.message : 'Static token oluşturulamadı.');
+      setTokenError(error instanceof Error ? error.message : 'Static token could not be created.');
     }
   };
 
@@ -250,14 +250,14 @@ export function ClientWorkspace() {
     setApiKeyError(null);
 
     if (!apiClientName.trim()) {
-      setApiKeyError('Client name zorunludur.');
+      setApiKeyError('Client name is required.');
       return;
     }
 
     try {
       await createAdminApiKeyMutation.mutateAsync();
     } catch (error) {
-      setApiKeyError(error instanceof Error ? error.message : 'Admin API key oluşturulamadı.');
+      setApiKeyError(error instanceof Error ? error.message : 'Admin API key could not be created.');
     }
   };
 
@@ -271,23 +271,23 @@ export function ClientWorkspace() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Client ve token yönetimi" />
+      <PageHeader title="Client and Token Management" />
 
       {workspaceQuery.isLoading ? <LoadingState /> : null}
 
       {workspaceQuery.isError ? (
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Client workspace yüklenemedi</CardTitle>
+            <CardTitle>Client workspace could not be loaded</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                'Client ve token bilgileri okunamadı.'}
+                'Client and token information could not be read.'}
             </div>
             <Button className="gap-2" onClick={() => workspaceQuery.refetch()} variant="outline">
               <RefreshCcw className="h-4 w-4" />
-              Tekrar dene
+              Try again
             </Button>
           </CardContent>
         </Card>
@@ -298,7 +298,7 @@ export function ClientWorkspace() {
           {revealedToken ? (
             <Card className="border-primary/30 bg-primary/5">
               <CardHeader>
-                <CardTitle>Yeni static token</CardTitle>
+                <CardTitle>New static token</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <div className="rounded-lg border border-border/60 bg-background px-4 py-3 break-all font-mono text-sm">
@@ -307,10 +307,10 @@ export function ClientWorkspace() {
                 <div className="flex flex-wrap gap-2">
                   <Button className="gap-2" onClick={() => handleCopyValue(revealedToken.plainTextToken)} type="button" variant="outline">
                     <Copy className="h-4 w-4" />
-                    Kopyala
+                    Copy
                   </Button>
                   <Button onClick={() => setRevealedToken(null)} type="button" variant="ghost">
-                    Kapat
+                    Close
                   </Button>
                 </div>
               </CardContent>
@@ -320,7 +320,7 @@ export function ClientWorkspace() {
           {revealedApiKey ? (
             <Card className="border-primary/30 bg-primary/5">
               <CardHeader>
-                <CardTitle>Yeni admin API key</CardTitle>
+                <CardTitle>New admin API key</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
@@ -338,14 +338,14 @@ export function ClientWorkspace() {
                 <div className="flex flex-wrap gap-2">
                   <Button className="gap-2" onClick={() => handleCopyValue(revealedApiKey.plainTextApiKey)} type="button" variant="outline">
                     <Copy className="h-4 w-4" />
-                    API key kopyala
+                    Copy API key
                   </Button>
                   <Button className="gap-2" onClick={() => handleCopyValue(revealedApiKey.clientSecret)} type="button" variant="outline">
                     <Copy className="h-4 w-4" />
-                    Secret kopyala
+                    Copy secret
                   </Button>
                   <Button onClick={() => setRevealedApiKey(null)} type="button" variant="ghost">
-                    Kapat
+                    Close
                   </Button>
                 </div>
               </CardContent>
@@ -356,7 +356,7 @@ export function ClientWorkspace() {
             <Card className="border-border/60 bg-card/80">
               <CardHeader>
                 <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle>Client ayarları</CardTitle>
+                  <CardTitle>Client Settings</CardTitle>
                   <Badge variant={workspaceQuery.data.client.isActive ? 'default' : 'secondary'}>
                     {workspaceQuery.data.client.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -369,15 +369,15 @@ export function ClientWorkspace() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="clientName">Client adı</Label>
+                  <Label htmlFor="clientName">Client name</Label>
                   <Input id="clientName" onChange={(event) => setName(event.target.value)} value={name} />
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/70 px-4 py-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Client aktif</p>
+                    <p className="text-sm font-medium">Client active</p>
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Kapalıysa uygulama erişimi durdurulur.
+                      When disabled, app access is stopped.
                     </p>
                   </div>
                   <Switch checked={isActive} onCheckedChange={setIsActive} />
@@ -391,10 +391,10 @@ export function ClientWorkspace() {
 
                 <div className="flex flex-wrap gap-3">
                   <Button disabled={updateClientMutation.isPending} onClick={handleSaveClient} type="button">
-                    {updateClientMutation.isPending ? 'Kaydediliyor...' : 'Client güncelle'}
+                    {updateClientMutation.isPending ? 'Saving...' : 'Update client'}
                   </Button>
-                  <Badge variant="secondary">{activeTokenCount} aktif token</Badge>
-                  <Badge variant="secondary">{activeAdminApiKeyCount} aktif admin key</Badge>
+                  <Badge variant="secondary">{activeTokenCount} active tokens</Badge>
+                  <Badge variant="secondary">{activeAdminApiKeyCount} active admin keys</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -402,11 +402,11 @@ export function ClientWorkspace() {
             <div className="flex flex-col gap-6">
               <Card className="border-border/60 bg-card/80">
                 <CardHeader>
-                  <CardTitle>Yeni token</CardTitle>
+                  <CardTitle>New token</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="tokenLabel">Token adı</Label>
+                    <Label htmlFor="tokenLabel">Token name</Label>
                     <Input
                       id="tokenLabel"
                       onChange={(event) => setTokenLabel(event.target.value)}
@@ -423,14 +423,14 @@ export function ClientWorkspace() {
 
                   <Button className="gap-2" disabled={createTokenMutation.isPending} onClick={handleCreateToken} type="button">
                     <KeyRound className="h-4 w-4" />
-                    {createTokenMutation.isPending ? 'Üretiliyor...' : 'Static token üret'}
+                    {createTokenMutation.isPending ? 'Generating...' : 'Generate static token'}
                   </Button>
                 </CardContent>
               </Card>
 
               <Card className="border-border/60 bg-card/80">
                 <CardHeader>
-                  <CardTitle>Yeni admin API key</CardTitle>
+                  <CardTitle>New admin API key</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -451,7 +451,7 @@ export function ClientWorkspace() {
 
                   <Button className="gap-2" disabled={createAdminApiKeyMutation.isPending} onClick={handleCreateAdminApiKey} type="button">
                     <KeyRound className="h-4 w-4" />
-                    {createAdminApiKeyMutation.isPending ? 'Üretiliyor...' : 'Admin API key üret'}
+                    {createAdminApiKeyMutation.isPending ? 'Generating...' : 'Generate admin API key'}
                   </Button>
                 </CardContent>
               </Card>
@@ -460,12 +460,12 @@ export function ClientWorkspace() {
 
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Token listesi</CardTitle>
+              <CardTitle>Token List</CardTitle>
             </CardHeader>
             <CardContent>
               {(workspaceQuery.data.tokens ?? []).length === 0 ? (
                 <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
-                  Henüz token yok. İlk token&apos;ı yukarıdaki formdan oluşturabilirsiniz.
+                  No tokens yet. Create the first token from the form above.
                 </div>
               ) : (
                 <Table>
@@ -512,12 +512,12 @@ export function ClientWorkspace() {
 
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Admin API key listesi</CardTitle>
+              <CardTitle>Admin API Key List</CardTitle>
             </CardHeader>
             <CardContent>
               {(workspaceQuery.data.adminApiKeys ?? []).length === 0 ? (
                 <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
-                  Henüz admin API key yok. İlk key&apos;i yukarıdaki formdan oluşturabilirsiniz.
+                  No admin API keys yet. Create the first key from the form above.
                 </div>
               ) : (
                 <Table>

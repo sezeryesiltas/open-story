@@ -167,7 +167,7 @@ export function StorageSettingsWorkspace() {
       setNotice({
         provider: variables.provider,
         tone: 'success',
-        message: 'Storage ayarları güncellendi.',
+        message: 'Storage settings were updated.',
       });
     },
     onError: (error, variables) => {
@@ -177,7 +177,7 @@ export function StorageSettingsWorkspace() {
         message:
           error instanceof ApiRequestError || error instanceof Error
             ? error.message
-            : 'Storage ayarları güncellenemedi.',
+            : 'Storage settings could not be updated.',
       });
     },
   });
@@ -207,7 +207,7 @@ export function StorageSettingsWorkspace() {
         message:
           error instanceof ApiRequestError || error instanceof Error
             ? error.message
-            : 'Storage bağlantısı test edilemedi.',
+            : 'Storage connection could not be tested.',
       });
     },
   });
@@ -263,18 +263,18 @@ export function StorageSettingsWorkspace() {
           actions={
             <Button onClick={() => settingsQuery.refetch()} size="sm" type="button" variant="outline">
               <RefreshCcw className="mr-2 h-4 w-4" />
-              Tekrar dene
+              Try again
             </Button>
           }
           title="Storage & CDN"
         />
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Storage ayarları okunamadı</CardTitle>
+            <CardTitle>Storage settings could not be read</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {(settingsQuery.error as Error | undefined)?.message ?? 'Ayarlar şu anda alınamıyor.'}
+              {(settingsQuery.error as Error | undefined)?.message ?? 'Settings cannot be fetched right now.'}
             </div>
           </CardContent>
         </Card>
@@ -293,10 +293,9 @@ export function StorageSettingsWorkspace() {
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle>Aktif provider</CardTitle>
+                <CardTitle>Active Provider</CardTitle>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Runtime önce storage env değerlerini kullanır; env yoksa config dosyasını, o da yoksa local
-                  storage fallback&apos;ını kullanır.
+                  Runtime uses storage env values first, then the config file, then local storage fallback.
                 </p>
               </div>
               <Badge variant={settings.activeProvider === 'local' ? 'secondary' : 'default'}>
@@ -317,7 +316,7 @@ export function StorageSettingsWorkspace() {
             <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Cloud className="h-4 w-4" />
-                Production önerisi
+                Production recommendation
               </div>
             </div>
           </CardContent>
@@ -400,7 +399,7 @@ export function StorageSettingsWorkspace() {
                 variant="outline"
               >
                 <TestTube2 className="mr-2 h-4 w-4" />
-                Test et
+                Test
               </Button>
               <Button
                 disabled={isBusy}
@@ -408,7 +407,7 @@ export function StorageSettingsWorkspace() {
                 type="button"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Kaydet
+                Save
               </Button>
             </div>
           </CardContent>
@@ -468,7 +467,7 @@ export function StorageSettingsWorkspace() {
                   onChange={(event) => updateSupabaseS3Field('secretAccessKey', event.target.value)}
                   placeholder={
                     settings.supabaseS3.secretAccessKeyConfigured
-                      ? 'Mevcut secret korunur'
+                      ? 'Existing secret is preserved'
                       : 'Supabase S3 secret access key'
                   }
                   type="password"
@@ -514,7 +513,7 @@ export function StorageSettingsWorkspace() {
                 S3 access keys
               </div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Supabase S3 access keys bucket RLS kurallarını bypass eder; bu ayarı sadece API runtime içinde kullanın.
+                Supabase S3 access keys bypass bucket RLS rules; use this setting only inside the API runtime.
               </p>
             </div>
 
@@ -543,7 +542,7 @@ export function StorageSettingsWorkspace() {
                 variant="outline"
               >
                 <TestTube2 className="mr-2 h-4 w-4" />
-                Test et
+                Test
               </Button>
               <Button
                 disabled={isBusy}
@@ -556,7 +555,7 @@ export function StorageSettingsWorkspace() {
                 type="button"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Kaydet
+                Save
               </Button>
             </div>
           </CardContent>

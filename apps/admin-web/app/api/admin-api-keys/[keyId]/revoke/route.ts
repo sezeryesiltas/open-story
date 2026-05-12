@@ -21,6 +21,6 @@ export async function POST(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Admin API key revoke edilemedi.', 500, 'validation_error');
+    return jsonError('Admin API key could not be revoked.', 500, 'validation_error');
   }
 }

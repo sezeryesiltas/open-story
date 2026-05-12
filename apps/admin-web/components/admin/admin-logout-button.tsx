@@ -11,7 +11,7 @@ export function AdminLogoutButton() {
   return (
     <Button className="gap-2" disabled={isSubmitting} onClick={logout} size="sm" variant="outline">
       <LogOut className="h-4 w-4" />
-      Çıkış
+      Sign out
     </Button>
   );
 }

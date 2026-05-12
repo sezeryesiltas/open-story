@@ -120,11 +120,11 @@ export async function createAssetRecordFromUrlImport(input: AssetImportFromUrlIn
   try {
     normalizedUrl = new URL(input.url);
   } catch {
-    throw ApiServiceError.badRequest('Geçerli bir asset URL girin.');
+    throw ApiServiceError.badRequest('Enter a valid asset URL.');
   }
 
   if (normalizedUrl.protocol !== 'http:' && normalizedUrl.protocol !== 'https:') {
-    throw ApiServiceError.badRequest('Asset URL yalnızca http veya https olabilir.');
+    throw ApiServiceError.badRequest('Asset URL can only use http or https.');
   }
 
   let response: Response;
@@ -327,48 +327,48 @@ function validateUpload(
   detectedAsset: DetectedAsset,
 ): void {
   if (!fileName) {
-    throw ApiServiceError.badRequest('Asset dosya adı zorunludur.');
+    throw ApiServiceError.badRequest('Asset file name is required.');
   }
 
   if (sizeBytes <= 0) {
-    throw ApiServiceError.badRequest('Yüklenecek dosya boş olamaz.');
+    throw ApiServiceError.badRequest('The uploaded file cannot be empty.');
   }
 
   if (claimedMimeType && claimedMimeType.trim() && claimedMimeType.trim().toLowerCase() !== detectedAsset.detectedMimeType) {
-    throw ApiServiceError.badRequest('Dosya MIME tipi ile içerik eşleşmiyor.');
+    throw ApiServiceError.badRequest('File MIME type does not match the content.');
   }
 
   switch (assetType) {
     case 'group_logo':
       if (detectedAsset.mediaType !== 'image') {
-        throw ApiServiceError.badRequest('Group logo için yalnızca görsel yüklenebilir.');
+        throw ApiServiceError.badRequest('Only images can be uploaded for group logos.');
       }
 
       if (detectedAsset.width !== detectedAsset.height) {
-        throw ApiServiceError.badRequest('Group logo kare olmalıdır.');
+        throw ApiServiceError.badRequest('Group logo must be square.');
       }
       break;
     case 'story_image':
     case 'story_poster':
       if (detectedAsset.mediaType !== 'image') {
-        throw ApiServiceError.badRequest('Story image/poster için yalnızca görsel yüklenebilir.');
+        throw ApiServiceError.badRequest('Only images can be uploaded for story images/posters.');
       }
       break;
     case 'story_video':
       if (detectedAsset.mediaType !== 'video') {
-        throw ApiServiceError.badRequest('Story video için yalnızca MP4 video yüklenebilir.');
+        throw ApiServiceError.badRequest('Only MP4 videos can be uploaded for story video.');
       }
 
       if (sizeBytes > MAX_VIDEO_SIZE_BYTES) {
-        throw ApiServiceError.badRequest('Video dosyası 50 MB sınırını aşamaz.');
+        throw ApiServiceError.badRequest('Video file cannot exceed the 50 MB limit.');
       }
 
       if (detectedAsset.durationMs > 30_000) {
-        throw ApiServiceError.badRequest('Video süresi en fazla 30 saniye olabilir.');
+        throw ApiServiceError.badRequest('Video duration can be at most 30 seconds.');
       }
       break;
     default:
-      throw ApiServiceError.badRequest('Geçerli bir asset tipi seçin.');
+      throw ApiServiceError.badRequest('Select a valid asset type.');
   }
 }
 
@@ -522,7 +522,7 @@ function detectAsset(buffer: Buffer): DetectedAsset {
     };
   }
 
-  throw ApiServiceError.badRequest('Desteklenmeyen asset dosyası.');
+  throw ApiServiceError.badRequest('Unsupported asset file.');
 }
 
 function isPng(buffer: Buffer): boolean {
@@ -544,7 +544,7 @@ function readPngDimensions(buffer: Buffer): { width: number; height: number } {
   const height = buffer.readUInt32BE(20);
 
   if (width <= 0 || height <= 0) {
-    throw ApiServiceError.badRequest('PNG boyut bilgisi okunamadı.');
+    throw ApiServiceError.badRequest('PNG dimensions could not be read.');
   }
 
   return { width, height };
@@ -597,7 +597,7 @@ function readJpegDimensions(buffer: Buffer): { width: number; height: number } {
     offset += 2 + segmentLength;
   }
 
-  throw ApiServiceError.badRequest('JPEG boyut bilgisi okunamadı.');
+  throw ApiServiceError.badRequest('JPEG dimensions could not be read.');
 }
 
 function isWebp(buffer: Buffer): boolean {
@@ -630,7 +630,7 @@ function readWebpDimensions(buffer: Buffer): { width: number; height: number } {
     return { width, height };
   }
 
-  throw ApiServiceError.badRequest('WEBP boyut bilgisi okunamadı.');
+  throw ApiServiceError.badRequest('WEBP dimensions could not be read.');
 }
 
 function isSvg(buffer: Buffer): boolean {
@@ -642,7 +642,7 @@ function readSvgDimensions(buffer: Buffer): { width: number; height: number } {
   const text = buffer.toString('utf8');
   const svgTagMatch = text.match(/<svg\b[^>]*>/i);
   if (!svgTagMatch) {
-    throw ApiServiceError.badRequest('SVG metadata okunamadı.');
+    throw ApiServiceError.badRequest('SVG metadata could not be read.');
   }
 
   const svgTag = svgTagMatch[0];
@@ -665,7 +665,7 @@ function readSvgDimensions(buffer: Buffer): { width: number; height: number } {
     return { width, height };
   }
 
-  throw ApiServiceError.badRequest('SVG genişlik ve yükseklik bilgisi okunamadı.');
+  throw ApiServiceError.badRequest('SVG width and height could not be read.');
 }
 
 function isMp4(buffer: Buffer): boolean {
@@ -676,13 +676,13 @@ function readMp4Metadata(buffer: Buffer): { width: number; height: number; durat
   const rootAtoms = readAtoms(buffer, 0, buffer.byteLength);
   const moovAtom = rootAtoms.find((atom) => atom.type === 'moov');
   if (!moovAtom) {
-    throw ApiServiceError.badRequest('MP4 metadata okunamadı.');
+    throw ApiServiceError.badRequest('MP4 metadata could not be read.');
   }
 
   const moovChildren = readAtoms(buffer, moovAtom.payloadStart, moovAtom.end);
   const mvhdAtom = moovChildren.find((atom) => atom.type === 'mvhd');
   if (!mvhdAtom) {
-    throw ApiServiceError.badRequest('MP4 duration metadata okunamadı.');
+    throw ApiServiceError.badRequest('MP4 duration metadata could not be read.');
   }
 
   const durationMs = readMp4DurationMs(buffer, mvhdAtom);
@@ -692,7 +692,7 @@ function readMp4Metadata(buffer: Buffer): { width: number; height: number; durat
     .find((metadata) => metadata !== null);
 
   if (!videoTrack) {
-    throw ApiServiceError.badRequest('MP4 video track metadata okunamadı.');
+    throw ApiServiceError.badRequest('MP4 video track metadata could not be read.');
   }
 
   return {
@@ -754,7 +754,7 @@ function readMp4DurationMs(buffer: Buffer, atom: Atom): number {
     const duration = Number(buffer.readBigUInt64BE(atom.payloadStart + 24));
 
     if (!timescale || !duration) {
-      throw ApiServiceError.badRequest('MP4 duration metadata okunamadı.');
+      throw ApiServiceError.badRequest('MP4 duration metadata could not be read.');
     }
 
     return Math.round((duration / timescale) * 1000);
@@ -764,7 +764,7 @@ function readMp4DurationMs(buffer: Buffer, atom: Atom): number {
   const duration = buffer.readUInt32BE(atom.payloadStart + 16);
 
   if (!timescale || !duration) {
-    throw ApiServiceError.badRequest('MP4 duration metadata okunamadı.');
+    throw ApiServiceError.badRequest('MP4 duration metadata could not be read.');
   }
 
   return Math.round((duration / timescale) * 1000);
@@ -801,7 +801,7 @@ function readTkhdDimensions(buffer: Buffer, atom: Atom): Mp4TrackMetadata {
   const height = Math.round(buffer.readUInt32BE(heightOffset) / 65536);
 
   if (width <= 0 || height <= 0) {
-    throw ApiServiceError.badRequest('MP4 video boyutu okunamadı.');
+    throw ApiServiceError.badRequest('MP4 video dimensions could not be read.');
   }
 
   return { width, height };

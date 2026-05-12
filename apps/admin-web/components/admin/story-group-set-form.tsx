@@ -27,8 +27,8 @@ type PlacementOption = {
 
 const formSchema = z
   .object({
-    name: z.string().trim().min(2, 'Story Bar adı en az 2 karakter olmalıdır.'),
-    placementId: z.string().trim().min(1, 'Bir placement seçin.'),
+    name: z.string().trim().min(2, 'Story Bar name must be at least 2 characters.'),
+    placementId: z.string().trim().min(1, 'Select a placement.'),
     isFallback: z.boolean().default(false),
     iosEnabled: z.boolean().default(false),
     iosMinAppVersion: z.string().trim().optional(),
@@ -47,7 +47,7 @@ const formSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['iosMinAppVersion'],
-          message: 'iOS min app version `major.minor.patch` formatında olmalıdır.',
+          message: 'iOS min app version must use `major.minor.patch` format.',
         });
       }
     }
@@ -58,7 +58,7 @@ const formSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['androidMinAppVersion'],
-          message: 'Android min app version `major.minor.patch` formatında olmalıdır.',
+          message: 'Android min app version must use `major.minor.patch` format.',
         });
       }
     }
@@ -69,7 +69,7 @@ const formSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['userSegmentsText'],
-        message: 'En fazla 100 segment girilebilir.',
+        message: 'At most 100 segments can be entered.',
       });
       return;
     }
@@ -80,7 +80,7 @@ const formSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['userSegmentsText'],
-          message: 'Her segment boş olmayan ve en fazla 64 karakterlik bir değer olmalıdır.',
+          message: 'Each segment must be non-empty and at most 64 characters.',
         });
         return;
       }
@@ -220,10 +220,10 @@ export function StoryGroupSetForm({
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
           <p className="text-sm font-medium">
-            {mode === 'create' ? 'Yeni Story Bar' : 'Story Bar düzenleme'}
+            {mode === 'create' ? 'New Story Bar' : 'Edit Story Bar'}
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Story Bar adı, placement ve gösterim koşullarını burada düzenleyebilirsiniz.
+            Edit the Story Bar name, placement, and display conditions here.
           </p>
         </div>
 
@@ -234,7 +234,7 @@ export function StoryGroupSetForm({
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="name">Story Bar adı</Label>
+          <Label htmlFor="name">Story Bar name</Label>
           <Input id="name" placeholder="Home Top Default Story Bar" {...register('name')} />
           {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
@@ -247,7 +247,7 @@ export function StoryGroupSetForm({
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value || undefined}>
                 <SelectTrigger id="placementId">
-                  <SelectValue placeholder="Placement seçin" />
+                  <SelectValue placeholder="Select placement" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -265,7 +265,7 @@ export function StoryGroupSetForm({
             <p className="text-sm text-destructive">{errors.placementId.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Story Bar için bir placement seçin.
+              Select a placement for the Story Bar.
             </p>
           )}
         </div>
@@ -279,7 +279,7 @@ export function StoryGroupSetForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Fallback Story Bar</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Eşleşme bulunamadığında bu Story Bar kullanılır.
+              This Story Bar is used when no match is found.
             </p>
           </div>
         </label>
@@ -288,7 +288,7 @@ export function StoryGroupSetForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Platform targets</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              İsterseniz platform ve minimum uygulama sürümü seçebilirsiniz.
+              You can select platform and minimum app version rules if needed.
             </p>
           </div>
 
@@ -299,7 +299,7 @@ export function StoryGroupSetForm({
                   <Label className="text-sm font-medium" htmlFor="iosEnabled">
                     iOS
                   </Label>
-                  <p className="text-xs leading-5 text-muted-foreground">Örn. 5.2.0</p>
+                  <p className="text-xs leading-5 text-muted-foreground">Example: 5.2.0</p>
                 </div>
 
                 <Controller
@@ -337,7 +337,7 @@ export function StoryGroupSetForm({
                   <Label className="text-sm font-medium" htmlFor="androidEnabled">
                     Android
                   </Label>
-                  <p className="text-xs leading-5 text-muted-foreground">Örn. 8.1.0</p>
+                  <p className="text-xs leading-5 text-muted-foreground">Example: 8.1.0</p>
                 </div>
 
                 <Controller
@@ -372,7 +372,7 @@ export function StoryGroupSetForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="userSegmentsText">Kullanıcı segmentleri</Label>
+          <Label htmlFor="userSegmentsText">User segments</Label>
           <Textarea
             disabled={isFallback}
             id="userSegmentsText"
@@ -383,7 +383,7 @@ export function StoryGroupSetForm({
             <p className="text-sm text-destructive">{errors.userSegmentsText.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Virgül veya satır sonu ile ayırın.
+              Separate with commas or line breaks.
             </p>
           )}
         </div>
@@ -391,16 +391,16 @@ export function StoryGroupSetForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-border/60 px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
         <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="outline">
-          Vazgeç
+          Cancel
         </Button>
         <Button disabled={isSubmitting || placements.length === 0} type="submit">
           {isSubmitting
             ? mode === 'create'
-              ? 'Oluşturuluyor...'
-              : 'Kaydediliyor...'
+              ? 'Creating...'
+              : 'Saving...'
             : mode === 'create'
-              ? 'Story Bar oluştur'
-              : 'Değişiklikleri kaydet'}
+              ? 'Create Story Bar'
+              : 'Save changes'}
         </Button>
       </div>
     </form>

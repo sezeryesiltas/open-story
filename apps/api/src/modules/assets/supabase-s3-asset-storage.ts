@@ -10,7 +10,7 @@ function createSupabaseS3Client(settings: AssetStorageSettingsDto, secretAccessK
 
   if (!endpoint || !accessKeyId || !secretAccessKey.trim()) {
     throw ApiServiceError.badRequest(
-      'Supabase S3 upload için endpoint, access key ID ve secret access key ayarları zorunludur.',
+      'Endpoint, access key ID, and secret access key settings are required for Supabase S3 upload.',
     );
   }
 
@@ -30,13 +30,13 @@ export function createSupabaseS3AssetUploadTarget(
   secretAccessKey: string | null,
 ): CloudAssetUploadTarget {
   if (settings.activeProvider !== 'supabase_s3') {
-    throw ApiServiceError.badRequest('Cloud upload için Supabase S3 provider aktif olmalıdır.');
+    throw ApiServiceError.badRequest('Supabase S3 provider must be active for cloud upload.');
   }
 
   const bucketName = settings.supabaseS3.bucketName?.trim();
   const publicAssetBaseUrl = settings.supabaseS3.publicAssetBaseUrl?.trim();
   if (!bucketName || !publicAssetBaseUrl) {
-    throw ApiServiceError.badRequest('Cloud upload için bucket ve CDN public base URL ayarları zorunludur.');
+    throw ApiServiceError.badRequest('Bucket and CDN public base URL settings are required for cloud upload.');
   }
 
   const client = createSupabaseS3Client(settings, secretAccessKey ?? '');
@@ -69,7 +69,7 @@ export async function deleteSupabaseS3AssetBinary(
 
   const bucketName = settings.supabaseS3.bucketName?.trim();
   if (!bucketName) {
-    throw ApiServiceError.badRequest('Cloud asset silmek için Supabase bucket ayarı zorunludur.');
+    throw ApiServiceError.badRequest('Supabase bucket setting is required to delete a cloud asset.');
   }
 
   const client = createSupabaseS3Client(settings, secretAccessKey ?? '');

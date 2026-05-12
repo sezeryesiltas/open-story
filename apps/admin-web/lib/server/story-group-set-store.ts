@@ -192,7 +192,7 @@ function ensurePlacementExists(placementId: string): void {
 
   if (!placementExists) {
     throw new StoryGroupSetStoreError(
-      'Story Bar kaydı için geçerli bir placement seçilmelidir.',
+      'A valid placement must be selected for the Story Bar record.',
       404,
       'not_found',
     );
@@ -206,7 +206,7 @@ function validatePlatformTargets(value: unknown): StoryGroupSetPlatformTarget[] 
 
   if (!Array.isArray(value)) {
     throw new StoryGroupSetStoreError(
-      'platformTargets geçerli bir liste olmalıdır.',
+      'platformTargets must be a valid list.',
       400,
       'validation_error',
     );
@@ -220,7 +220,7 @@ function validatePlatformTargets(value: unknown): StoryGroupSetPlatformTarget[] 
 
     if (!normalizedTarget) {
       throw new StoryGroupSetStoreError(
-        'Platform hedeflerinde platform ve min app version birlikte geçerli olmalıdır.',
+        'Platform and min app version must both be valid in platform targets.',
         400,
         'validation_error',
       );
@@ -228,7 +228,7 @@ function validatePlatformTargets(value: unknown): StoryGroupSetPlatformTarget[] 
 
     if (seenPlatforms.has(normalizedTarget.platform)) {
       throw new StoryGroupSetStoreError(
-        `${normalizedTarget.platform} için yalnızca tek bir platform hedefi tanımlanabilir.`,
+        `Only one platform target can be defined for ${normalizedTarget.platform}.`,
         400,
         'validation_error',
       );
@@ -248,7 +248,7 @@ function validateUserSegments(value: unknown): string[] {
 
   if (!Array.isArray(value)) {
     throw new StoryGroupSetStoreError(
-      'userSegments geçerli bir liste olmalıdır.',
+      'userSegments must be a valid list.',
       400,
       'validation_error',
     );
@@ -263,7 +263,7 @@ function validateUserSegments(value: unknown): string[] {
 
     if (!result.success) {
       throw new StoryGroupSetStoreError(
-        'Segment değerleri boş olamaz ve en fazla 64 karakter olabilir.',
+        'Segment values cannot be empty and can be at most 64 characters.',
         400,
         'validation_error',
       );
@@ -283,7 +283,7 @@ function resolveCount(value: number | undefined, fallbackValue: number, fieldNam
 
   if (!Number.isInteger(resolvedValue) || resolvedValue < 0) {
     throw new StoryGroupSetStoreError(
-      `${fieldName} sıfır veya pozitif bir tam sayı olmalıdır.`,
+      `${fieldName} must be zero or a positive integer.`,
       400,
       'validation_error',
     );
@@ -301,7 +301,7 @@ function sanitizeStoryGroupSetPayload(
 
   if (!name || name.length < 2) {
     throw new StoryGroupSetStoreError(
-      'Story Bar adı en az 2 karakter olmalıdır.',
+      'Story Bar name must be at least 2 characters.',
       400,
       'validation_error',
     );
@@ -309,7 +309,7 @@ function sanitizeStoryGroupSetPayload(
 
   if (!placementId) {
     throw new StoryGroupSetStoreError(
-      'Story Bar kaydı için placement seçilmelidir.',
+      'A placement must be selected for the Story Bar record.',
       400,
       'validation_error',
     );
@@ -330,7 +330,7 @@ function sanitizeStoryGroupSetPayload(
 
   if (minStoryGroupCount > maxStoryGroupCount) {
     throw new StoryGroupSetStoreError(
-      'min_story_group_count, max_story_group_count değerinden büyük olamaz.',
+      'min_story_group_count cannot be greater than max_story_group_count.',
       400,
       'validation_error',
     );
@@ -383,7 +383,7 @@ export function updateStoryGroupSet(
 
   if (!existingRecord) {
     throw new StoryGroupSetStoreError(
-      'Story Bar bulunamadı.',
+      'Story Bar was not found.',
       404,
       'not_found',
     );

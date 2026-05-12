@@ -214,6 +214,7 @@ export class StoryGroupService {
     const root = this.getGroupRootOrThrow(groupId);
     const updatedRoot = this.repository.updateGroupRoot(root.id, {
       isArchived: parsedPayload.data.archived,
+      ...(parsedPayload.data.archived ? { currentPublishedRevisionId: null } : {}),
       updatedAt: new Date().toISOString(),
     });
 

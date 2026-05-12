@@ -10,16 +10,16 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 const formSchema = z.object({
-  name: z.string().trim().min(2, 'Placement adı en az 2 karakter olmalıdır.'),
+  name: z.string().trim().min(2, 'Placement name must be at least 2 characters.'),
   placementKey: z
     .string()
     .trim()
-    .min(3, 'Placement anahtarı en az 3 karakter olmalıdır.')
-    .regex(/^[a-z0-9_]+$/, 'Sadece küçük harf, sayı ve alt çizgi kullanılabilir.'),
+    .min(3, 'Placement key must be at least 3 characters.')
+    .regex(/^[a-z0-9_]+$/, 'Use only lowercase letters, numbers, and underscores.'),
   description: z
     .string()
     .trim()
-    .max(240, 'Açıklama en fazla 240 karakter olabilir.')
+    .max(240, 'Description can be at most 240 characters.')
     .optional()
 });
 
@@ -80,9 +80,9 @@ export function PlacementForm({
     <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleFormSubmit}>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-          <p className="text-sm font-medium">{mode === 'create' ? 'Yeni placement tanımı' : 'Placement düzenleme'}</p>
+          <p className="text-sm font-medium">{mode === 'create' ? 'New placement definition' : 'Edit placement'}</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Placement adı ve anahtarını burada düzenleyebilirsiniz.
+            Edit the placement name and key here.
           </p>
         </div>
 
@@ -93,16 +93,16 @@ export function PlacementForm({
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="name">Placement adı</Label>
+          <Label htmlFor="name">Placement name</Label>
           <Input id="name" placeholder="Home Top Story Bar" {...register('name')} />
           {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="placementKey">Placement anahtarı</Label>
+          <Label htmlFor="placementKey">Placement key</Label>
           <Input id="placementKey" placeholder="home_top_story_bar" {...register('placementKey')} />
           <p className="text-xs leading-5 text-muted-foreground">
-            Küçük harf, sayı ve alt çizgi kullanın.
+            Use lowercase letters, numbers, and underscores.
           </p>
           {errors.placementKey ? (
             <p className="text-sm text-destructive">{errors.placementKey.message}</p>
@@ -110,17 +110,17 @@ export function PlacementForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Açıklama</Label>
+          <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
-            placeholder="Placement yüzeyinin uygulamada nerede görüneceğini kısa şekilde not edin."
+            placeholder="Briefly note where this placement surface appears in the app."
             {...register('description')}
           />
           {errors.description ? (
             <p className="text-sm text-destructive">{errors.description.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              İsterseniz kısa bir açıklama ekleyebilirsiniz.
+              You can add a short description if needed.
             </p>
           )}
         </div>
@@ -128,16 +128,16 @@ export function PlacementForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-border/60 px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
         <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="outline">
-          Vazgeç
+          Cancel
         </Button>
         <Button disabled={isSubmitting} type="submit">
           {isSubmitting
             ? mode === 'create'
-              ? 'Oluşturuluyor...'
-              : 'Kaydediliyor...'
+              ? 'Creating...'
+              : 'Saving...'
             : mode === 'create'
-              ? 'Placement oluştur'
-              : 'Değişiklikleri kaydet'}
+              ? 'Create placement'
+              : 'Save changes'}
         </Button>
       </div>
     </form>

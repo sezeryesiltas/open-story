@@ -26,19 +26,19 @@ type StoryGroupSetOption = {
 
 const formSchema = z
   .object({
-    name: z.string().trim().min(2, 'Group adı en az 2 karakter olmalıdır.').max(256, 'Group adı en fazla 256 karakter olabilir.'),
-    bottomLabel: z.string().trim().max(256, 'Bottom label en fazla 256 karakter olabilir.'),
-    logoAssetId: z.string().uuid('Geçerli bir logo asset id girin.'),
+    name: z.string().trim().min(2, 'Group name must be at least 2 characters.').max(256, 'Group name can be at most 256 characters.'),
+    bottomLabel: z.string().trim().max(256, 'Bottom label can be at most 256 characters.'),
+    logoAssetId: z.string().uuid('Enter a valid logo asset id.'),
     badgeType: z.enum(['none', 'emoji', 'svg']).default('none'),
-    badgeValue: z.string().trim().max(1024, 'Badge değeri en fazla 1024 karakter olabilir.').optional(),
-    storyGroupSetIds: z.array(z.string().uuid('Geçerli bir Story Bar id girin.')).default([]),
+    badgeValue: z.string().trim().max(1024, 'Badge value can be at most 1024 characters.').optional(),
+    storyGroupSetIds: z.array(z.string().uuid('Enter a valid Story Bar id.')).default([]),
   })
   .superRefine((values, context) => {
     if (values.badgeType !== 'none' && !values.badgeValue?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['badgeValue'],
-        message: 'Badge tipi seçildiyse badge değeri zorunludur.',
+        message: 'Badge value is required when a badge type is selected.',
       });
     }
   });
@@ -136,10 +136,10 @@ export function StoryGroupForm({
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
           <p className="text-sm font-medium">
-            {mode === 'edit' ? 'Story Group düzenleme' : mode === 'copy' ? 'Story Group kopyası' : 'Yeni Story Group'}
+            {mode === 'edit' ? 'Edit Story Group' : mode === 'copy' ? 'Story Group copy' : 'New Story Group'}
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Story Group adı, logo ve isteğe bağlı etiketleri burada belirleyebilirsiniz.
+            Set the Story Group name, logo, and optional badges here.
           </p>
         </div>
 
@@ -150,7 +150,7 @@ export function StoryGroupForm({
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="name">Group adı</Label>
+          <Label htmlFor="name">Group name</Label>
           <Input id="name" placeholder="Home Campaign Group" {...register('name')} />
           {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
@@ -162,7 +162,7 @@ export function StoryGroupForm({
             <p className="text-sm text-destructive">{errors.bottomLabel.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Story bar altında görünecek kısa label. Boş bırakılabilir.
+              Short label shown under the story bar. This can be left empty.
             </p>
           )}
         </div>
@@ -183,7 +183,7 @@ export function StoryGroupForm({
             <p className="text-sm text-destructive">{errors.logoAssetId.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Kare group logo asseti seçin. İsterseniz mevcut kayıtlardan seçebilir, URL ile ekleyebilir veya bilgisayardan yükleyebilirsiniz.
+              Select a square group logo asset. You can choose an existing record, add one by URL, or upload from your computer.
             </p>
           )}
         </div>
@@ -205,20 +205,20 @@ export function StoryGroupForm({
             <p className="text-sm text-destructive">{errors.storyGroupSetIds.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              Bu grubu göstermek istediğiniz Story Bar&apos;ları seçin.
+              Select the Story Bars where this group should appear.
             </p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="badgeType">Badge tipi</Label>
+          <Label htmlFor="badgeType">Badge type</Label>
           <Controller
             control={control}
             name="badgeType"
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value}>
                 <SelectTrigger id="badgeType">
-                  <SelectValue placeholder="Badge tipi seçin" />
+                  <SelectValue placeholder="Select badge type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -233,7 +233,7 @@ export function StoryGroupForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="badgeValue">Badge değeri</Label>
+          <Label htmlFor="badgeValue">Badge value</Label>
           <Input
             disabled={badgeType === 'none'}
             id="badgeValue"
@@ -244,7 +244,7 @@ export function StoryGroupForm({
             <p className="text-sm text-destructive">{errors.badgeValue.message}</p>
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
-              İsterseniz emoji veya SVG ekleyebilirsiniz.
+              You can add an emoji or SVG if needed.
             </p>
           )}
         </div>
@@ -252,18 +252,18 @@ export function StoryGroupForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-border/60 px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
         <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="outline">
-          Vazgeç
+          Cancel
         </Button>
         <Button disabled={isSubmitting} type="submit">
           {isSubmitting
             ? mode === 'edit'
-              ? 'Kaydediliyor...'
-              : 'Oluşturuluyor...'
+              ? 'Saving...'
+              : 'Creating...'
             : mode === 'edit'
-              ? 'Değişiklikleri kaydet'
+              ? 'Save changes'
               : mode === 'copy'
-                ? 'Kopyayı oluştur'
-                : 'Story Group oluştur'}
+                ? 'Create copy'
+                : 'Create Story Group'}
         </Button>
       </div>
     </form>

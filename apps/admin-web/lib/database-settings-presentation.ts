@@ -26,66 +26,66 @@ export const revisionMetricKeys = [
 
 export const databaseMetricGroups: DatabaseVolumeMetricGroup[] = [
   {
-    title: 'Erisim Katmani',
-    description: 'Kimlik, token ve panel oturum kayitlari.',
+    title: 'Access Layer',
+    description: 'Identity, token, and panel session records.',
     metrics: [
       {
         key: 'clients',
         label: 'Client',
-        description: 'Platformun tek public client kaydi',
+        description: 'The platform single public client record',
       },
       {
         key: 'staticTokens',
         label: 'Static Tokens',
-        description: 'SDK erisim tokenlari',
+        description: 'SDK access tokens',
       },
       {
         key: 'adminUsers',
         label: 'Admin Users',
-        description: 'Panel kullanici hesaplari',
+        description: 'Panel user accounts',
       },
       {
         key: 'adminSessions',
         label: 'Admin Sessions',
-        description: 'Acilmis ve gecmis admin oturumlari',
+        description: 'Open and historical admin sessions',
       },
     ],
   },
   {
-    title: 'Revision Katmani',
-    description: 'Publish gecmisi ve composition baglantilari.',
+    title: 'Revision Layer',
+    description: 'Publish history and composition links.',
     metrics: [
       {
         key: 'storyGroupSetRevisions',
         label: 'Story Bar Revisions',
-        description: 'Set publish snapshotlari',
+        description: 'Set publish snapshots',
       },
       {
         key: 'storyGroupSetRevisionGroups',
         label: 'Set Group Links',
-        description: 'Story bar icindeki grup baglantilari',
+        description: 'Group links inside the story bar',
       },
       {
         key: 'storyGroupRevisions',
         label: 'Story Group Revisions',
-        description: 'Grup publish snapshotlari',
+        description: 'Group publish snapshots',
       },
       {
         key: 'storyGroupRevisionStories',
         label: 'Group Story Links',
-        description: 'Story group icindeki story baglantilari',
+        description: 'Story links inside the story group',
       },
       {
         key: 'storyRevisions',
         label: 'Story Revisions',
-        description: 'Story publish snapshotlari',
+        description: 'Story publish snapshots',
       },
     ],
   },
 ];
 
 export function formatMetricCount(value: number): string {
-  return new Intl.NumberFormat('tr-TR').format(value);
+  return new Intl.NumberFormat('en-US').format(value);
 }
 
 export function getDatabaseMetricCount(

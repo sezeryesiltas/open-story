@@ -21,6 +21,6 @@ export async function PATCH(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Admin user rolü güncellenemedi.', 500, 'validation_error');
+    return jsonError('Admin user role could not be updated.', 500, 'validation_error');
   }
 }

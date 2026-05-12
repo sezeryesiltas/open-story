@@ -45,12 +45,12 @@ export function StoryGroupSetSheet({
       <SheetContent className="p-0">
         <SheetHeader>
           <SheetTitle>
-            {mode === 'create' ? 'Yeni Story Bar oluştur' : 'Story Bar düzenle'}
+            {mode === 'create' ? 'Create new Story Bar' : 'Edit Story Bar'}
           </SheetTitle>
           <SheetDescription>
             {mode === 'create'
-              ? 'Yeni bir Story Bar ekleyin.'
-              : 'Seçili Story Bar bilgilerini güncelleyin.'}
+              ? 'Add a new Story Bar.'
+              : 'Update the selected Story Bar details.'}
           </SheetDescription>
         </SheetHeader>
 

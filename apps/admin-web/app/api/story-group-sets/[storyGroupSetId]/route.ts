@@ -44,7 +44,7 @@ export async function PUT(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Bar güncellenemedi.', 500, 'validation_error');
+    return jsonError('Story Bar could not be updated.', 500, 'validation_error');
   }
 }
 
@@ -63,7 +63,7 @@ export async function PATCH(
 
     if (payload.action === 'reorder_story_groups') {
       if (!Array.isArray(payload.group_ids)) {
-        return jsonError('Story Group sırası geçersiz.', 400, 'validation_error');
+        return jsonError('Story Group order is invalid.', 400, 'validation_error');
       }
 
       return NextResponse.json(
@@ -77,12 +77,12 @@ export async function PATCH(
       );
     }
 
-    return jsonError('Geçersiz Story Bar aksiyonu.', 400, 'validation_error');
+    return jsonError('Invalid Story Bar action.', 400, 'validation_error');
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Bar aksiyonu uygulanamadı.', 500, 'validation_error');
+    return jsonError('Story Bar action could not be applied.', 500, 'validation_error');
   }
 }

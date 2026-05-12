@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         return jsonError(mappedError.message, mappedError.status, mappedError.code);
       }
 
-      return jsonError('Çıkış yapılamadı.', 500, 'validation_error');
+      return jsonError('Sign out failed.', 500, 'validation_error');
     }
   }
 

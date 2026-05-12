@@ -24,6 +24,6 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Preview yüklenemedi.', 500, 'validation_error');
+    return jsonError('Preview could not be loaded.', 500, 'validation_error');
   }
 }

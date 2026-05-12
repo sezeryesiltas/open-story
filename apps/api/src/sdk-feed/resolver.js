@@ -29,7 +29,7 @@ function compareDottedVersion(a, b) {
 }
 
 /**
- * Step 1: placement'e bağlı published set adaylarını getir.
+ * Step 1: fetch published set candidates linked to the placement.
  * @param {Array<any>} sets
  * @param {string} placementKey
  */
@@ -95,7 +95,7 @@ function evaluateTargeting(set, ctx) {
 }
 
 /**
- * Step 2 + 3: adayları filtrele ve önceliklendirme uygula.
+ * Step 2 + 3: filter candidates and apply prioritization.
  * @param {Array<any>} candidates
  * @param {{ platform: string, appVersion: string, userSegments?: string[] }} ctx
  */
@@ -161,7 +161,7 @@ function filterSetRuntimeChildren(set) {
 }
 
 /**
- * Step 4 + Step 5: eşleşme yoksa fallback ve boş set/group davranışı.
+ * Step 4 + Step 5: handle fallback and empty set/group behavior when there is no match.
  * @param {{
  *  allSets: Array<any>,
  *  placementKey: string,

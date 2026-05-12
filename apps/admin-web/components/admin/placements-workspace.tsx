@@ -5,10 +5,10 @@ import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { CalendarClock, PencilLine, Plus, Shapes } from 'lucide-react';
+import { BookOpen, CalendarClock, Copy, Layers, PencilLine, Plus, Shapes } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { PageHeader } from '@/components/admin/page-header';
+import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
 import { PlacementFormValues } from '@/components/admin/placement-form';
 import { PlacementSheet } from '@/components/admin/placement-sheet';
 import { ApiRequestError, apiRequest } from '@/lib/api';
@@ -41,7 +41,7 @@ const emptyPlacementFormValues: PlacementFormValues = {
 const emptyPlacements: PlacementRecord[] = [];
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -62,18 +62,17 @@ function mapPlacement(apiPlacement: PlacementApiRecord): PlacementRecord {
 
 function LoadingState() {
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="flex flex-col gap-6">
       {Array.from({ length: 2 }).map((_, index) => (
-        <Card key={index} className="border-border/60 bg-card/80">
-          <CardHeader className="space-y-4">
-            <Skeleton className="h-10 w-10 rounded-lg" />
-            <Skeleton className="h-6 w-56" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-5 w-40" />
+        <Card key={index} className="rounded-2xl border-border/70 bg-card/80">
+          <CardHeader className="flex flex-col gap-5 p-8">
+            <Skeleton className="h-9 w-56 rounded-full" />
+            <Skeleton className="h-12 w-72" />
+            <Skeleton className="h-10 w-64" />
           </CardHeader>
-          <CardContent className="grid gap-3 border-t border-border/60 pt-6 sm:grid-cols-2">
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
+          <CardContent className="grid gap-6 p-8 pt-0 md:grid-cols-2">
+            <Skeleton className="h-44 w-full rounded-2xl" />
+            <Skeleton className="h-44 w-full rounded-2xl" />
           </CardContent>
         </Card>
       ))}
@@ -156,6 +155,10 @@ export function PlacementsWorkspace() {
     setIsSheetOpen(true);
   };
 
+  const copyPlacementKey = async (placementKey: string) => {
+    await navigator.clipboard?.writeText(placementKey);
+  };
+
   const handleSheetChange = (open: boolean) => {
     setIsSheetOpen(open);
 
@@ -183,109 +186,133 @@ export function PlacementsWorkspace() {
       if (error instanceof ApiRequestError && error.status === 409) {
         return {
           fieldErrors: {
-            placementKey: 'Bu placement anahtarı zaten kullanımda.',
+            placementKey: 'This placement key is already in use.',
           },
         };
       }
 
-      setSubmitError(error instanceof Error ? error.message : 'Placement kaydedilemedi.');
+      setSubmitError(error instanceof Error ? error.message : 'Placement could not be saved.');
       return undefined;
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-8">
       <PageHeader
         actions={
-          <Button className="gap-2" onClick={openCreateSheet}>
-            <Plus className="h-4 w-4" />
-            Yeni placement
-          </Button>
+          <PageHeaderActionButton onClick={openCreateSheet}>
+            <Plus aria-hidden data-icon="inline-start" />
+            New placement
+          </PageHeaderActionButton>
         }
-        title="Placement yönetimi"
+        title="Placement Management"
       />
 
-      <section className="space-y-4">
+      <section>
         {placementsQuery.isLoading ? (
           <LoadingState />
         ) : placementsQuery.isError ? (
-          <Card className="border-border/60 bg-card/80">
-          <CardHeader>
-            <CardTitle>Placement listesi yüklenemedi</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {(placementsQuery.error as Error | undefined)?.message ??
-                'Placement listesi şu anda alınamıyor.'}
-            </div>
-            <Button onClick={() => placementsQuery.refetch()} variant="outline">
-              Tekrar dene
-            </Button>
+          <Card className="rounded-2xl border-border/70 bg-card/80">
+            <CardHeader>
+              <CardTitle>Placement list could not be loaded</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="rounded-[8px] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {(placementsQuery.error as Error | undefined)?.message ??
+                  'Placement list cannot be fetched right now.'}
+              </div>
+              <Button onClick={() => placementsQuery.refetch()} variant="outline">
+                Try again
+              </Button>
             </CardContent>
           </Card>
         ) : placements.length === 0 ? (
-          <Card className="border-border/60 border-dashed bg-card/80">
-            <CardHeader className="items-start text-left">
-              <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
+          <Card className="rounded-2xl border-border/70 border-dashed bg-card/80">
+            <CardHeader className="items-start gap-4 text-left">
+              <div className="inline-flex size-12 items-center justify-center rounded-[8px] bg-primary/10 text-primary">
                 <Shapes className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz placement tanımı yok</CardTitle>
+              <CardTitle className="text-xl">No placement definitions yet</CardTitle>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
                 <Plus className="h-4 w-4" />
-                İlk placement&apos;ı oluştur
+                Create the first placement
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="flex flex-col gap-6">
             {placements.map((placement) => (
-              <Card key={placement.id} className="border-border/60 bg-card/80 transition-colors hover:bg-card">
-                <CardHeader className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-3">
-                      <div className="inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-                        <Shapes className="h-5 w-5" />
-                      </div>
-                      <div className="space-y-2">
-                        <CardTitle className="text-xl">{placement.name}</CardTitle>
+              <Card
+                key={placement.id}
+                className="group relative overflow-hidden rounded-2xl border-border/70 bg-card/80 shadow-sm backdrop-blur-xl transition-colors hover:bg-card/95"
+              >
+                <div className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-primary/10 opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
+                <CardHeader className="relative flex flex-col gap-8 p-6 md:p-8">
+                  <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+                    <div className="flex min-w-0 flex-col gap-5">
+                      <Badge className="w-fit gap-2 rounded-full border-border/70 bg-muted/50 px-4 py-1.5 uppercase tracking-[0.18em] text-muted-foreground" variant="outline">
+                        <Layers aria-hidden className="size-3.5 text-primary" />
+                        Global Placement
+                      </Badge>
+
+                      <div className="flex min-w-0 flex-col gap-5">
+                        <CardTitle className="break-words text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl">
+                          {placement.name}
+                        </CardTitle>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <code className="min-w-0 truncate rounded-[8px] bg-muted/70 px-3 py-2 font-mono text-sm font-medium text-primary sm:text-base">
+                            {placement.placementKey}
+                          </code>
+                          <Button
+                            aria-label={`Copy ${placement.placementKey} key`}
+                            className="shrink-0 text-muted-foreground hover:text-primary"
+                            onClick={() => copyPlacementKey(placement.placementKey)}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                          >
+                            <Copy aria-hidden className="size-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
                     <Button
-                      className="gap-2"
+                      className="h-12 shrink-0 gap-2 rounded-xl border-border/80 bg-muted/45 px-5 hover:border-primary/70 hover:bg-muted/70 hover:text-primary"
                       onClick={() => openEditSheet(placement.id)}
-                      size="sm"
                       variant="outline"
                     >
-                      <PencilLine className="h-4 w-4" />
-                      Edit
+                      <PencilLine aria-hidden data-icon="inline-start" />
+                      Edit Settings
                     </Button>
                   </div>
-
-                  <Badge className="w-fit uppercase tracking-[0.16em]" variant="secondary">
-                    {placement.placementKey}
-                  </Badge>
                 </CardHeader>
 
-                <CardContent className="grid gap-3 border-t border-border/60 pt-6 text-sm sm:grid-cols-2">
-                  <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Bağlı Story Bar</p>
-                    <p className="mt-3 text-2xl font-semibold">{placement.connectedSetCount}</p>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Bu placement altında bulunan Story Bar sayısı.
+                <CardContent className="relative grid gap-6 p-6 pt-0 md:grid-cols-2 md:p-8 md:pt-0">
+                  <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
+                    <BookOpen aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Linked Story Bars</p>
+                    <div className="mt-6 flex items-baseline gap-3">
+                      <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
+                        {placement.connectedSetCount}
+                      </span>
+                      <span className="text-lg font-medium text-primary">Active</span>
+                    </div>
+                    <p className="mt-4 text-base leading-7 text-muted-foreground">
+                      Number of Story Bars under this placement.
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      <CalendarClock className="h-4 w-4" />
-                      Son güncelleme
-                    </div>
-                    <p className="mt-3 text-2xl font-semibold">{formatDate(placement.updatedAt)}</p>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Oluşturulma: {formatDate(placement.createdAt)}
+                  <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
+                    <CalendarClock aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Last Update</p>
+                    <p className="mt-6 text-3xl font-bold tracking-tight text-foreground">
+                      {formatDate(placement.updatedAt)}
+                    </p>
+                    <p className="mt-4 text-base leading-7 text-muted-foreground">
+                      Created: {formatDate(placement.createdAt)}
                     </p>
                   </div>
                 </CardContent>

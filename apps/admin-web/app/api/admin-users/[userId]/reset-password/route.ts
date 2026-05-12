@@ -21,6 +21,6 @@ export async function POST(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Temporary password reset yapılamadı.', 500, 'validation_error');
+    return jsonError('Temporary password could not be reset.', 500, 'validation_error');
   }
 }

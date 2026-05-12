@@ -11,37 +11,42 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@open-story/ui/components/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@open-story/ui/components/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@open-story/ui/components/table';
 import {
   Archive,
   CalendarClock,
   CheckCircle2,
   CircleSlash,
   Clapperboard,
-  ListFilter,
   MoreHorizontal,
   PencilLine,
   Plus,
+  type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import {
+  ADMIN_TABLE_PAGE_SIZE,
+  AdminFilterSelect,
+  AdminTablePanel,
+} from '@/components/admin/admin-table-panel';
 import {
   StoryFormSubmitResult,
   StoryFormSubmitValues,
   StoryFormValues,
 } from '@/components/admin/story-form';
 import { StorySheet } from '@/components/admin/story-sheet';
-import { PageHeader } from '@/components/admin/page-header';
+import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
 import { ApiRequestError, apiRequest } from '@/lib/api';
+import { formatMetricCount } from '@/lib/database-settings-presentation';
 
 type StoryApiRecord = {
   id: string;
@@ -120,7 +125,7 @@ const emptyStoryFormValues: StoryFormValues = {
 };
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -129,49 +134,14 @@ function formatDate(value: string) {
 
 function formatDurationLabel(story: StoryApiRecord): string {
   if (story.mediaType === 'video') {
-    return 'Video süresi';
+    return 'Video duration';
   }
 
   if (!story.imageDurationMs) {
-    return 'Varsayılan 5 sn';
+    return 'Default 5 sec';
   }
 
   return `${Math.round(story.imageDurationMs / 1000)} sn`;
-}
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{
-    value: string;
-    label: string;
-  }>;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
-      <Select onValueChange={onChange} value={value}>
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-    </div>
-  );
 }
 
 function LoadingState() {
@@ -195,55 +165,68 @@ function StoryStats({
   publishedCount,
   pendingChangesCount,
   archivedCount,
-  videoCount,
-  ctaCount,
 }: {
   totalCount: number;
   publishedCount: number;
   pendingChangesCount: number;
   archivedCount: number;
-  videoCount: number;
-  ctaCount: number;
 }) {
+  const stats: Array<{
+    icon: LucideIcon;
+    label: string;
+    unit: string;
+    value: number;
+  }> = [
+    {
+      icon: Clapperboard,
+      label: 'Stories',
+      unit: 'Story',
+      value: totalCount,
+    },
+    {
+      icon: CheckCircle2,
+      label: 'Published',
+      unit: 'Live',
+      value: publishedCount,
+    },
+    {
+      icon: CalendarClock,
+      label: 'Draft changes',
+      unit: 'Draft',
+      value: pendingChangesCount,
+    },
+    {
+      icon: Archive,
+      label: 'Archived',
+      unit: 'Archive',
+      value: archivedCount,
+    },
+  ];
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Toplam</p>
-          <CardTitle className="text-2xl">{totalCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Yayında</p>
-          <CardTitle className="text-2xl">{publishedCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Taslak değişiklik</p>
-          <CardTitle className="text-2xl">{pendingChangesCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Arşivde</p>
-          <CardTitle className="text-2xl">{archivedCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Video</p>
-          <CardTitle className="text-2xl">{videoCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">CTA</p>
-          <CardTitle className="text-2xl">{ctaCount}</CardTitle>
-        </CardHeader>
-      </Card>
-    </div>
+    <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
+
+        return (
+          <div
+            className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6"
+            key={stat.label}
+          >
+            <Icon aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {stat.label}
+            </p>
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
+                {formatMetricCount(stat.value)}
+              </span>
+              <span className="text-lg font-medium text-primary">{stat.unit}</span>
+            </div>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
@@ -257,20 +240,23 @@ function StateBadge({
   if (type === 'archive') {
     return (
       <Badge variant={value === 'archived' ? 'secondary' : 'outline'}>
-        {value === 'archived' ? 'Arşivde' : 'Aktif'}
+        {value === 'archived' ? 'Archived' : 'Active'}
       </Badge>
     );
   }
 
   return (
     <Badge variant={value === 'published' ? 'default' : 'outline'}>
-      {value === 'published' ? 'Yayında' : 'Yayında değil'}
+      {value === 'published' ? 'Published' : 'Not published'}
     </Badge>
   );
 }
 
 function hasUnpublishedChanges(story: StoryApiRecord): boolean {
-  return Boolean(story.currentPublishedRevisionId && story.currentPublishedRevisionId !== story.currentDraftRevisionId);
+  return Boolean(
+    story.currentPublishedRevisionId &&
+    story.currentPublishedRevisionId !== story.currentDraftRevisionId,
+  );
 }
 
 function canPublish(story: StoryApiRecord): boolean {
@@ -304,7 +290,11 @@ function StoryThumbnail({
     return (
       <div className="relative flex h-14 w-10 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img alt={previewAsset.name} className="h-full w-full object-cover" src={previewAsset.url} />
+        <img
+          alt={previewAsset.name}
+          className="h-full w-full object-cover"
+          src={previewAsset.url}
+        />
         {story.mediaType === 'video' ? (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <Clapperboard className="h-4 w-4 text-white" />
@@ -328,10 +318,12 @@ export function StoriesWorkspace() {
   const [publishFilter, setPublishFilter] = useState<PublishFilterValue>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [ctaFilter, setCtaFilter] = useState<CtaFilterValue>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
-  const [sheetInitialValues, setSheetInitialValues] = useState<StoryFormValues>(emptyStoryFormValues);
+  const [sheetInitialValues, setSheetInitialValues] =
+    useState<StoryFormValues>(emptyStoryFormValues);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -364,18 +356,25 @@ export function StoriesWorkspace() {
       ...(workspaceQuery.data?.storyVideos ?? []),
       ...(workspaceQuery.data?.storyPosters ?? []),
     ],
-    [workspaceQuery.data?.storyImages, workspaceQuery.data?.storyPosters, workspaceQuery.data?.storyVideos],
+    [
+      workspaceQuery.data?.storyImages,
+      workspaceQuery.data?.storyPosters,
+      workspaceQuery.data?.storyVideos,
+    ],
   );
-  const assetById = useMemo(() => new Map(storyAssets.map((asset) => [asset.id, asset])), [storyAssets]);
+  const assetById = useMemo(
+    () => new Map(storyAssets.map((asset) => [asset.id, asset])),
+    [storyAssets],
+  );
   const storyGroupOptions = useMemo(
-    () => [...storyGroups].sort((left, right) => left.name.localeCompare(right.name, 'tr')),
+    () => [...storyGroups].sort((left, right) => left.name.localeCompare(right.name, 'en')),
     [storyGroups],
   );
   const storyGroupFilterOptions = useMemo(
     () =>
       storyGroups
         .filter((storyGroup) => storyGroup.archiveState === 'active')
-        .sort((left, right) => left.name.localeCompare(right.name, 'tr')),
+        .sort((left, right) => left.name.localeCompare(right.name, 'en')),
     [storyGroups],
   );
 
@@ -419,6 +418,26 @@ export function StoriesWorkspace() {
     });
   }, [archiveFilter, ctaFilter, mediaFilter, publishFilter, selectedStoryGroupId, stories]);
 
+  const storyPageCount = useMemo(
+    () => Math.max(1, Math.ceil(filteredStories.length / ADMIN_TABLE_PAGE_SIZE)),
+    [filteredStories.length],
+  );
+  const paginatedStories = useMemo(() => {
+    const safeCurrentPage = Math.min(Math.max(currentPage, 1), storyPageCount);
+    const pageStart = (safeCurrentPage - 1) * ADMIN_TABLE_PAGE_SIZE;
+    return filteredStories.slice(pageStart, pageStart + ADMIN_TABLE_PAGE_SIZE);
+  }, [currentPage, filteredStories, storyPageCount]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [archiveFilter, ctaFilter, mediaFilter, publishFilter, selectedStoryGroupId]);
+
+  useEffect(() => {
+    if (currentPage > storyPageCount) {
+      setCurrentPage(storyPageCount);
+    }
+  }, [currentPage, storyPageCount]);
+
   const publishedCount = useMemo(
     () => stories.filter((story) => story.publishState === 'published').length,
     [stories],
@@ -427,11 +446,6 @@ export function StoriesWorkspace() {
     () => stories.filter((story) => story.archiveState === 'archived').length,
     [stories],
   );
-  const videoCount = useMemo(
-    () => stories.filter((story) => story.mediaType === 'video').length,
-    [stories],
-  );
-  const ctaCount = useMemo(() => stories.filter((story) => Boolean(story.cta)).length, [stories]);
   const pendingChangesCount = useMemo(
     () => stories.filter((story) => hasUnpublishedChanges(story)).length,
     [stories],
@@ -465,13 +479,7 @@ export function StoriesWorkspace() {
   });
 
   const updateStoryMutation = useMutation({
-    mutationFn: ({
-      storyId,
-      values,
-    }: {
-      storyId: string;
-      values: StoryFormSubmitValues;
-    }) =>
+    mutationFn: ({ storyId, values }: { storyId: string; values: StoryFormSubmitValues }) =>
       apiRequest<StoryApiRecord>(`/api/stories/${storyId}`, {
         method: 'PUT',
         body: JSON.stringify(values),
@@ -507,7 +515,9 @@ export function StoriesWorkspace() {
       mediaType: story.mediaType,
       assetId: story.assetId,
       posterAssetId: story.posterAssetId ?? '',
-      imageDurationSeconds: story.imageDurationMs ? String(Math.round(story.imageDurationMs / 1000)) : '',
+      imageDurationSeconds: story.imageDurationMs
+        ? String(Math.round(story.imageDurationMs / 1000))
+        : '',
       hasCta: Boolean(story.cta),
       ctaLabel: story.cta?.label ?? '',
       ctaType: story.cta?.type ?? 'url',
@@ -529,7 +539,7 @@ export function StoriesWorkspace() {
   const openCreateSheet = () => {
     const selectedStoryGroup =
       selectedStoryGroupId !== 'all'
-        ? storyGroups.find((storyGroup) => storyGroup.id === selectedStoryGroupId) ?? null
+        ? (storyGroups.find((storyGroup) => storyGroup.id === selectedStoryGroupId) ?? null)
         : null;
 
     setSubmitError(null);
@@ -559,7 +569,7 @@ export function StoriesWorkspace() {
     try {
       if (sheetMode === 'edit') {
         if (!activeStoryId) {
-          setSubmitError('Düzenlenecek Story bulunamadı. Listeyi yenileyin.');
+          setSubmitError('The Story to edit was not found. Refresh the list.');
           return undefined;
         }
 
@@ -622,7 +632,11 @@ export function StoriesWorkspace() {
           };
         }
 
-        if (error.message.includes('story_image') || error.message.includes('story_video') || error.message.includes('asset')) {
+        if (
+          error.message.includes('story_image') ||
+          error.message.includes('story_video') ||
+          error.message.includes('asset')
+        ) {
           return {
             fieldErrors: {
               assetId: error.message,
@@ -635,8 +649,8 @@ export function StoriesWorkspace() {
         error instanceof Error
           ? error.message
           : sheetMode === 'edit'
-            ? 'Story güncellenemedi.'
-            : 'Story oluşturulamadı.',
+            ? 'Story could not be updated.'
+            : 'Story could not be created.',
       );
       return undefined;
     }
@@ -654,7 +668,7 @@ export function StoriesWorkspace() {
         action,
       });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Story aksiyonu uygulanamadı.');
+      setActionError(error instanceof Error ? error.message : 'Story action could not be applied.');
     }
   };
 
@@ -662,22 +676,20 @@ export function StoriesWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button className="gap-2" disabled={storyGroups.length === 0} onClick={openCreateSheet}>
-            <Plus className="h-4 w-4" />
-            Yeni Story
-          </Button>
+          <PageHeaderActionButton disabled={storyGroups.length === 0} onClick={openCreateSheet}>
+            <Plus aria-hidden data-icon="inline-start" />
+            New Story
+          </PageHeaderActionButton>
         }
-        title="Story listesi"
+        title="Story List"
       />
 
       <section className="space-y-4">
         <StoryStats
           archivedCount={archivedCount}
-          ctaCount={ctaCount}
           pendingChangesCount={pendingChangesCount}
           publishedCount={publishedCount}
           totalCount={stories.length}
-          videoCount={videoCount}
         />
 
         {actionError ? (
@@ -690,17 +702,17 @@ export function StoriesWorkspace() {
           <LoadingState />
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-          <CardHeader>
-            <CardTitle>Story listesi yüklenemedi</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                'Story listesi şu anda alınamıyor.'}
-            </div>
-            <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-              Tekrar dene
-            </Button>
+            <CardHeader>
+              <CardTitle>Story list could not be loaded</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
+                  'Story list cannot be fetched right now.'}
+              </div>
+              <Button onClick={() => workspaceQuery.refetch()} variant="outline">
+                Try again
+              </Button>
             </CardContent>
           </Card>
         ) : storyGroups.length === 0 ? (
@@ -709,7 +721,7 @@ export function StoriesWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Clapperboard className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Önce bir Story Group oluşturun</CardTitle>
+              <CardTitle className="text-xl">Create a Story Group first</CardTitle>
             </CardHeader>
           </Card>
         ) : stories.length === 0 ? (
@@ -718,55 +730,26 @@ export function StoriesWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Clapperboard className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz Story kaydı yok</CardTitle>
+              <CardTitle className="text-xl">No Story records yet</CardTitle>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
                 <Plus className="h-4 w-4" />
-                İlk Story&apos;yi oluştur
-              </Button>
-            </CardContent>
-          </Card>
-        ) : filteredStories.length === 0 ? (
-          <Card className="border-border/60 border-dashed bg-card/80">
-            <CardHeader>
-              <CardTitle>Filtrelerle eşleşen Story bulunamadı</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={resetFilters} variant="outline">
-                Filtreleri temizle
+                Create the first Story
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    <ListFilter className="h-4 w-4" />
-                    Filtreler
-                  </div>
-                  <CardTitle>Story tablosu</CardTitle>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {hasActiveFilters ? (
-                    <Button onClick={resetFilters} size="sm" variant="outline">
-                      Filtreleri temizle
-                    </Button>
-                  ) : null}
-                  <Badge variant="secondary">{filteredStories.length} görünür satır</Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-5">
-                <FilterSelect
+          <AdminTablePanel
+            currentPage={currentPage}
+            filterGridClassName="md:grid-cols-5"
+            filters={
+              <>
+                <AdminFilterSelect
                   label="Story Group"
                   onChange={setSelectedStoryGroupId}
                   options={[
-                    { label: 'Tüm grouplar', value: 'all' },
+                    { label: 'All groups', value: 'all' },
                     ...storyGroupFilterOptions.map((storyGroup) => ({
                       label: storyGroup.name,
                       value: storyGroup.id,
@@ -775,65 +758,81 @@ export function StoriesWorkspace() {
                   value={selectedStoryGroupId}
                 />
 
-                <FilterSelect
+                <AdminFilterSelect
                   label="Media"
                   onChange={(value) => setMediaFilter(value as MediaFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Image', value: 'image' },
                     { label: 'Video', value: 'video' },
                   ]}
                   value={mediaFilter}
                 />
 
-                <FilterSelect
+                <AdminFilterSelect
                   label="Publish"
                   onChange={(value) => setPublishFilter(value as PublishFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Published', value: 'published' },
                     { label: 'Unpublished', value: 'unpublished' },
                   ]}
                   value={publishFilter}
                 />
 
-                <FilterSelect
+                <AdminFilterSelect
                   label="Archive"
                   onChange={(value) => setArchiveFilter(value as ArchiveFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Active', value: 'active' },
                     { label: 'Archived', value: 'archived' },
                   ]}
                   value={archiveFilter}
                 />
 
-                <FilterSelect
+                <AdminFilterSelect
                   label="CTA"
                   onChange={(value) => setCtaFilter(value as CtaFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'CTA var', value: 'with_cta' },
                     { label: 'CTA yok', value: 'without_cta' },
                   ]}
                   value={ctaFilter}
                 />
-              </div>
-
-              <Table className="min-w-[980px]">
-                <TableHeader>
+              </>
+            }
+            hasActiveFilters={hasActiveFilters}
+            onPageChange={setCurrentPage}
+            onResetFilters={resetFilters}
+            pageCount={storyPageCount}
+            visibleCount={filteredStories.length}
+          >
+            <Table className="min-w-[980px]">
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="border-b border-border/60">Story</TableHead>
+                  <TableHead className="border-b border-border/60">Group</TableHead>
+                  <TableHead className="border-b border-border/60">CTA</TableHead>
+                  <TableHead className="border-b border-border/60">Publish</TableHead>
+                  <TableHead className="border-b border-border/60">Archive</TableHead>
+                  <TableHead className="border-b border-border/60">Last Update</TableHead>
+                  <TableHead className="border-b border-border/60 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedStories.length === 0 ? (
                   <TableRow>
-                    <TableHead className="border-b border-border/60">Story</TableHead>
-                    <TableHead className="border-b border-border/60">Group</TableHead>
-                    <TableHead className="border-b border-border/60">CTA</TableHead>
-                    <TableHead className="border-b border-border/60">Publish</TableHead>
-                    <TableHead className="border-b border-border/60">Archive</TableHead>
-                    <TableHead className="border-b border-border/60">Last Update</TableHead>
-                    <TableHead className="border-b border-border/60 text-right">Actions</TableHead>
+                    <TableCell
+                      className="py-10 text-center text-sm text-muted-foreground"
+                      colSpan={7}
+                    >
+                      No Stories match the filters.
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStories.map((story) => {
+                ) : (
+                  paginatedStories.map((story) => {
                     const draftChangesPending = hasUnpublishedChanges(story);
                     const canPublishDraft = canPublish(story) && story.archiveState !== 'archived';
                     const publishLabel = publishActionLabel(story);
@@ -848,7 +847,9 @@ export function StoriesWorkspace() {
                                 <p className="font-semibold">{story.name}</p>
                               </div>
                               <div className="flex flex-wrap gap-2">
-                                <Badge variant="secondary">{story.mediaType === 'video' ? 'Video' : 'Image'}</Badge>
+                                <Badge variant="secondary">
+                                  {story.mediaType === 'video' ? 'Video' : 'Image'}
+                                </Badge>
                                 <Badge variant="outline">{formatDurationLabel(story)}</Badge>
                                 {story.mediaType === 'video' && !story.posterAssetId ? (
                                   <Badge variant="destructive">Poster eksik</Badge>
@@ -862,7 +863,7 @@ export function StoriesWorkspace() {
                           <div className="space-y-2">
                             <p className="font-medium">{story.groupName}</p>
                             <div className="flex flex-wrap gap-2">
-                              <Badge variant="outline">Sıra {story.position ?? '-'}</Badge>
+                              <Badge variant="outline">Order {story.position ?? '-'}</Badge>
                             </div>
                           </div>
                         </TableCell>
@@ -874,7 +875,9 @@ export function StoriesWorkspace() {
                                 <Badge variant="secondary">{story.cta.label}</Badge>
                                 <Badge variant="outline">{story.cta.type}</Badge>
                               </div>
-                              <p className="max-w-[260px] text-xs leading-5 text-muted-foreground">{story.cta.value}</p>
+                              <p className="max-w-[260px] text-xs leading-5 text-muted-foreground">
+                                {story.cta.value}
+                              </p>
                             </div>
                           ) : (
                             <Badge variant="outline">CTA yok</Badge>
@@ -889,7 +892,9 @@ export function StoriesWorkspace() {
                               <CircleSlash className="h-4 w-4 text-muted-foreground" />
                             )}
                             <StateBadge type="publish" value={story.publishState} />
-                            {draftChangesPending ? <Badge variant="secondary">Taslak değişiklik var</Badge> : null}
+                            {draftChangesPending ? (
+                              <Badge variant="secondary">Has draft changes</Badge>
+                            ) : null}
                           </div>
                         </TableCell>
 
@@ -934,9 +939,7 @@ export function StoriesWorkspace() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={!canPublishDraft}
-                                onSelect={() =>
-                                  handleRowAction(story, 'publish')
-                                }
+                                onSelect={() => handleRowAction(story, 'publish')}
                               >
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                 {publishLabel}
@@ -946,11 +949,11 @@ export function StoriesWorkspace() {
                         </TableCell>
                       </TableRow>
                     );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </AdminTablePanel>
         )}
       </section>
 

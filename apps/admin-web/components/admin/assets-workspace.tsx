@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -17,10 +16,18 @@ import { Label } from '@open-story/ui/components/label';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@open-story/ui/components/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@open-story/ui/components/sheet';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import {
   Table,
@@ -32,21 +39,26 @@ import {
 } from '@open-story/ui/components/table';
 import { cn } from '@open-story/ui/lib/utils';
 import {
+  CheckCircle2,
   Clapperboard,
   CloudUpload,
+  CircleSlash,
   Eye,
   ImagePlus,
   LinkIcon,
-  RefreshCcw,
+  Plus,
   Search,
   Trash2,
   Upload,
+  type LucideIcon,
 } from 'lucide-react';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 
-import { PageHeader } from '@/components/admin/page-header';
+import { AdminFilterSelect, AdminTablePanel } from '@/components/admin/admin-table-panel';
+import { PageHeader, PageHeaderActionButton } from '@/components/admin/page-header';
 import { ApiRequestError, apiRequest } from '@/lib/api';
 import { ASSET_UPLOAD_CAPABILITIES_QUERY_KEY, AssetUploadCapabilitiesDto, canUseServerAssetUpload } from '@/lib/asset-storage-settings';
+import { formatMetricCount } from '@/lib/database-settings-presentation';
 
 type AssetType = 'group_logo' | 'story_image' | 'story_video' | 'story_poster';
 type UsageFilter = 'all' | 'used' | 'unused';
@@ -88,6 +100,7 @@ const ASSET_TYPES: Array<{ value: AssetType; label: string; accept: string }> = 
 ];
 
 const emptyAssets: AssetApiRecord[] = [];
+const ASSET_TABLE_PAGE_SIZE = 15;
 
 function getAssetTypeLabel(type: AssetType): string {
   return ASSET_TYPES.find((item) => item.value === type)?.label ?? type;
@@ -126,7 +139,7 @@ function formatDuration(durationMs: number | null): string | null {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -179,31 +192,218 @@ function AssetPreview({ asset, large = false }: { asset: AssetApiRecord; large?:
 function AssetStats({ assets }: { assets: AssetApiRecord[] }) {
   const usedCount = assets.filter((asset) => asset.usageCount > 0).length;
   const unusedCount = assets.length - usedCount;
-  const uploadCount = assets.filter((asset) => asset.source === 'upload').length;
-  const cloudUploadCount = assets.filter((asset) => asset.source === 'cloud_upload').length;
+  const stats: Array<{
+    icon: LucideIcon;
+    label: string;
+    unit: string;
+    value: number;
+  }> = [
+    {
+      icon: ImagePlus,
+      label: 'Assets',
+      unit: 'Asset',
+      value: assets.length,
+    },
+    {
+      icon: CheckCircle2,
+      label: 'Used',
+      unit: 'Used',
+      value: usedCount,
+    },
+    {
+      icon: CircleSlash,
+      label: 'Unused',
+      unit: 'Unused',
+      value: unusedCount,
+    },
+  ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Toplam</p>
-          <CardTitle className="text-2xl">{assets.length}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Kullanılan</p>
-          <CardTitle className="text-2xl">{usedCount}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="border-border/60 bg-card/80">
-        <CardHeader className="pb-2">
-          <p className="text-sm font-medium text-muted-foreground">Kullanılmayan / Upload / Cloud</p>
-          <CardTitle className="text-2xl">
-            {unusedCount} / {uploadCount} / {cloudUploadCount}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+    <section className="grid gap-6 md:grid-cols-3">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
+
+        return (
+          <div
+            className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6"
+            key={stat.label}
+          >
+            <Icon aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {stat.label}
+            </p>
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
+                {formatMetricCount(stat.value)}
+              </span>
+              <span className="text-lg font-medium text-primary">{stat.unit}</span>
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function AssetMetadata({ asset }: { asset: AssetApiRecord }) {
+  return (
+    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+      <p>{asset.width && asset.height ? `${asset.width}x${asset.height}` : 'Boyut bilinmiyor'}</p>
+      <p>{formatFileSize(asset.sizeBytes)}</p>
+      {formatDuration(asset.durationMs) ? <p>{formatDuration(asset.durationMs)}</p> : null}
+    </div>
+  );
+}
+
+function AssetUsageSummary({ asset }: { asset: AssetApiRecord }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <Badge className="w-fit" variant={asset.usageCount > 0 ? 'default' : 'outline'}>
+        {asset.usageCount > 0 ? `${asset.usageCount} references` : 'Not used'}
+      </Badge>
+      {asset.usageReferences[0] ? (
+        <p className="truncate text-xs text-muted-foreground">{asset.usageReferences[0].name}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function AssetActions({
+  asset,
+  isDeleting,
+  onDelete,
+}: {
+  asset: AssetApiRecord;
+  isDeleting: boolean;
+  onDelete: (asset: AssetApiRecord) => void;
+}) {
+  return (
+    <div className="flex justify-end gap-2">
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button size="icon" type="button" variant="outline">
+            <Eye className="h-4 w-4" />
+            <span className="sr-only">Preview</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{asset.name}</DialogTitle>
+            <DialogDescription>{getAssetTypeLabel(asset.type)} preview.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/20 p-3">
+              <AssetPreview asset={asset} large />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{getAssetTypeLabel(asset.type)}</Badge>
+              <Badge variant="secondary">
+                {asset.width && asset.height ? `${asset.width}x${asset.height}` : 'Boyut bilinmiyor'}
+              </Badge>
+              <Badge variant="secondary">{formatFileSize(asset.sizeBytes)}</Badge>
+              <Badge variant="secondary">{getAssetSourceLabel(asset.source)}</Badge>
+              <Badge variant={asset.usageCount > 0 ? 'default' : 'outline'}>
+                {asset.usageCount > 0 ? `${asset.usageCount} references` : 'Not used'}
+              </Badge>
+            </div>
+            {asset.usageReferences[0] ? (
+              <p className="truncate text-xs text-muted-foreground">
+                First reference: {asset.usageReferences[0].name} / {getUsageLabel(asset.usageReferences[0])}
+              </p>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Button
+        disabled={asset.usageCount > 0 || isDeleting}
+        onClick={() => onDelete(asset)}
+        size="icon"
+        type="button"
+        variant="outline"
+      >
+        <Trash2 className="h-4 w-4" />
+        <span className="sr-only">Delete</span>
+      </Button>
+    </div>
+  );
+}
+
+function AssetCardList({
+  assets,
+  isDeleting,
+  isLoading,
+  onDelete,
+}: {
+  assets: AssetApiRecord[];
+  isDeleting: boolean;
+  isLoading: boolean;
+  onDelete: (asset: AssetApiRecord) => void;
+}) {
+  if (isLoading && assets.length === 0) {
+    return (
+      <div className="grid gap-3 xl:hidden">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton className="h-40 w-full rounded-2xl" key={index} />
+        ))}
+      </div>
+    );
+  }
+
+  if (assets.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border/60 bg-background/45 p-8 text-center text-sm text-muted-foreground xl:hidden">
+        Asset was not found.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 xl:hidden">
+      {assets.map((asset) => (
+        <div
+          className="rounded-2xl border border-border/60 bg-background/45 p-4"
+          key={asset.id}
+        >
+          <div className="flex min-w-0 gap-3">
+            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background">
+              <AssetPreview asset={asset} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{asset.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{asset.id}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="secondary">{getAssetTypeLabel(asset.type)}</Badge>
+                <Badge variant="outline">{getAssetSourceLabel(asset.source)}</Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Metadata
+              </p>
+              <AssetMetadata asset={asset} />
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Usage
+              </p>
+              <AssetUsageSummary asset={asset} />
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Created
+              </p>
+              <p className="text-xs text-muted-foreground">{formatDate(asset.createdAt)}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <AssetActions asset={asset} isDeleting={isDeleting} onDelete={onDelete} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -226,7 +426,7 @@ function EmptyRows({ isLoading }: { isLoading: boolean }) {
   return (
     <TableRow>
       <TableCell className="h-28 text-center text-sm text-muted-foreground" colSpan={7}>
-        Asset bulunamadı.
+        Asset was not found.
       </TableCell>
     </TableRow>
   );
@@ -238,6 +438,8 @@ export function AssetsWorkspace() {
   const [usageFilter, setUsageFilter] = useState<UsageFilter>('all');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [searchValue, setSearchValue] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const [createType, setCreateType] = useState<AssetType>('story_image');
   const [createMode, setCreateMode] = useState<CreateMode>('cloud_upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -264,7 +466,7 @@ export function AssetsWorkspace() {
 
   const assets = assetsQuery.data ?? emptyAssets;
   const filteredAssets = useMemo(() => {
-    const normalizedSearch = searchValue.trim().toLocaleLowerCase('tr-TR');
+    const normalizedSearch = searchValue.trim().toLocaleLowerCase('en-US');
 
     return assets.filter((asset) => {
       if (typeFilter !== 'all' && asset.type !== typeFilter) {
@@ -287,10 +489,34 @@ export function AssetsWorkspace() {
         return true;
       }
 
-      const searchableValue = `${asset.name} ${asset.id} ${asset.url}`.toLocaleLowerCase('tr-TR');
+      const searchableValue = `${asset.name} ${asset.id} ${asset.url}`.toLocaleLowerCase('en-US');
       return searchableValue.includes(normalizedSearch);
     });
   }, [assets, searchValue, sourceFilter, typeFilter, usageFilter]);
+  const hasActiveFilters =
+    typeFilter !== 'all' ||
+    usageFilter !== 'all' ||
+    sourceFilter !== 'all' ||
+    searchValue.trim().length > 0;
+  const assetPageCount = useMemo(
+    () => Math.max(1, Math.ceil(filteredAssets.length / ASSET_TABLE_PAGE_SIZE)),
+    [filteredAssets.length],
+  );
+  const paginatedAssets = useMemo(() => {
+    const safeCurrentPage = Math.min(Math.max(currentPage, 1), assetPageCount);
+    const pageStart = (safeCurrentPage - 1) * ASSET_TABLE_PAGE_SIZE;
+    return filteredAssets.slice(pageStart, pageStart + ASSET_TABLE_PAGE_SIZE);
+  }, [assetPageCount, currentPage, filteredAssets]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchValue, sourceFilter, typeFilter, usageFilter]);
+
+  useEffect(() => {
+    if (currentPage > assetPageCount) {
+      setCurrentPage(assetPageCount);
+    }
+  }, [assetPageCount, currentPage]);
 
   const uploadAssetMutation = useMutation({
     mutationFn: async (payload: { type: AssetType; file: File; storage: 'local' | 'cloud' }) => {
@@ -309,7 +535,7 @@ export function AssetsWorkspace() {
 
       if (!response.ok) {
         throw new ApiRequestError(
-          responsePayload?.error?.message ?? `Upload başarısız oldu (${response.status}).`,
+          responsePayload?.error?.message ?? `Upload failed (${response.status}).`,
           response.status,
           responsePayload?.error?.code,
         );
@@ -355,6 +581,27 @@ export function AssetsWorkspace() {
     setSearchValue('');
   };
 
+  const resetCreateForm = () => {
+    setCreateType('story_image');
+    setCreateMode('cloud_upload');
+    setSelectedFile(null);
+    setUrlValue('');
+    setCreateError(null);
+  };
+
+  const handleCreateSheetChange = (open: boolean) => {
+    setIsCreateSheetOpen(open);
+
+    if (!open) {
+      resetCreateForm();
+    }
+  };
+
+  const openCreateSheet = () => {
+    setCreateError(null);
+    setIsCreateSheetOpen(true);
+  };
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setCreateError(null);
     setSelectedFile(event.target.files?.[0] ?? null);
@@ -366,7 +613,7 @@ export function AssetsWorkspace() {
     try {
       if (effectiveCreateMode === 'upload' || effectiveCreateMode === 'cloud_upload') {
         if (!selectedFile) {
-          setCreateError('Upload için dosya seçin.');
+          setCreateError('Select a file for upload.');
           return;
         }
 
@@ -375,17 +622,19 @@ export function AssetsWorkspace() {
           file: selectedFile,
           storage: effectiveCreateMode === 'cloud_upload' ? 'cloud' : 'local',
         });
+        handleCreateSheetChange(false);
         return;
       }
 
       if (!urlValue.trim()) {
-        setCreateError('URL ile eklemek için asset URL girin.');
+        setCreateError('Enter an asset URL to add by URL.');
         return;
       }
 
       await importAssetMutation.mutateAsync({ type: createType, url: urlValue.trim() });
+      handleCreateSheetChange(false);
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Asset oluşturulamadı.');
+      setCreateError(error instanceof Error ? error.message : 'Asset could not be created.');
     }
   };
 
@@ -393,11 +642,11 @@ export function AssetsWorkspace() {
     setDeleteError(null);
 
     if (asset.usageCount > 0) {
-      setDeleteError('Kullanılan asset silinemez.');
+      setDeleteError('Used assets cannot be deleted.');
       return;
     }
 
-    const confirmed = window.confirm(`${asset.name} asset kaydı silinsin mi?`);
+    const confirmed = window.confirm(`Delete the ${asset.name} asset record?`);
     if (!confirmed) {
       return;
     }
@@ -405,7 +654,7 @@ export function AssetsWorkspace() {
     try {
       await deleteAssetMutation.mutateAsync(asset.id);
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : 'Asset silinemedi.');
+      setDeleteError(error instanceof Error ? error.message : 'Asset could not be deleted.');
     }
   };
 
@@ -415,230 +664,215 @@ export function AssetsWorkspace() {
     <div className="space-y-6">
       <PageHeader
         actions={
-          <Button
-            disabled={assetsQuery.isFetching}
-            onClick={() => assetsQuery.refetch()}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            Yenile
-          </Button>
+          <PageHeaderActionButton onClick={openCreateSheet} type="button">
+            <Plus aria-hidden data-icon="inline-start" />
+            New Asset
+          </PageHeaderActionButton>
         }
         title="Assets"
       />
 
       <AssetStats assets={assets} />
 
-      <div className="flex flex-col gap-6">
-        <Card className="order-2 border-border/60 bg-card/80">
-          <CardHeader>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <CardTitle>Asset listesi</CardTitle>
-              </div>
-              {typeFilter !== 'all' || usageFilter !== 'all' || sourceFilter !== 'all' || searchValue ? (
-                <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
-                  Filtreleri temizle
-                </Button>
-              ) : null}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_160px_160px]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="İsim, ID veya URL ara"
-                  value={searchValue}
+      <div className="min-w-0">
+          <AdminTablePanel
+            currentPage={currentPage}
+            filterGridClassName="lg:grid-cols-[minmax(220px,1fr)_180px_160px_160px]"
+            filters={
+              <>
+                <div className="flex flex-col gap-2">
+                  <span className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    Search
+                  </span>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      className="h-10 rounded-lg border-border/70 bg-background/60 pl-9"
+                      onChange={(event) => setSearchValue(event.target.value)}
+                      placeholder="Search by name, ID, or URL"
+                      value={searchValue}
+                    />
+                  </div>
+                </div>
+
+                <AdminFilterSelect
+                  label="Type"
+                  onChange={(value) => setTypeFilter(value as AssetType | 'all')}
+                  options={[
+                    { label: 'All types', value: 'all' },
+                    ...ASSET_TYPES.map((type) => ({
+                      label: type.label,
+                      value: type.value,
+                    })),
+                  ]}
+                  value={typeFilter}
                 />
+
+                <AdminFilterSelect
+                  label="Usage"
+                  onChange={(value) => setUsageFilter(value as UsageFilter)}
+                  options={[
+                    { label: 'All usage', value: 'all' },
+                    { label: 'Used', value: 'used' },
+                    { label: 'Unused', value: 'unused' },
+                  ]}
+                  value={usageFilter}
+                />
+
+                <AdminFilterSelect
+                  label="Source"
+                  onChange={(value) => setSourceFilter(value as SourceFilter)}
+                  options={[
+                    { label: 'All sources', value: 'all' },
+                    { label: 'Server Upload', value: 'upload' },
+                    { label: 'Cloud Upload', value: 'cloud_upload' },
+                    { label: 'URL', value: 'url' },
+                  ]}
+                  value={sourceFilter}
+                />
+              </>
+            }
+            hasActiveFilters={hasActiveFilters}
+            onPageChange={setCurrentPage}
+            onResetFilters={resetFilters}
+            pageCount={assetPageCount}
+            pageSize={ASSET_TABLE_PAGE_SIZE}
+            visibleCount={filteredAssets.length}
+          >
+            {assetsQuery.error || deleteError ? (
+              <div className="space-y-3 p-4">
+                {assetsQuery.error ? (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {assetsQuery.error instanceof Error ? assetsQuery.error.message : 'Asset list could not be read.'}
+                  </div>
+                ) : null}
+
+                {deleteError ? (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {deleteError}
+                  </div>
+                ) : null}
               </div>
+            ) : null}
 
-              <Select onValueChange={(value) => setTypeFilter(value as AssetType | 'all')} value={typeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tip" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm tipler</SelectItem>
-                  {ASSET_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select onValueChange={(value) => setUsageFilter(value as UsageFilter)} value={usageFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Kullanım" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm kullanım</SelectItem>
-                  <SelectItem value="used">Kullanılan</SelectItem>
-                  <SelectItem value="unused">Kullanılmayan</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select onValueChange={(value) => setSourceFilter(value as SourceFilter)} value={sourceFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Kaynak" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm kaynaklar</SelectItem>
-                  <SelectItem value="upload">Server Upload</SelectItem>
-                  <SelectItem value="cloud_upload">Cloud Upload</SelectItem>
-                  <SelectItem value="url">URL</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="p-4 xl:hidden">
+              <AssetCardList
+                assets={paginatedAssets}
+                isDeleting={deleteAssetMutation.isPending}
+                isLoading={assetsQuery.isLoading}
+                onDelete={handleDelete}
+              />
             </div>
 
-            {assetsQuery.error ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {assetsQuery.error instanceof Error ? assetsQuery.error.message : 'Asset listesi okunamadı.'}
-              </div>
-            ) : null}
-
-            {deleteError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {deleteError}
-              </div>
-            ) : null}
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Tip</TableHead>
-                  <TableHead>Metadata</TableHead>
-                  <TableHead>Kullanım</TableHead>
-                  <TableHead>Kaynak</TableHead>
-                  <TableHead>Oluşturma</TableHead>
-                  <TableHead className="text-right">Aksiyon</TableHead>
+            <Table className="hidden w-full table-fixed xl:table">
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[28%] border-b border-border/60">Asset</TableHead>
+                  <TableHead className="w-[13%] border-b border-border/60">Type</TableHead>
+                  <TableHead className="w-[14%] border-b border-border/60">Metadata</TableHead>
+                  <TableHead className="w-[18%] border-b border-border/60">Usage</TableHead>
+                  <TableHead className="w-[12%] border-b border-border/60">Source</TableHead>
+                  <TableHead className="w-[11%] border-b border-border/60">Created</TableHead>
+                  <TableHead className="w-[92px] border-b border-border/60 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAssets.length === 0 ? <EmptyRows isLoading={assetsQuery.isLoading} /> : null}
-                {filteredAssets.map((asset) => (
-                  <TableRow key={asset.id}>
-                    <TableCell>
-                      <div className="flex min-w-[220px] items-center gap-3">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background">
-                          <AssetPreview asset={asset} />
+                {filteredAssets.length === 0 ? (
+                  <EmptyRows isLoading={assetsQuery.isLoading} />
+                ) : (
+                  paginatedAssets.map((asset) => (
+                    <TableRow className="align-top" key={asset.id}>
+                      <TableCell className="border-b border-border/60 py-4 align-top">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background">
+                            <AssetPreview asset={asset} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{asset.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{asset.id}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{asset.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">{asset.id}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{getAssetTypeLabel(asset.type)}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-xs text-muted-foreground">
-                        <p>{asset.width && asset.height ? `${asset.width}x${asset.height}` : 'Boyut bilinmiyor'}</p>
-                        <p>{formatFileSize(asset.sizeBytes)}</p>
-                        {formatDuration(asset.durationMs) ? <p>{formatDuration(asset.durationMs)}</p> : null}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <Badge variant={asset.usageCount > 0 ? 'default' : 'outline'}>
-                          {asset.usageCount > 0 ? `${asset.usageCount} referans` : 'Kullanılmıyor'}
-                        </Badge>
-                        {asset.usageReferences[0] ? (
-                          <p className="max-w-[220px] truncate text-xs text-muted-foreground">
-                            {asset.usageReferences[0].name}
-                          </p>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{getAssetSourceLabel(asset.source)}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(asset.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button size="icon" type="button" variant="outline">
-                              <Eye className="h-4 w-4" />
-                              <span className="sr-only">Preview</span>
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>{asset.name}</DialogTitle>
-                              <DialogDescription>{getAssetTypeLabel(asset.type)} preview.</DialogDescription>
-                            </DialogHeader>
-                            <div className="flex flex-col gap-3">
-                              <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/20 p-3">
-                                <AssetPreview asset={asset} large />
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                <Badge variant="secondary">{getAssetTypeLabel(asset.type)}</Badge>
-                                <Badge variant="secondary">
-                                  {asset.width && asset.height ? `${asset.width}x${asset.height}` : 'Boyut bilinmiyor'}
-                                </Badge>
-                                <Badge variant="secondary">{formatFileSize(asset.sizeBytes)}</Badge>
-                                <Badge variant="secondary">{getAssetSourceLabel(asset.source)}</Badge>
-                                <Badge variant={asset.usageCount > 0 ? 'default' : 'outline'}>
-                                  {asset.usageCount > 0 ? `${asset.usageCount} referans` : 'Kullanılmıyor'}
-                                </Badge>
-                              </div>
-                              {asset.usageReferences[0] ? (
-                                <p className="truncate text-xs text-muted-foreground">
-                                  İlk referans: {asset.usageReferences[0].name} / {getUsageLabel(asset.usageReferences[0])}
-                                </p>
-                              ) : null}
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                        <Button
-                          disabled={asset.usageCount > 0 || deleteAssetMutation.isPending}
-                          onClick={() => handleDelete(asset)}
-                          size="icon"
-                          type="button"
-                          variant="outline"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Sil</span>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="border-b border-border/60 py-4 align-top">
+                        <Badge variant="secondary">{getAssetTypeLabel(asset.type)}</Badge>
+                      </TableCell>
+                      <TableCell className="border-b border-border/60 py-4 align-top">
+                        <AssetMetadata asset={asset} />
+                      </TableCell>
+                      <TableCell className="border-b border-border/60 py-4 align-top">
+                        <AssetUsageSummary asset={asset} />
+                      </TableCell>
+                      <TableCell className="border-b border-border/60 py-4 align-top">
+                        <Badge variant="outline">{getAssetSourceLabel(asset.source)}</Badge>
+                      </TableCell>
+                      <TableCell className="border-b border-border/60 py-4 align-top text-xs text-muted-foreground">
+                        {formatDate(asset.createdAt)}
+                      </TableCell>
+                      <TableCell className="border-b border-border/60 py-4 align-top text-right">
+                        <AssetActions
+                          asset={asset}
+                          isDeleting={deleteAssetMutation.isPending}
+                          onDelete={handleDelete}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </AdminTablePanel>
+      </div>
 
-        <Card className="order-1 border-border/60 bg-card/80">
-          <CardHeader>
-            <CardTitle>Yeni asset</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-2">
-                  <Label>Tip</Label>
-                  <Select onValueChange={(value) => setCreateType(value as AssetType)} value={createType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Asset tipi" />
-                    </SelectTrigger>
-                    <SelectContent>
+      <Sheet onOpenChange={handleCreateSheetChange} open={isCreateSheetOpen}>
+        <SheetContent className="p-0">
+          <SheetHeader>
+            <SheetTitle>Create new Asset</SheetTitle>
+            <SheetDescription>
+              Enter the asset type, source method, and media information.
+            </SheetDescription>
+          </SheetHeader>
+
+          <form
+            className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleCreate();
+            }}
+          >
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-6 sm:px-8">
+              <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                <p className="text-sm font-medium">Asset bilgileri</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Asset records added by upload or URL can be used in Story and Story Group content.
+                </p>
+              </div>
+
+              {createError ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+                  {createError}
+                </div>
+              ) : null}
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="asset-create-type">Type</Label>
+                <Select onValueChange={(value) => setCreateType(value as AssetType)} value={createType}>
+                  <SelectTrigger id="asset-create-type">
+                    <SelectValue placeholder="Asset type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
                       {ASSET_TYPES.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
 
+              <div className="flex flex-col gap-2">
+                <Label>Source</Label>
                 <div
                   className={cn(
                     'grid gap-2 rounded-lg border border-border/60 bg-muted/20 p-1',
@@ -647,6 +881,7 @@ export function AssetsWorkspace() {
                 >
                   {serverUploadAllowed ? (
                     <Button
+                      aria-pressed={createMode === 'upload'}
                       onClick={() => setCreateMode('upload')}
                       size="sm"
                       type="button"
@@ -657,6 +892,7 @@ export function AssetsWorkspace() {
                     </Button>
                   ) : null}
                   <Button
+                    aria-pressed={effectiveCreateMode === 'cloud_upload'}
                     onClick={() => setCreateMode('cloud_upload')}
                     size="sm"
                     type="button"
@@ -666,6 +902,7 @@ export function AssetsWorkspace() {
                     Cloud
                   </Button>
                   <Button
+                    aria-pressed={effectiveCreateMode === 'url'}
                     onClick={() => setCreateMode('url')}
                     size="sm"
                     type="button"
@@ -677,59 +914,61 @@ export function AssetsWorkspace() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
-                {effectiveCreateMode === 'upload' || effectiveCreateMode === 'cloud_upload' ? (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="asset-upload">Dosya</Label>
-                    <Input
-                      accept={getAssetAccept(createType)}
-                      id="asset-upload"
-                      onChange={handleFileChange}
-                      type="file"
-                    />
-                    {selectedFile ? (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {selectedFile.name} / {formatFileSize(selectedFile.size)}
-                      </p>
-                    ) : null}
-                    {effectiveCreateMode === 'cloud_upload' ? (
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Production için önerilen yol. Görseller optimize edilir; medya aktif Cloud Storage/CDN hedefinde saklanır.
-                      </p>
-                    ) : (
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Local geliştirme ve küçük kurulumlar için. Production ortamında Cloud Upload önerilir.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="asset-url">URL</Label>
-                    <Input
-                      id="asset-url"
-                      onChange={(event) => setUrlValue(event.target.value)}
-                      placeholder="https://cdn.example.com/story.png"
-                      type="url"
-                      value={urlValue}
-                    />
-                  </div>
-                )}
-
-                <Button className="w-full" disabled={isCreating} onClick={handleCreate} type="button">
-                  <ImagePlus className="mr-2 h-4 w-4" />
-                  {isCreating ? 'Ekleniyor' : 'Asset ekle'}
-                </Button>
-              </div>
+              {effectiveCreateMode === 'upload' || effectiveCreateMode === 'cloud_upload' ? (
+                <div className="flex flex-col gap-2" key="asset-file-fields">
+                  <Label htmlFor="asset-upload">File</Label>
+                  <Input
+                    accept={getAssetAccept(createType)}
+                    id="asset-upload"
+                    onChange={handleFileChange}
+                    type="file"
+                  />
+                  {selectedFile ? (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {selectedFile.name} / {formatFileSize(selectedFile.size)}
+                    </p>
+                  ) : null}
+                  {effectiveCreateMode === 'cloud_upload' ? (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Recommended for production. Images are optimized; media is stored in the active Cloud Storage/CDN target.
+                    </p>
+                  ) : (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      For local development and small setups. Cloud Upload is recommended in production.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2" key="asset-url-fields">
+                  <Label htmlFor="asset-url">URL</Label>
+                  <Input
+                    id="asset-url"
+                    onChange={(event) => setUrlValue(event.target.value)}
+                    placeholder="https://cdn.example.com/story.png"
+                    type="url"
+                    value={urlValue}
+                  />
+                </div>
+              )}
             </div>
 
-            {createError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {createError}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
+            <div className="flex flex-col-reverse gap-3 border-t border-border/60 px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
+              <Button
+                disabled={isCreating}
+                onClick={() => handleCreateSheetChange(false)}
+                type="button"
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button disabled={isCreating} type="submit">
+                <ImagePlus className="mr-2 h-4 w-4" />
+                {isCreating ? 'Adding...' : 'Create Asset'}
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

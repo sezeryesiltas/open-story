@@ -56,7 +56,7 @@ export default function ChangePasswordPage() {
     setErrorMessage(null);
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage('Yeni şifre ve tekrar alanı aynı olmalıdır.');
+      setErrorMessage('New password and confirmation must match.');
       return;
     }
 
@@ -77,7 +77,7 @@ export default function ChangePasswordPage() {
       setErrorMessage(
         error instanceof ApiRequestError || error instanceof Error
           ? error.message
-          : 'Şifre güncellenemedi.',
+          : 'Password could not be updated.',
       );
     } finally {
       setIsSubmitting(false);
@@ -92,7 +92,7 @@ export default function ChangePasswordPage() {
       <CardContent className="space-y-6">
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="temporaryPassword">Geçici şifre</Label>
+            <Label htmlFor="temporaryPassword">Temporary password</Label>
             <Input
               id="temporaryPassword"
               onChange={(event) => setTemporaryPassword(event.target.value)}
@@ -102,12 +102,12 @@ export default function ChangePasswordPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">Yeni şifre</Label>
+            <Label htmlFor="newPassword">New password</Label>
             <Input id="newPassword" onChange={(event) => setNewPassword(event.target.value)} type="password" value={newPassword} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Yeni şifre tekrar</Label>
+            <Label htmlFor="confirmPassword">Confirm new password</Label>
             <Input
               id="confirmPassword"
               onChange={(event) => setConfirmPassword(event.target.value)}
@@ -123,7 +123,7 @@ export default function ChangePasswordPage() {
           ) : null}
 
           <Button className="w-full" disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'Şifre güncelleniyor...' : 'Şifreyi güncelle'}
+            {isSubmitting ? 'Updating password...' : 'Update password'}
           </Button>
         </form>
       </CardContent>

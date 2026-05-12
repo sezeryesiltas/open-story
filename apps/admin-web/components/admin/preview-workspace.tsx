@@ -4,14 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@open-story/ui/components/badge';
 import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@open-story/ui/components/select';
 import { Skeleton } from '@open-story/ui/components/skeleton';
 import type { SdkFeedGroup, SdkFeedStory } from '@open-story/contracts';
 import { useEffect, useMemo, useState } from 'react';
@@ -20,10 +12,12 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
+  ListFilter,
   MousePointerClick,
   X,
 } from 'lucide-react';
 
+import { AdminFilterSelect } from '@/components/admin/admin-table-panel';
 import { PageHeader } from '@/components/admin/page-header';
 import { StoryGroupLogo } from '@/components/admin/story-group-logo';
 import { apiRequest } from '@/lib/api';
@@ -57,7 +51,7 @@ function formatTargetingSummary(storyGroupSet: PreviewSetSummary) {
   }
 
   if (storyGroupSet.platformTargets.length === 0 && storyGroupSet.userSegments.length === 0) {
-    return 'Tüm kullanıcılar';
+    return 'All users';
   }
 
   const platformSummary =
@@ -65,11 +59,11 @@ function formatTargetingSummary(storyGroupSet: PreviewSetSummary) {
       ? storyGroupSet.platformTargets
           .map((target) => `${target.platform.toUpperCase()} ${target.minAppVersion}+`)
           .join(' • ')
-      : 'Platform kısıtı yok';
+      : 'No platform constraint';
   const segmentSummary =
     storyGroupSet.userSegments.length > 0
       ? storyGroupSet.userSegments.join(', ')
-      : 'Tüm kullanıcılar';
+      : 'All users';
 
   return `${platformSummary} • ${segmentSummary}`;
 }
@@ -77,25 +71,25 @@ function formatTargetingSummary(storyGroupSet: PreviewSetSummary) {
 function formatIssueReason(reason: PreviewVisibilityReason) {
   switch (reason) {
     case 'missing_group':
-      return 'Bağlı grup bulunamadı.';
+      return 'Linked group was not found.';
     case 'group_unpublished':
-      return 'Bu grup henüz yayında değil.';
+      return 'This group is not published yet.';
     case 'group_archived':
-      return 'Bu grup arşivde olduğu için gösterilmiyor.';
+      return 'This group is not shown because it is archived.';
     case 'missing_group_logo':
-      return 'Grup logosu bulunamadı.';
+      return 'Group logo was not found.';
     case 'empty_group':
-      return 'Bu grup içinde gösterilebilecek story bulunmuyor.';
+      return 'This group has no stories that can be shown.';
     case 'missing_story':
-      return 'Bağlı story kaydı bulunamadı.';
+      return 'Linked story record was not found.';
     case 'story_unpublished':
-      return 'Bu story henüz yayında değil.';
+      return 'This story is not published yet.';
     case 'story_archived':
-      return 'Bu story arşivde olduğu için gösterilmiyor.';
+      return 'This story is not shown because it is archived.';
     case 'missing_media_asset':
-      return 'Story medyası bulunamadı.';
+      return 'Story media was not found.';
     case 'missing_poster_asset':
-      return 'Video için poster görseli eksik.';
+      return 'Poster image is missing for the video.';
   }
 }
 
@@ -143,7 +137,7 @@ function PreviewWarnings({ warnings }: { warnings: string[] }) {
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-1 h-4 w-4 shrink-0 text-amber-600" />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">Preview uyarıları</p>
+          <p className="text-sm font-medium text-foreground">Preview warnings</p>
           <ul className="mt-2 flex flex-col gap-2 text-sm leading-6 text-muted-foreground">
             {warnings.map((warning, index) => (
               <li key={`${index}-${warning}`}>{warning}</li>
@@ -415,76 +409,60 @@ export function PreviewWorkspace() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="İçerik önizleme" />
+      <PageHeader title="Content Preview" />
 
       {previewQuery.isPending ? <PreviewLoadingState /> : null}
 
       {!previewQuery.isPending && previewQuery.isError ? (
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Preview yüklenemedi</CardTitle>
+            <CardTitle>Preview could not be loaded</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Button onClick={() => previewQuery.refetch()}>Tekrar dene</Button>
+            <Button onClick={() => previewQuery.refetch()}>Try again</Button>
           </CardContent>
         </Card>
       ) : null}
 
       {!previewQuery.isPending && !previewQuery.isError && data && data.placements.length > 0 ? (
         <div className="flex flex-col gap-6">
-          <Card className="border-border/60 bg-card/80">
-            <CardHeader>
-              <CardTitle>Önizleme</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Placement</span>
-                  <Select onValueChange={handlePlacementChange} value={selectedPlacementId ?? NO_SELECTION}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Placement seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {data.placements.map((placement) => (
-                          <SelectItem key={placement.id} value={placement.id}>
-                            {placement.name} ({placement.placementKey})
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Story Bar</span>
-                  <Select
-                    disabled={data.candidateSets.length === 0}
-                    onValueChange={handleSetChange}
-                    value={selectedSetId ?? NO_SELECTION}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Story Bar seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {data.candidateSets.length === 0 ? (
-                          <SelectItem disabled value={NO_SELECTION}>
-                            Story Bar bulunamadı
-                          </SelectItem>
-                        ) : (
-                          data.candidateSets.map((storyGroupSet) => (
-                            <SelectItem key={storyGroupSet.id} value={storyGroupSet.id}>
-                              {storyGroupSet.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <Card className="overflow-hidden rounded-lg border-border/60 bg-card/80 shadow-2xl">
+            <CardHeader className="gap-5 space-y-0 border-b border-border/60 bg-muted/20 p-5">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <ListFilter aria-hidden className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Filtreler
+                </CardTitle>
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)]">
+                <AdminFilterSelect
+                  label="Placement"
+                  onChange={handlePlacementChange}
+                  options={data.placements.map((placement) => ({
+                    label: `${placement.name} (${placement.placementKey})`,
+                    value: placement.id,
+                  }))}
+                  value={selectedPlacementId ?? NO_SELECTION}
+                />
+
+                <AdminFilterSelect
+                  disabled={data.candidateSets.length === 0}
+                  label="Story Bar"
+                  onChange={handleSetChange}
+                  options={
+                    data.candidateSets.length === 0
+                      ? [{ disabled: true, label: 'Story Bar was not found', value: NO_SELECTION }]
+                      : data.candidateSets.map((storyGroupSet) => ({
+                          label: storyGroupSet.name,
+                          value: storyGroupSet.id,
+                        }))
+                  }
+                  value={selectedSetId ?? NO_SELECTION}
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-5 p-5">
               {data ? <PreviewWarnings warnings={data.warnings} /> : null}
 
               {groups.length > 0 ? (
@@ -496,7 +474,7 @@ export function PreviewWorkspace() {
                           <div className="rounded-xl border border-border/60 bg-background/70 p-4">
                             <div className="flex flex-wrap gap-2">
                               <StatusPill
-                                label="Görünür"
+                                label="Visible"
                                 value={`${data.stats?.visibleGroupCount ?? 0} group / ${data.stats?.visibleStoryCount ?? 0} story`}
                               />
                               <StatusPill
@@ -534,7 +512,7 @@ export function PreviewWorkspace() {
                               >
                                 <span className="inline-flex items-center gap-2">
                                   <ArrowLeft className="h-4 w-4" data-icon />
-                                  Önceki
+                                  Previous
                                 </span>
                               </Button>
                               <Button className="justify-between" disabled={!canGoForward} onClick={goToNextStory}>
@@ -565,7 +543,7 @@ export function PreviewWorkspace() {
                               </div>
                             ) : (
                               <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                                Bu story için CTA tanımlanmamış.
+                                No CTA is defined for this story.
                               </p>
                             )}
                           </div>
@@ -635,7 +613,7 @@ export function PreviewWorkspace() {
                 </>
               ) : (
                 <div className="rounded-xl border border-dashed border-border/60 bg-background/60 p-6 text-sm leading-6 text-muted-foreground">
-                  Seçili Story Bar için gösterilebilecek içerik bulunmuyor.
+                  No content can be shown for the selected Story Bar.
                 </div>
               )}
             </CardContent>
@@ -643,7 +621,7 @@ export function PreviewWorkspace() {
 
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Görünürlük sorunları</CardTitle>
+              <CardTitle>Visibility Issues</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {visibilityIssues.length > 0 ? (
@@ -664,7 +642,7 @@ export function PreviewWorkspace() {
               ) : (
                 <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/70 p-4 text-sm leading-6 text-muted-foreground">
                   <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                  <p>Seçili içerik için ek bir görünürlük sorunu bulunmuyor.</p>
+                  <p>No additional visibility issues exist for the selected content.</p>
                 </div>
               )}
             </CardContent>
@@ -675,7 +653,7 @@ export function PreviewWorkspace() {
       {!previewQuery.isPending && !previewQuery.isError && data && data.placements.length === 0 ? (
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Önizleme için içerik ekleyin</CardTitle>
+            <CardTitle>Add content for preview</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {data ? <PreviewWarnings warnings={data.warnings} /> : null}

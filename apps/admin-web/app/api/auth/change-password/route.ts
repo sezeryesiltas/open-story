@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const payload = (await request.json()) as AuthChangePasswordDto;
     const token = getAdminAuthTokenFromRequest(request);
     if (!token) {
-      return jsonError('Oturum bulunamadı.', 401, 'unauthorized');
+      return jsonError('Session was not found.', 401, 'unauthorized');
     }
 
     return NextResponse.json(await changeAdminPasswordFromToken(token, payload));
@@ -22,6 +22,6 @@ export async function POST(request: NextRequest) {
       return jsonError(mappedError.message, mappedError.status, mappedError.code);
     }
 
-    return jsonError('Şifre güncellenemedi.', 500, 'validation_error');
+    return jsonError('Password could not be updated.', 500, 'validation_error');
   }
 }

@@ -23,17 +23,17 @@ pnpm --filter @open-story/admin-web check
 ## Current state
 
 - Landing/dashboard skeleton created.
-- Placements ekranı hero + card list + empty state + right sheet create/edit akışı ile çalışıyor.
+- The Placements screen works with a hero, card list, empty state, and right-sheet create/edit flow.
 - Query provider wiring ready for API integration.
-- `Settings` ekranı aktif relational Postgres hedefini gösterir ve Postgres bağlantı bilgisini yönetir.
-- `Storage & CDN` ekranı local asset storage, Google Cloud Storage/CDN ve Supabase Storage S3 hedefini yönetir.
-- Asset oluşturma akışında URL ve upload seçenekleri bulunur; dış Storage/CDN provider aktifken Server Upload/Bilgisayardan yükle seçenekleri gizlenir.
+- The `Settings` screen shows the active relational Postgres target and manages Postgres connection details.
+- The `Storage & CDN` screen manages local asset storage, Google Cloud Storage/CDN, and Supabase Storage S3 targets.
+- The asset creation flow includes URL and upload options; Server Upload/from-computer options are hidden when an external Storage/CDN provider is active.
 
 ## Runtime notes
 
-- Browser tarafı her zaman local `app/api/*` BFF route’larına gider.
-- BFF tarafı, auth dahil olmak üzere tüm admin isteklerini backend API'ye proxy eder.
-- Same-container çalışmada backend varsayılanı `http://localhost:3001` adresidir.
-- Split-container Docker çalışmada `OPEN_STORY_API_BASE_URL=http://api:3001` kullanın.
-- Gerekirse backend adresi `OPEN_STORY_API_BASE_URL` ile override edilir.
-- `Settings` ve `Storage & CDN` ekranları runtime'daki efektif ayarı gösterir; DB için production'da Postgres zorunludur, local fallback yalnızca non-production/test kullanım içindir.
+- The browser side always calls local `app/api/*` BFF routes.
+- The BFF side proxies all admin requests, including auth, to the backend API.
+- In same-container runs, the default backend address is `http://localhost:3001`.
+- In split-container Docker runs, use `OPEN_STORY_API_BASE_URL=http://api:3001`.
+- The backend address can be overridden with `OPEN_STORY_API_BASE_URL` when needed.
+- The `Settings` and `Storage & CDN` screens show the effective runtime setting; Postgres is required for production DB usage, and local fallback is only for non-production/test use.
