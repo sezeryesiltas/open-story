@@ -125,7 +125,7 @@ const emptyStoryFormValues: StoryFormValues = {
 };
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -134,11 +134,11 @@ function formatDate(value: string) {
 
 function formatDurationLabel(story: StoryApiRecord): string {
   if (story.mediaType === 'video') {
-    return 'Video süresi';
+    return 'Video duration';
   }
 
   if (!story.imageDurationMs) {
-    return 'Varsayılan 5 sn';
+    return 'Default 5 sec';
   }
 
   return `${Math.round(story.imageDurationMs / 1000)} sn`;
@@ -185,19 +185,19 @@ function StoryStats({
     },
     {
       icon: CheckCircle2,
-      label: 'Yayında',
+      label: 'Published',
       unit: 'Live',
       value: publishedCount,
     },
     {
       icon: CalendarClock,
-      label: 'Taslak değişiklik',
+      label: 'Draft changes',
       unit: 'Draft',
       value: pendingChangesCount,
     },
     {
       icon: Archive,
-      label: 'Arşivde',
+      label: 'Archived',
       unit: 'Archive',
       value: archivedCount,
     },
@@ -240,14 +240,14 @@ function StateBadge({
   if (type === 'archive') {
     return (
       <Badge variant={value === 'archived' ? 'secondary' : 'outline'}>
-        {value === 'archived' ? 'Arşivde' : 'Aktif'}
+        {value === 'archived' ? 'Archived' : 'Active'}
       </Badge>
     );
   }
 
   return (
     <Badge variant={value === 'published' ? 'default' : 'outline'}>
-      {value === 'published' ? 'Yayında' : 'Yayında değil'}
+      {value === 'published' ? 'Published' : 'Not published'}
     </Badge>
   );
 }
@@ -367,14 +367,14 @@ export function StoriesWorkspace() {
     [storyAssets],
   );
   const storyGroupOptions = useMemo(
-    () => [...storyGroups].sort((left, right) => left.name.localeCompare(right.name, 'tr')),
+    () => [...storyGroups].sort((left, right) => left.name.localeCompare(right.name, 'en')),
     [storyGroups],
   );
   const storyGroupFilterOptions = useMemo(
     () =>
       storyGroups
         .filter((storyGroup) => storyGroup.archiveState === 'active')
-        .sort((left, right) => left.name.localeCompare(right.name, 'tr')),
+        .sort((left, right) => left.name.localeCompare(right.name, 'en')),
     [storyGroups],
   );
 
@@ -569,7 +569,7 @@ export function StoriesWorkspace() {
     try {
       if (sheetMode === 'edit') {
         if (!activeStoryId) {
-          setSubmitError('Düzenlenecek Story bulunamadı. Listeyi yenileyin.');
+          setSubmitError('The Story to edit was not found. Refresh the list.');
           return undefined;
         }
 
@@ -649,8 +649,8 @@ export function StoriesWorkspace() {
         error instanceof Error
           ? error.message
           : sheetMode === 'edit'
-            ? 'Story güncellenemedi.'
-            : 'Story oluşturulamadı.',
+            ? 'Story could not be updated.'
+            : 'Story could not be created.',
       );
       return undefined;
     }
@@ -668,7 +668,7 @@ export function StoriesWorkspace() {
         action,
       });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Story aksiyonu uygulanamadı.');
+      setActionError(error instanceof Error ? error.message : 'Story action could not be applied.');
     }
   };
 
@@ -678,10 +678,10 @@ export function StoriesWorkspace() {
         actions={
           <PageHeaderActionButton disabled={storyGroups.length === 0} onClick={openCreateSheet}>
             <Plus aria-hidden data-icon="inline-start" />
-            Yeni Story
+            New Story
           </PageHeaderActionButton>
         }
-        title="Story listesi"
+        title="Story List"
       />
 
       <section className="space-y-4">
@@ -703,15 +703,15 @@ export function StoriesWorkspace() {
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Story listesi yüklenemedi</CardTitle>
+              <CardTitle>Story list could not be loaded</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                  'Story listesi şu anda alınamıyor.'}
+                  'Story list cannot be fetched right now.'}
               </div>
               <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-                Tekrar dene
+                Try again
               </Button>
             </CardContent>
           </Card>
@@ -721,7 +721,7 @@ export function StoriesWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Clapperboard className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Önce bir Story Group oluşturun</CardTitle>
+              <CardTitle className="text-xl">Create a Story Group first</CardTitle>
             </CardHeader>
           </Card>
         ) : stories.length === 0 ? (
@@ -730,12 +730,12 @@ export function StoriesWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Clapperboard className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz Story kaydı yok</CardTitle>
+              <CardTitle className="text-xl">No Story records yet</CardTitle>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
                 <Plus className="h-4 w-4" />
-                İlk Story&apos;yi oluştur
+                Create the first Story
               </Button>
             </CardContent>
           </Card>
@@ -749,7 +749,7 @@ export function StoriesWorkspace() {
                   label="Story Group"
                   onChange={setSelectedStoryGroupId}
                   options={[
-                    { label: 'Tüm grouplar', value: 'all' },
+                    { label: 'All groups', value: 'all' },
                     ...storyGroupFilterOptions.map((storyGroup) => ({
                       label: storyGroup.name,
                       value: storyGroup.id,
@@ -762,7 +762,7 @@ export function StoriesWorkspace() {
                   label="Media"
                   onChange={(value) => setMediaFilter(value as MediaFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Image', value: 'image' },
                     { label: 'Video', value: 'video' },
                   ]}
@@ -773,7 +773,7 @@ export function StoriesWorkspace() {
                   label="Publish"
                   onChange={(value) => setPublishFilter(value as PublishFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Published', value: 'published' },
                     { label: 'Unpublished', value: 'unpublished' },
                   ]}
@@ -784,7 +784,7 @@ export function StoriesWorkspace() {
                   label="Archive"
                   onChange={(value) => setArchiveFilter(value as ArchiveFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Active', value: 'active' },
                     { label: 'Archived', value: 'archived' },
                   ]}
@@ -795,7 +795,7 @@ export function StoriesWorkspace() {
                   label="CTA"
                   onChange={(value) => setCtaFilter(value as CtaFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'CTA var', value: 'with_cta' },
                     { label: 'CTA yok', value: 'without_cta' },
                   ]}
@@ -828,7 +828,7 @@ export function StoriesWorkspace() {
                       className="py-10 text-center text-sm text-muted-foreground"
                       colSpan={7}
                     >
-                      Filtrelerle eşleşen Story bulunamadı.
+                      No Stories match the filters.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -863,7 +863,7 @@ export function StoriesWorkspace() {
                           <div className="space-y-2">
                             <p className="font-medium">{story.groupName}</p>
                             <div className="flex flex-wrap gap-2">
-                              <Badge variant="outline">Sıra {story.position ?? '-'}</Badge>
+                              <Badge variant="outline">Order {story.position ?? '-'}</Badge>
                             </div>
                           </div>
                         </TableCell>
@@ -893,7 +893,7 @@ export function StoriesWorkspace() {
                             )}
                             <StateBadge type="publish" value={story.publishState} />
                             {draftChangesPending ? (
-                              <Badge variant="secondary">Taslak değişiklik var</Badge>
+                              <Badge variant="secondary">Has draft changes</Badge>
                             ) : null}
                           </div>
                         </TableCell>

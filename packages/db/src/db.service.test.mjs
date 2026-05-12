@@ -79,7 +79,7 @@ test('DbService validates postgres settings before switching providers', () => {
           port: 5432,
         },
       }),
-    /Postgres host boş bırakılamaz/,
+    /Postgres host cannot be empty/,
   );
 
   const settings = db.getDatabaseSettings();
@@ -92,7 +92,7 @@ test('DbService rejects empty database provider switching', () => {
 
   const db = new DbService();
 
-  assert.throws(() => db.updateDatabaseSettings({}), /Postgres bağlantı bilgileri gereklidir/);
+  assert.throws(() => db.updateDatabaseSettings({}), /Postgres connection details are required/);
 });
 
 test('DbService test connection requires postgres settings', () => {
@@ -103,7 +103,7 @@ test('DbService test connection requires postgres settings', () => {
 
   assert.equal(result.ok, false);
   assert.equal(result.provider, null);
-  assert.match(result.message, /Postgres bağlantı bilgisi/);
+  assert.match(result.message, /Postgres connection details/);
 });
 
 test('DbService resolves postgres settings from environment before config file', () => {
@@ -189,7 +189,7 @@ test('DbService requires postgres configuration in production runtime', () => {
 
   try {
     const db = new DbService();
-    assert.throws(() => db.getDatabaseSettings(), /Production runtime için Postgres bağlantısı gereklidir/);
+    assert.throws(() => db.getDatabaseSettings(), /Postgres connection is required in production runtime/);
   } finally {
     if (previousNodeEnv === undefined) {
       delete process.env.NODE_ENV;

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Asset listesi okunamadı.', 500, 'validation_error');
+    return jsonError('Asset list could not be read.', 500, 'validation_error');
   }
 }
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (contentType.includes('multipart/form-data')) {
       const requestBody = request.body;
       if (!requestBody) {
-        return jsonError('Upload isteği boş gövde ile geldi.', 400, 'validation_error');
+        return jsonError('Upload request received an empty body.', 400, 'validation_error');
       }
 
       const uploadTarget =
@@ -60,12 +60,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return jsonError('Asset isteği multipart upload veya JSON URL import formatında olmalıdır.', 400, 'validation_error');
+    return jsonError('Asset request must use multipart upload or JSON URL import format.', 400, 'validation_error');
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Asset oluşturulamadı.', 500, 'validation_error');
+    return jsonError('Asset could not be created.', 500, 'validation_error');
   }
 }

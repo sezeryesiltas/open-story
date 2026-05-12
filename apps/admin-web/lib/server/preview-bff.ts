@@ -48,7 +48,7 @@ function createEmptyStats(): PreviewFeedStats {
 }
 
 function sortPlacements(placements: PreviewPlacementOption[]): PreviewPlacementOption[] {
-  return [...placements].sort((left, right) => left.name.localeCompare(right.name, 'tr'));
+  return [...placements].sort((left, right) => left.name.localeCompare(right.name, 'en'));
 }
 
 function sortSets(storyGroupSets: PreviewSetRecord[]): PreviewSetRecord[] {
@@ -57,7 +57,7 @@ function sortSets(storyGroupSets: PreviewSetRecord[]): PreviewSetRecord[] {
       return left.isFallback ? 1 : -1;
     }
 
-    return left.name.localeCompare(right.name, 'tr');
+    return left.name.localeCompare(right.name, 'en');
   });
 }
 
@@ -100,7 +100,7 @@ export async function buildPreviewWorkspaceSnapshotFromApi({
       stats: null,
       issues: [],
       groupMetaById: {},
-      warnings: ['Preview başlatmak için önce en az bir placement oluşturulmalıdır.'],
+      warnings: ['Create at least one placement before starting preview.'],
     };
   }
 
@@ -230,7 +230,7 @@ export async function buildPreviewWorkspaceSnapshotFromApi({
       stats: null,
       issues: [],
       groupMetaById: {},
-      warnings: ['Seçili placement altında henüz preview edilebilecek bir Story Bar bulunmuyor.'],
+      warnings: ['The selected placement does not have a Story Bar available for preview yet.'],
     };
   }
 
@@ -242,15 +242,15 @@ export async function buildPreviewWorkspaceSnapshotFromApi({
   const warnings: string[] = [];
 
   if (!selectedStoryGroupSet.currentPublishedRevisionId) {
-    warnings.push('Seçili Story Bar henüz publish edilmediği için preview draft revision üzerinden hesaplanır.');
+    warnings.push('Because the selected Story Bar is not published yet, preview is calculated from the draft revision.');
   }
 
   if (candidateSets.length > 1) {
-    warnings.push('Preview targeting resolve etmez; placement altındaki Story Bar seçimi editoryal olarak manuel yapılır.');
+    warnings.push('Preview does not resolve targeting; Story Bar selection under the placement is manual for editorial review.');
   }
 
   if (selectedInspection.stats.visibleGroupCount === 0) {
-    warnings.push('Seçili Story Bar child filtering sonrasında boş feed üretiyor.');
+    warnings.push('The selected Story Bar produces an empty feed after child filtering.');
   }
 
   const feedResponse: SdkFeedResponse = {

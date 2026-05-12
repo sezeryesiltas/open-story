@@ -6,13 +6,13 @@ import type { CloudAssetUploadTarget } from './asset-upload.ts';
 
 export function createGcsAssetUploadTarget(settings: AssetStorageSettingsDto): CloudAssetUploadTarget {
   if (settings.activeProvider !== 'gcs') {
-    throw ApiServiceError.badRequest('Cloud upload için Google Cloud Storage provider aktif olmalıdır.');
+    throw ApiServiceError.badRequest('Google Cloud Storage provider must be active for cloud upload.');
   }
 
   const bucketName = settings.gcs.bucketName?.trim();
   const publicAssetBaseUrl = settings.gcs.publicAssetBaseUrl?.trim();
   if (!bucketName || !publicAssetBaseUrl) {
-    throw ApiServiceError.badRequest('Cloud upload için bucket ve CDN public base URL ayarları zorunludur.');
+    throw ApiServiceError.badRequest('Bucket and CDN public base URL settings are required for cloud upload.');
   }
 
   const storage = new Storage(settings.gcs.projectId ? { projectId: settings.gcs.projectId } : undefined);
@@ -43,7 +43,7 @@ export async function deleteGcsAssetBinary(
 
   const bucketName = settings.gcs.bucketName?.trim();
   if (!bucketName) {
-    throw ApiServiceError.badRequest('Cloud asset silmek için Google Cloud bucket ayarı zorunludur.');
+    throw ApiServiceError.badRequest('Google Cloud bucket setting is required to delete a cloud asset.');
   }
 
   const storage = new Storage(settings.gcs.projectId ? { projectId: settings.gcs.projectId } : undefined);

@@ -19,6 +19,6 @@ export async function PUT(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Placement güncellenemedi.', 500, 'validation_error');
+    return jsonError('Placement could not be updated.', 500, 'validation_error');
   }
 }

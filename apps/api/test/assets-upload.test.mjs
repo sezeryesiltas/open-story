@@ -202,7 +202,7 @@ test('asset upload rejects non-square logos and overlong videos', async () => {
     (error) =>
       error instanceof ApiServiceError &&
       error.statusCode === 400 &&
-      error.message.includes('kare'),
+      error.message.includes('square'),
   );
 
   await assert.rejects(
@@ -219,7 +219,7 @@ test('asset upload rejects non-square logos and overlong videos', async () => {
     (error) =>
       error instanceof ApiServiceError &&
       error.statusCode === 400 &&
-      error.message.includes('30 saniye'),
+      error.message.includes('30 seconds'),
   );
 });
 
@@ -332,7 +332,7 @@ test('server upload is blocked when external asset storage is active', async () 
     (error) =>
       error instanceof ApiServiceError &&
       error.statusCode === 409 &&
-      error.message.includes('Storage/CDN provider aktifken server upload kullanılamaz'),
+      error.message.includes('Server upload cannot be used while a Storage/CDN provider is active'),
   );
 });
 

@@ -119,7 +119,7 @@ const emptyStoryGroupFormValues: StoryGroupFormValues = {
 };
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -152,14 +152,14 @@ function StateBadge({
   if (type === 'archive') {
     return (
       <Badge variant={value === 'archived' ? 'secondary' : 'outline'}>
-        {value === 'archived' ? 'Arşivde' : 'Aktif'}
+        {value === 'archived' ? 'Archived' : 'Active'}
       </Badge>
     );
   }
 
   return (
     <Badge variant={value === 'published' ? 'default' : 'outline'}>
-      {value === 'published' ? 'Yayında' : 'Yayında değil'}
+      {value === 'published' ? 'Published' : 'Not published'}
     </Badge>
   );
 }
@@ -212,19 +212,19 @@ function StoryGroupStats({
     },
     {
       icon: CheckCircle2,
-      label: 'Yayında',
+      label: 'Published',
       unit: 'Live',
       value: publishedCount,
     },
     {
       icon: CalendarClock,
-      label: 'Taslak değişiklik',
+      label: 'Draft changes',
       unit: 'Draft',
       value: pendingChangesCount,
     },
     {
       icon: Archive,
-      label: 'Arşivde',
+      label: 'Archived',
       unit: 'Archive',
       value: archiveCount,
     },
@@ -293,7 +293,7 @@ export function StoryGroupsWorkspace() {
   const storyGroups = workspaceQuery.data?.storyGroups ?? emptyStoryGroups;
   const storyGroupSets = workspaceQuery.data?.storyGroupSets ?? emptyStoryGroupSets;
   const storyGroupSetOptions = useMemo(
-    () => [...storyGroupSets].sort((left, right) => left.name.localeCompare(right.name, 'tr')),
+    () => [...storyGroupSets].sort((left, right) => left.name.localeCompare(right.name, 'en')),
     [storyGroupSets],
   );
   const selectedStoryGroupSet = useMemo(
@@ -522,7 +522,7 @@ export function StoryGroupsWorkspace() {
     try {
       if (sheetMode === 'edit') {
         if (!activeStoryGroupId) {
-          setSubmitError('Düzenlenecek Story Group bulunamadı. Listeyi yenileyin.');
+          setSubmitError('The Story Group to edit was not found. Refresh the list.');
           return undefined;
         }
 
@@ -574,8 +574,8 @@ export function StoryGroupsWorkspace() {
         error instanceof Error
           ? error.message
           : sheetMode === 'edit'
-            ? 'Story Group güncellenemedi.'
-            : 'Story Group oluşturulamadı.',
+            ? 'Story Group could not be updated.'
+            : 'Story Group could not be created.',
       );
       return undefined;
     }
@@ -593,7 +593,7 @@ export function StoryGroupsWorkspace() {
         action,
       });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Story Group aksiyonu uygulanamadı.');
+      setActionError(error instanceof Error ? error.message : 'Story Group action could not be applied.');
     }
   };
 
@@ -672,7 +672,7 @@ export function StoryGroupsWorkspace() {
         groupIds: nextGroupIds,
       });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Story Group sırası güncellenemedi.');
+      setActionError(error instanceof Error ? error.message : 'Story Group order could not be updated.');
     }
   };
 
@@ -687,10 +687,10 @@ export function StoryGroupsWorkspace() {
         actions={
           <PageHeaderActionButton onClick={openCreateSheet}>
             <Plus aria-hidden data-icon="inline-start" />
-            Yeni Story Group
+            New Story Group
           </PageHeaderActionButton>
         }
-        title="Story Group listesi"
+        title="Story Group List"
       />
 
       <section className="space-y-4">
@@ -712,15 +712,15 @@ export function StoryGroupsWorkspace() {
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
             <CardHeader>
-              <CardTitle>Story Group listesi yüklenemedi</CardTitle>
+              <CardTitle>Story Group list could not be loaded</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {(workspaceQuery.error as ApiRequestError | Error | undefined)?.message ??
-                  'Story Group listesi şu anda alınamıyor.'}
+                  'Story Group list cannot be fetched right now.'}
               </div>
               <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-                Tekrar dene
+                Try again
               </Button>
             </CardContent>
           </Card>
@@ -730,7 +730,7 @@ export function StoryGroupsWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <SquareStack className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz Story Group kaydı yok</CardTitle>
+              <CardTitle className="text-xl">No Story Group records yet</CardTitle>
             </CardHeader>
           </Card>
         ) : (
@@ -743,8 +743,8 @@ export function StoryGroupsWorkspace() {
                   label="Story Bar"
                   onChange={setSelectedStoryGroupSetId}
                   options={[
-                    { label: "Tüm Story Bar'lar", value: 'all' },
-                    { label: 'Atanmamış grouplar', value: 'unassigned' },
+                    { label: 'All Story Bars', value: 'all' },
+                    { label: 'Unassigned groups', value: 'unassigned' },
                     ...storyGroupSetOptions.map((storyGroupSet) => ({
                       label: storyGroupSet.name,
                       value: storyGroupSet.id,
@@ -757,7 +757,7 @@ export function StoryGroupsWorkspace() {
                   label="Archive State"
                   onChange={(value) => setArchiveFilter(value as ArchiveFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Active', value: 'active' },
                     { label: 'Archived', value: 'archived' },
                   ]}
@@ -768,7 +768,7 @@ export function StoryGroupsWorkspace() {
                   label="Publish State"
                   onChange={(value) => setPublishFilter(value as PublishFilterValue)}
                   options={[
-                    { label: 'Tümü', value: 'all' },
+                    { label: 'All', value: 'all' },
                     { label: 'Published', value: 'published' },
                     { label: 'Unpublished', value: 'unpublished' },
                   ]}
@@ -782,7 +782,7 @@ export function StoryGroupsWorkspace() {
             pageCount={storyGroupPageCount}
             toolbarContent={
               canReorderStoryGroups ? (
-                <Badge variant="outline">Sürükle-bırak sıralama açık</Badge>
+                <Badge variant="outline">Drag-and-drop ordering enabled</Badge>
               ) : null
             }
             visibleCount={filteredStoryGroups.length}
@@ -791,7 +791,7 @@ export function StoryGroupsWorkspace() {
               <TableHeader className="bg-muted/30">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-12 border-b border-border/60">
-                    <span className="sr-only">Sıra</span>
+                    <span className="sr-only">Order</span>
                   </TableHead>
                   <TableHead className="w-[28%] border-b border-border/60">Group</TableHead>
                   <TableHead className="w-[20%] border-b border-border/60">Story Bars</TableHead>
@@ -811,7 +811,7 @@ export function StoryGroupsWorkspace() {
                       className="py-10 text-center text-sm text-muted-foreground"
                       colSpan={8}
                     >
-                      Filtrelerle eşleşen Story Group bulunamadı.
+                      No Story Groups match the filters.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -850,7 +850,7 @@ export function StoryGroupsWorkspace() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  aria-label="Story Group sırasını değiştir"
+                                  aria-label="Change Story Group order"
                                   className="cursor-grab active:cursor-grabbing"
                                   disabled={
                                     !canReorderStoryGroups || reorderStoryGroupsMutation.isPending
@@ -863,8 +863,8 @@ export function StoryGroupsWorkspace() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 {canReorderStoryGroups
-                                  ? 'Bu Story Bar içindeki sırayı değiştirmek için satırı sürükleyin.'
-                                  : 'Sıralama için önce spesifik bir Story Bar seçin.'}
+                                  ? 'Drag the row to change the order within this Story Bar.'
+                                  : 'Select a specific Story Bar before ordering.'}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -888,7 +888,7 @@ export function StoryGroupsWorkspace() {
 
                         <TableCell className="w-[20%] border-b border-border/60 py-4 align-top">
                           {storyGroup.storyGroupSets.length === 0 ? (
-                            <Badge variant="outline">Story Bar bağlantısı yok</Badge>
+                            <Badge variant="outline">No Story Bar link</Badge>
                           ) : (
                             <div className="flex flex-wrap gap-2">
                               {storyGroup.storyGroupSets.map((storyGroupSet) => (
@@ -924,7 +924,7 @@ export function StoryGroupsWorkspace() {
                             )}
                             <StateBadge type="publish" value={storyGroup.publishState} />
                             {draftChangesPending ? (
-                              <Badge variant="secondary">Taslak değişiklik var</Badge>
+                              <Badge variant="secondary">Has draft changes</Badge>
                             ) : null}
                           </div>
                         </TableCell>

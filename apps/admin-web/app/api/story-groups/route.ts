@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Group listesi okunamadı.', 500, 'validation_error');
+    return jsonError('Story Group list could not be read.', 500, 'validation_error');
   }
 }
 
@@ -55,6 +55,6 @@ export async function POST(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Group oluşturulamadı.', 500, 'validation_error');
+    return jsonError('Story Group could not be created.', 500, 'validation_error');
   }
 }

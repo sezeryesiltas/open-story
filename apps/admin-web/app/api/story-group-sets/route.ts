@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Bar listesi okunamadı.', 500, 'validation_error');
+    return jsonError('Story Bar list could not be read.', 500, 'validation_error');
   }
 }
 
@@ -53,6 +53,6 @@ export async function POST(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Bar oluşturulamadı.', 500, 'validation_error');
+    return jsonError('Story Bar could not be created.', 500, 'validation_error');
   }
 }

@@ -57,7 +57,7 @@ export class AssetsService {
     const settings = this.assetStorageSettingsStore.getSettings();
     if (settings.activeProvider !== 'local') {
       throw ApiServiceError.conflict(
-        "Storage/CDN provider aktifken server upload kullanılamaz. Asset'i CDN'e yükleyin veya URL ile içe alın.",
+        'Server upload cannot be used while a Storage/CDN provider is active. Upload the asset to CDN or import it by URL.',
       );
     }
 
@@ -106,13 +106,13 @@ export class AssetsService {
 
     const asset = this.repository.findById(assetId);
     if (!asset) {
-      throw ApiServiceError.notFound('Asset bulunamadı.');
+      throw ApiServiceError.notFound('Asset was not found.');
     }
 
     const usageReferences = this.repository.listCurrentUsage(assetId);
     if (usageReferences.length > 0) {
       throw ApiServiceError.conflict(
-        'Bu asset current draft veya published içerikte kullanıldığı için silinemez.',
+        'This asset cannot be deleted because it is used in current draft or published content.',
         { usageReferences },
       );
     }

@@ -90,7 +90,7 @@ function mapPlacement(apiPlacement: PlacementApiRecord): PlacementRecord {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
 
     month: 'short',
@@ -104,7 +104,7 @@ function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): str
   }
 
   if (storyGroupSet.platformTargets.length === 0) {
-    return 'Tüm platformlar';
+    return 'All platforms';
   }
 
   return storyGroupSet.platformTargets
@@ -114,11 +114,11 @@ function formatPlatformTargetSummary(storyGroupSet: StoryGroupSetApiRecord): str
 
 function formatSegmentSummary(storyGroupSet: StoryGroupSetApiRecord): string {
   if (storyGroupSet.isFallback) {
-    return 'Eşleşme olmadığında kullanılır.';
+    return 'Used when there is no match.';
   }
 
   if (storyGroupSet.userSegments.length === 0) {
-    return 'Tüm kullanıcılar';
+    return 'All users';
   }
 
   return storyGroupSet.userSegments.join(', ');
@@ -262,7 +262,7 @@ function StoryBarStats({
     },
     {
       icon: CalendarClock,
-      label: 'Taslak değişiklik',
+      label: 'Draft changes',
       unit: 'Draft',
       value: pendingChangesCount,
     },
@@ -413,7 +413,7 @@ export function StoryGroupSetsWorkspace() {
         action,
       });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Story Bar aksiyonu uygulanamadı.');
+      setActionError(error instanceof Error ? error.message : 'Story Bar action could not be applied.');
     }
   };
 
@@ -437,12 +437,12 @@ export function StoryGroupSetsWorkspace() {
       if (error instanceof ApiRequestError && error.code === 'not_found') {
         return {
           fieldErrors: {
-            placementId: 'Seçili placement artık bulunamıyor. Listeyi yenileyin.',
+            placementId: 'The selected placement can no longer be found. Refresh the list.',
           },
         };
       }
 
-      setSubmitError(error instanceof Error ? error.message : 'Story Bar kaydedilemedi.');
+      setSubmitError(error instanceof Error ? error.message : 'Story Bar could not be saved.');
       return undefined;
     }
   };
@@ -469,10 +469,10 @@ export function StoryGroupSetsWorkspace() {
         actions={
           <PageHeaderActionButton disabled={!canCreateStoryGroupSet} onClick={openCreateSheet}>
             <Plus aria-hidden data-icon="inline-start" />
-            Yeni Story Bar
+            New Story Bar
           </PageHeaderActionButton>
         }
-        title="Story Bar listesi"
+        title="Story Bar List"
       />
 
       <section className="flex flex-col gap-4">
@@ -495,7 +495,7 @@ export function StoryGroupSetsWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Shapes className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Önce placement oluşturulmalı</CardTitle>
+              <CardTitle className="text-xl">Create a placement first</CardTitle>
             </CardHeader>
           </Card>
         ) : null}
@@ -504,17 +504,17 @@ export function StoryGroupSetsWorkspace() {
           <LoadingState />
         ) : workspaceQuery.isError ? (
           <Card className="border-border/60 bg-card/80">
-          <CardHeader>
-            <CardTitle>Story Bar listesi yüklenemedi</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {(workspaceQuery.error as Error | undefined)?.message ??
-                'Story Bar listesi şu anda alınamıyor.'}
-            </div>
-            <Button onClick={() => workspaceQuery.refetch()} variant="outline">
-              Tekrar dene
-            </Button>
+            <CardHeader>
+              <CardTitle>Story Bar list could not be loaded</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {(workspaceQuery.error as Error | undefined)?.message ??
+                  'Story Bar list cannot be fetched right now.'}
+              </div>
+              <Button onClick={() => workspaceQuery.refetch()} variant="outline">
+                Try again
+              </Button>
             </CardContent>
           </Card>
         ) : !canCreateStoryGroupSet ? null : storyGroupSets.length === 0 ? (
@@ -523,12 +523,12 @@ export function StoryGroupSetsWorkspace() {
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Layers className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz Story Bar tanımı yok</CardTitle>
+              <CardTitle className="text-xl">No Story Bar definitions yet</CardTitle>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
                 <Plus className="h-4 w-4" />
-                İlk Story Bar&apos;ı oluştur
+                Create the first Story Bar
               </Button>
             </CardContent>
           </Card>
@@ -564,7 +564,7 @@ export function StoryGroupSetsWorkspace() {
                           </Badge>
                           {draftChangesPending ? (
                             <Badge className="w-fit rounded-full px-4 py-1.5" variant="secondary">
-                              Taslak değişiklik var
+                              Has draft changes
                             </Badge>
                           ) : null}
                         </div>
@@ -575,12 +575,12 @@ export function StoryGroupSetsWorkspace() {
                           </CardTitle>
                           <div className="flex min-w-0 flex-col gap-3">
                             <CopyableCode
-                              ariaLabel={`${placementKey} anahtarını kopyala`}
+                              ariaLabel={`Copy ${placementKey} key`}
                               className="rounded-[8px] bg-muted/70 px-3 py-2"
                               value={placementKey}
                             />
                             <CopyableCode
-                              ariaLabel={`${storyGroupSet.id} Group Set ID bilgisini kopyala`}
+                              ariaLabel={`Copy ${storyGroupSet.id} Group Set ID`}
                               className="text-foreground sm:text-sm"
                               label="Group Set ID"
                               value={storyGroupSet.id}
@@ -621,7 +621,7 @@ export function StoryGroupSetsWorkspace() {
                         {formatPlatformTargetSummary(storyGroupSet)}
                       </p>
                       <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                        {storyGroupSet.platformTargets.length} aktif platform hedefi.
+                        {storyGroupSet.platformTargets.length} active platform targets.
                       </p>
                     </div>
 
@@ -634,14 +634,14 @@ export function StoryGroupSetsWorkspace() {
                         {formatSegmentSummary(storyGroupSet)}
                       </p>
                       <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                        {storyGroupSet.userSegments.length} segment kuralı.
+                        {storyGroupSet.userSegments.length} segment rules.
                       </p>
                     </div>
 
                     <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
                       <SquareStack aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        Bağlı Group
+                        Linked Groups
                       </p>
                       <div className="mt-6 flex items-baseline gap-3">
                         <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
@@ -654,13 +654,13 @@ export function StoryGroupSetsWorkspace() {
                     <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
                       <CalendarClock aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
                       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        Son güncelleme
+                        Last Update
                       </p>
                       <p className="mt-6 text-3xl font-bold tracking-tight text-foreground">
                         {formatDate(storyGroupSet.updatedAt)}
                       </p>
                       <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                        Oluşturulma: {formatDate(storyGroupSet.createdAt)}
+                        Created: {formatDate(storyGroupSet.createdAt)}
                       </p>
                     </div>
                   </CardContent>

@@ -60,7 +60,7 @@ export async function PUT(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story güncellenemedi.', 500, 'validation_error');
+    return jsonError('Story could not be updated.', 500, 'validation_error');
   }
 }
 
@@ -85,13 +85,13 @@ export async function PATCH(
       return NextResponse.json(await publishStory(storyId, {}, authToken));
     }
 
-    return jsonError('Geçersiz Story aksiyonu.', 400, 'validation_error');
+    return jsonError('Invalid Story action.', 400, 'validation_error');
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story aksiyonu uygulanamadı.', 500, 'validation_error');
+    return jsonError('Story action could not be applied.', 500, 'validation_error');
   }
 }
 
@@ -99,5 +99,5 @@ export async function DELETE(
   _request: NextRequest,
   _context: { params: Promise<{ storyId: string }> },
 ) {
-  return jsonError('Story hard delete v1 admin-web yüzeyinde desteklenmiyor.', 400, 'validation_error');
+  return jsonError('Story hard delete is not supported in the v1 admin-web surface.', 400, 'validation_error');
 }

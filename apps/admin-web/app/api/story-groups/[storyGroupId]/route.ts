@@ -48,7 +48,7 @@ export async function PUT(
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Group güncellenemedi.', 500, 'validation_error');
+    return jsonError('Story Group could not be updated.', 500, 'validation_error');
   }
 }
 
@@ -73,12 +73,12 @@ export async function PATCH(
       return NextResponse.json(await publishStoryGroup(storyGroupId, {}, authToken));
     }
 
-    return jsonError('Geçersiz Story Group aksiyonu.', 400, 'validation_error');
+    return jsonError('Invalid Story Group action.', 400, 'validation_error');
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Story Group aksiyonu uygulanamadı.', 500, 'validation_error');
+    return jsonError('Story Group action could not be applied.', 500, 'validation_error');
   }
 }

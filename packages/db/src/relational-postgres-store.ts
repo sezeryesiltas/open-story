@@ -468,19 +468,19 @@ function runPostgresStatements(config: RelationalPostgresConfig, statements: Pos
   });
 
   if (result.error) {
-    throw new Error(`Postgres islemi baslatilamadi: ${result.error.message}`);
+    throw new Error(`Postgres operation could not be started: ${result.error.message}`);
   }
 
   if (result.status !== 0) {
     const message = (result.stderr || result.stdout || `exit code ${result.status}`).trim();
-    throw new Error(`Postgres baglantisi veya sorgusu basarisiz: ${message}`);
+    throw new Error(`Postgres connection or query failed: ${message}`);
   }
 
   try {
     const parsed = JSON.parse(result.stdout || '{}') as { results?: unknown[] };
     return parsed.results ?? [];
   } catch (error) {
-    throw new Error(error instanceof Error ? `Postgres sorgu sonucu okunamadi: ${error.message}` : 'Postgres sorgu sonucu okunamadi.');
+    throw new Error(error instanceof Error ? `Postgres query result could not be read: ${error.message}` : 'Postgres query result could not be read.');
   }
 }
 

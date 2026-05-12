@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     return jsonError(
-      error instanceof Error ? error.message : 'Database ayarları okunamadı.',
+      error instanceof Error ? error.message : 'Database settings could not be read.',
       500,
       'validation_error',
     );
@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest) {
     }
 
     return jsonError(
-      error instanceof Error ? error.message : 'Database ayarları güncellenemedi.',
+      error instanceof Error ? error.message : 'Database settings could not be updated.',
       400,
       'validation_error',
     );

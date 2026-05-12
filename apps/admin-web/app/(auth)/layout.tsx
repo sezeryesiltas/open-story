@@ -27,9 +27,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 <p className="text-[11px] font-medium uppercase tracking-[0.34em] text-muted-foreground">
                   Open Story Admin
                 </p>
-                <CardTitle className="text-3xl leading-tight sm:text-4xl">Hesap erişimi</CardTitle>
+                <CardTitle className="text-3xl leading-tight sm:text-4xl">Account Access</CardTitle>
                 <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-                  Yerleşim bazlı story akışlarını, yayın durumlarını ve içerik revizyonlarını yönetmek için giriş yapın.
+                  Sign in to manage placement-based story feeds, publish states, and content revisions.
                 </p>
               </div>
             </div>

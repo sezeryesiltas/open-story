@@ -122,7 +122,7 @@ function parsePosition(value: unknown): number | undefined {
 
   const parsedValue = parseNullablePositiveInteger(value);
   if (!parsedValue) {
-    throw new StoryStoreError('Story pozisyonu pozitif tam sayı olmalıdır.', 400, 'validation_error');
+    throw new StoryStoreError('Story position must be a positive integer.', 400, 'validation_error');
   }
 
   return parsedValue;
@@ -250,7 +250,7 @@ function getStoryOrThrow(id: string): { id: string; [key: string]: unknown } {
   const record = findStoryById(id);
 
   if (!record) {
-    throw new StoryStoreError('Story bulunamadı.', 404, 'not_found');
+    throw new StoryStoreError('Story was not found.', 404, 'not_found');
   }
 
   return record;
@@ -260,7 +260,7 @@ function getStoryGroupOrThrow(id: string, storyGroupMap: Map<string, StoryGroupS
   const storyGroup = storyGroupMap.get(id);
 
   if (!storyGroup) {
-    throw new StoryStoreError('Story Group bulunamadı.', 404, 'not_found');
+    throw new StoryStoreError('Story Group was not found.', 404, 'not_found');
   }
 
   return storyGroup;
@@ -270,16 +270,16 @@ function getAssetOrThrow(id: string, expectedType: AssetType) {
   const asset = listAssets().find((entry) => entry.id === id);
 
   if (!asset) {
-    throw new StoryStoreError('Seçilen asset kaydı bulunamadı.', 404, 'not_found');
+    throw new StoryStoreError('The selected asset record was not found.', 404, 'not_found');
   }
 
   if (asset.type !== expectedType) {
     throw new StoryStoreError(
       expectedType === 'story_video'
-        ? 'Video story için `story_video` asseti seçilmelidir.'
+        ? 'A `story_video` asset must be selected for a video story.'
         : expectedType === 'story_poster'
-          ? 'Video poster için `story_poster` asseti seçilmelidir.'
-          : 'Image story için `story_image` asseti seçilmelidir.',
+          ? 'A `story_poster` asset must be selected for a video poster.'
+          : 'A `story_image` asset must be selected for an image story.',
       400,
       'validation_error',
     );
@@ -298,7 +298,7 @@ function assertStoryMediaShape(values: {
     getAssetOrThrow(values.assetId, 'story_image');
 
     if (values.posterAssetId) {
-      throw new StoryStoreError('Image story için poster asset gönderilmez.', 400, 'validation_error');
+      throw new StoryStoreError('Poster assets are not accepted for image stories.', 400, 'validation_error');
     }
 
     return;
@@ -307,13 +307,13 @@ function assertStoryMediaShape(values: {
   getAssetOrThrow(values.assetId, 'story_video');
 
   if (!values.posterAssetId) {
-    throw new StoryStoreError('Video story için poster asset zorunludur.', 400, 'validation_error');
+    throw new StoryStoreError('A poster asset is required for video stories.', 400, 'validation_error');
   }
 
   getAssetOrThrow(values.posterAssetId, 'story_poster');
 
   if (values.imageDurationMs !== null) {
-    throw new StoryStoreError('Image duration override yalnızca image story için kullanılabilir.', 400, 'validation_error');
+    throw new StoryStoreError('Image duration overrides can only be used for image stories.', 400, 'validation_error');
   }
 }
 
@@ -342,7 +342,7 @@ function updateStoryGroupOrder(groupId: string, nextStoryIds: string[]): void {
   const storyGroup = db.findById<{ id: string; [key: string]: unknown }>('storyGroups', groupId);
 
   if (!storyGroup) {
-    throw new StoryStoreError('Story Group bulunamadı.', 404, 'not_found');
+    throw new StoryStoreError('Story Group was not found.', 404, 'not_found');
   }
 
   const currentStoryIds = Array.isArray(storyGroup.storyIds)
@@ -412,7 +412,7 @@ function parseStoryCreatePayload(payload: CreateStoryPayload) {
 
   if (!parsedPayload.success) {
     const issue = parsedPayload.error.issues[0];
-    throw new StoryStoreError(issue?.message ?? 'Story payload geçersiz.', 400, 'validation_error');
+    throw new StoryStoreError(issue?.message ?? 'Story payload is invalid.', 400, 'validation_error');
   }
 
   return {
@@ -468,7 +468,7 @@ function parseStoryUpdatePayload(payload: CreateStoryPayload) {
 
   if (!parsedPayload.success) {
     const issue = parsedPayload.error.issues[0];
-    throw new StoryStoreError(issue?.message ?? 'Story payload geçersiz.', 400, 'validation_error');
+    throw new StoryStoreError(issue?.message ?? 'Story payload is invalid.', 400, 'validation_error');
   }
 
   return {
@@ -496,7 +496,7 @@ export function listStories(): StoryRecord[] {
     .list<{ id: string; [key: string]: unknown }>('stories')
     .map((record) => normalizeStory(record, storyGroupMap))
     .sort((left, right) => {
-      const groupNameComparison = left.groupName.localeCompare(right.groupName, 'tr');
+      const groupNameComparison = left.groupName.localeCompare(right.groupName, 'en');
       if (groupNameComparison !== 0) {
         return groupNameComparison;
       }
@@ -512,7 +512,7 @@ export function listStories(): StoryRecord[] {
         return updatedAtComparison;
       }
 
-      return left.name.localeCompare(right.name, 'tr');
+      return left.name.localeCompare(right.name, 'en');
     });
 }
 
@@ -560,7 +560,7 @@ export function createStory(payload: CreateStoryPayload): StoryRecord {
   const createdStory = findStoryById(storyId);
 
   if (!createdStory) {
-    throw new StoryStoreError('Story oluşturulduktan sonra okunamadı.', 500, 'validation_error');
+    throw new StoryStoreError('Story could not be read after creation.', 500, 'validation_error');
   }
 
   return normalizeStory(createdStory, normalizeStoryGroupMap());
@@ -616,7 +616,7 @@ export function updateStory(id: string, payload: CreateStoryPayload): StoryRecor
   });
 
   if (!nextRecord) {
-    throw new StoryStoreError('Story bulunamadı.', 404, 'not_found');
+    throw new StoryStoreError('Story was not found.', 404, 'not_found');
   }
 
   moveStoryBetweenGroups({
@@ -641,7 +641,7 @@ export function setStoryArchiveState(id: string, archived: boolean): StoryRecord
   );
 
   if (!nextRecord) {
-    throw new StoryStoreError('Story bulunamadı.', 404, 'not_found');
+    throw new StoryStoreError('Story was not found.', 404, 'not_found');
   }
 
   return normalizeStory(nextRecord, normalizeStoryGroupMap());
@@ -661,7 +661,7 @@ export function setStoryPublishState(id: string, published: boolean): StoryRecor
   });
 
   if (!nextRecord) {
-    throw new StoryStoreError('Story bulunamadı.', 404, 'not_found');
+    throw new StoryStoreError('Story was not found.', 404, 'not_found');
   }
 
   return normalizeStory(nextRecord, normalizeStoryGroupMap());
@@ -673,7 +673,7 @@ export function deleteStory(id: string): void {
 
   if (existingStory.publishState === 'published') {
     throw new StoryStoreError(
-      'Published story silinemez. Önce unpublish edin veya archive kullanın.',
+      'A published story cannot be deleted. Unpublish it first or use archive.',
       409,
       'conflict',
     );
@@ -687,6 +687,6 @@ export function deleteStory(id: string): void {
   const deleted = db.deleteById('stories', id);
 
   if (!deleted) {
-    throw new StoryStoreError('Story silinemedi.', 404, 'not_found');
+    throw new StoryStoreError('Story could not be deleted.', 404, 'not_found');
   }
 }

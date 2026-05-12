@@ -126,7 +126,7 @@ function validateStoryGroupSetIds(value: unknown): string[] {
   }
 
   if (!Array.isArray(value)) {
-    throw new StoryGroupStoreError('Story Bar secimi liste formatinda olmalidir.', 400, 'validation_error');
+    throw new StoryGroupStoreError('Story Bar selection must be in list format.', 400, 'validation_error');
   }
 
   const selectedIds: string[] = [];
@@ -138,7 +138,7 @@ function validateStoryGroupSetIds(value: unknown): string[] {
 
     if (!parsedId.success) {
       throw new StoryGroupStoreError(
-        'Story Bar seciminde yalnizca gecerli UUID degerleri kullanilabilir.',
+        'Only valid UUID values can be used in Story Bar selection.',
         400,
         'validation_error',
       );
@@ -156,7 +156,7 @@ function validateStoryGroupSetIds(value: unknown): string[] {
 
   for (const selectedId of selectedIds) {
     if (!availableSetIds.has(selectedId)) {
-      throw new StoryGroupStoreError('Secilen Story Bar kaydi bulunamadi.', 404, 'not_found');
+      throw new StoryGroupStoreError('The selected Story Bar record was not found.', 404, 'not_found');
     }
   }
 
@@ -260,7 +260,7 @@ function getStoryGroupOrThrow(id: string): { id: string; [key: string]: unknown 
   const record = findStoryGroupById(id);
 
   if (!record) {
-    throw new StoryGroupStoreError('Story Group bulunamadı.', 404, 'not_found');
+    throw new StoryGroupStoreError('Story Group was not found.', 404, 'not_found');
   }
 
   return record;
@@ -278,7 +278,7 @@ export function listStoryGroups(): StoryGroupRecord[] {
         return updatedAtComparison;
       }
 
-      return left.name.localeCompare(right.name, 'tr');
+      return left.name.localeCompare(right.name, 'en');
     });
 }
 
@@ -302,7 +302,7 @@ export function createStoryGroup(payload: CreateStoryGroupPayload): StoryGroupRe
 
   if (!parsedPayload.success) {
     const issue = parsedPayload.error.issues[0];
-    throw new StoryGroupStoreError(issue?.message ?? 'Story Group payload geçersiz.', 400, 'validation_error');
+    throw new StoryGroupStoreError(issue?.message ?? 'Story Group payload is invalid.', 400, 'validation_error');
   }
 
   const now = new Date().toISOString();
@@ -329,7 +329,7 @@ export function createStoryGroup(payload: CreateStoryGroupPayload): StoryGroupRe
   const createdRecord = db.findById<{ id: string; [key: string]: unknown }>('storyGroups', storyGroupId);
 
   if (!createdRecord) {
-    throw new StoryGroupStoreError('Story Group oluşturulduktan sonra okunamadı.', 500, 'validation_error');
+    throw new StoryGroupStoreError('Story Group could not be read after creation.', 500, 'validation_error');
   }
 
   return normalizeStoryGroup(createdRecord, storyGroupSets);
@@ -368,7 +368,7 @@ export function updateStoryGroup(id: string, payload: CreateStoryGroupPayload): 
 
   if (!parsedPayload.success) {
     const issue = parsedPayload.error.issues[0];
-    throw new StoryGroupStoreError(issue?.message ?? 'Story Group payload geçersiz.', 400, 'validation_error');
+    throw new StoryGroupStoreError(issue?.message ?? 'Story Group payload is invalid.', 400, 'validation_error');
   }
 
   const nextRecord = db.updateById<{ id: string; [key: string]: unknown }>('storyGroups', id, {
@@ -388,7 +388,7 @@ export function updateStoryGroup(id: string, payload: CreateStoryGroupPayload): 
   });
 
   if (!nextRecord) {
-    throw new StoryGroupStoreError('Story Group bulunamadı.', 404, 'not_found');
+    throw new StoryGroupStoreError('Story Group was not found.', 404, 'not_found');
   }
 
   syncStoryGroupSetReferences(id, selectedStoryGroupSetIds);
@@ -407,7 +407,7 @@ export function setStoryGroupArchiveState(id: string, archived: boolean): StoryG
   );
 
   if (!nextRecord) {
-    throw new StoryGroupStoreError('Story Group bulunamadı.', 404, 'not_found');
+    throw new StoryGroupStoreError('Story Group was not found.', 404, 'not_found');
   }
 
   return normalizeStoryGroup(nextRecord, listStoryGroupSets());
@@ -427,7 +427,7 @@ export function setStoryGroupPublishState(id: string, published: boolean): Story
   });
 
   if (!nextRecord) {
-    throw new StoryGroupStoreError('Story Group bulunamadı.', 404, 'not_found');
+    throw new StoryGroupStoreError('Story Group was not found.', 404, 'not_found');
   }
 
   return normalizeStoryGroup(nextRecord, listStoryGroupSets());

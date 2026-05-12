@@ -128,37 +128,37 @@ export class AssetStorageSettingsStore {
 
 export function assertUsableGcsSettings(settings: Omit<GcsAssetStorageSettingsDto, 'credentialsSource'>): void {
   if (!settings.bucketName?.trim()) {
-    throw new Error('Google Cloud bucket adı boş bırakılamaz.');
+    throw new Error('Google Cloud bucket name cannot be empty.');
   }
 
   if (!settings.publicAssetBaseUrl?.trim()) {
-    throw new Error('CDN public base URL boş bırakılamaz.');
+    throw new Error('CDN public base URL cannot be empty.');
   }
 }
 
 export function assertUsableSupabaseS3Settings(settings: SupabaseS3AssetStorageConfig): void {
   if (!settings.endpoint?.trim()) {
-    throw new Error('Supabase S3 endpoint boş bırakılamaz.');
+    throw new Error('Supabase S3 endpoint cannot be empty.');
   }
 
   if (!settings.region.trim()) {
-    throw new Error('Supabase S3 region boş bırakılamaz.');
+    throw new Error('Supabase S3 region cannot be empty.');
   }
 
   if (!settings.bucketName?.trim()) {
-    throw new Error('Supabase bucket adı boş bırakılamaz.');
+    throw new Error('Supabase bucket name cannot be empty.');
   }
 
   if (!settings.accessKeyId?.trim()) {
-    throw new Error('Supabase S3 access key ID boş bırakılamaz.');
+    throw new Error('Supabase S3 access key ID cannot be empty.');
   }
 
   if (!settings.secretAccessKey.trim()) {
-    throw new Error('Supabase S3 secret access key boş bırakılamaz.');
+    throw new Error('Supabase S3 secret access key cannot be empty.');
   }
 
   if (!settings.publicAssetBaseUrl?.trim()) {
-    throw new Error('CDN public base URL boş bırakılamaz.');
+    throw new Error('CDN public base URL cannot be empty.');
   }
 }
 
@@ -361,7 +361,7 @@ function normalizeSupabaseS3Settings(
       ? (readString(input.secretAccessKey) ?? '')
       : '';
   if (secretAccessKey.length > 2048) {
-    throw new Error('Supabase S3 secret access key en fazla 2048 karakter olabilir.');
+    throw new Error('Supabase S3 secret access key can be at most 2048 characters.');
   }
 
   return {
@@ -397,7 +397,7 @@ function normalizeNullableString(value: unknown, maxLength: number): string | nu
   }
 
   if (normalized.length > maxLength) {
-    throw new Error(`Değer en fazla ${maxLength} karakter olabilir.`);
+    throw new Error(`Value can be at most ${maxLength} characters.`);
   }
 
   return normalized;
@@ -406,7 +406,7 @@ function normalizeNullableString(value: unknown, maxLength: number): string | nu
 function normalizeRequiredValue(value: unknown, fallback: string, maxLength: number): string {
   const normalized = readString(value) ?? fallback;
   if (normalized.length > maxLength) {
-    throw new Error(`Değer en fazla ${maxLength} karakter olabilir.`);
+    throw new Error(`Value can be at most ${maxLength} characters.`);
   }
 
   return normalized;
@@ -422,11 +422,11 @@ function normalizeNullableUrl(value: unknown): string | null {
   try {
     parsed = new URL(normalized);
   } catch {
-    throw new Error('CDN public base URL geçerli bir URL olmalıdır.');
+    throw new Error('CDN public base URL must be a valid URL.');
   }
 
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('CDN public base URL yalnızca http veya https olabilir.');
+    throw new Error('CDN public base URL can only use http or https.');
   }
 
   return parsed.toString().replace(/\/+$/, '');
@@ -440,7 +440,7 @@ function normalizeObjectPrefix(value: unknown): string {
 function normalizeCacheControl(value: unknown): string {
   const normalized = readString(value) ?? DEFAULT_GCS_CACHE_CONTROL;
   if (normalized.length > 256) {
-    throw new Error('Cache-Control en fazla 256 karakter olabilir.');
+    throw new Error('Cache-Control can be at most 256 characters.');
   }
 
   return normalized;

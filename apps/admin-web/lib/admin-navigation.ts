@@ -32,11 +32,11 @@ export type AdminNavSection = {
 
 export const adminNavSections: AdminNavSection[] = [
   {
-    title: 'Genel',
+    title: 'Overview',
     items: [
       {
-        title: 'Ana Sayfa',
-        description: 'Hızlı erişim ve genel görünüm.',
+        title: 'Home',
+        description: 'Quick access and overall status.',
         href: '/',
         icon: Home,
         roles: ['super_admin', 'story_admin', 'story_editor'],
@@ -44,46 +44,46 @@ export const adminNavSections: AdminNavSection[] = [
     ]
   },
   {
-    title: 'İçerik',
+    title: 'Content',
     items: [
       {
         title: 'Placements',
-        description: 'Gösterim alanlarını yönetin.',
+        description: 'Manage placement surfaces.',
         href: '/placements',
         icon: Shapes,
         roles: ['super_admin', 'story_admin'],
       },
       {
         title: 'Story Bars',
-        description: 'Story bar listelerini yönetin.',
+        description: 'Manage story bar sets.',
         href: '/story-group-sets',
         icon: Layers,
         roles: ['super_admin', 'story_admin'],
       },
       {
         title: 'Story Groups',
-        description: 'Story gruplarını düzenleyin.',
+        description: 'Edit story groups.',
         href: '/story-groups',
         icon: SquareStack,
         roles: ['super_admin', 'story_admin'],
       },
       {
         title: 'Stories',
-        description: 'Story içeriklerini yönetin.',
+        description: 'Manage stories.',
         href: '/stories',
         icon: Clapperboard,
         roles: ['super_admin', 'story_admin', 'story_editor'],
       },
       {
         title: 'Assets',
-        description: 'Medya dosyalarını yönetin.',
+        description: 'Manage media files.',
         href: '/assets',
         icon: Images,
         roles: ['super_admin', 'story_admin', 'story_editor'],
       },
       {
         title: 'Preview',
-        description: 'İçeriği önizleyin.',
+        description: 'Preview content.',
         href: '/preview',
         icon: Eye,
         roles: ['super_admin', 'story_admin', 'story_editor'],
@@ -91,39 +91,39 @@ export const adminNavSections: AdminNavSection[] = [
     ]
   },
   {
-    title: 'Ayarlar',
+    title: 'Settings',
     items: [
       {
         title: 'Client & Tokens',
-        description: 'Uygulama erişimini yönetin.',
+        description: 'Manage app access.',
         href: '/client',
         icon: KeyRound,
         roles: ['super_admin'],
       },
       {
         title: 'Users',
-        description: 'Yönetici hesaplarını yönetin.',
+        description: 'Manage admin accounts.',
         href: '/users',
         icon: Users,
         roles: ['super_admin'],
       },
       {
         title: 'DB Settings',
-        description: 'Bağlantı ayarlarını yönetin.',
+        description: 'Manage connection settings.',
         href: '/settings',
         icon: Database,
         roles: ['super_admin'],
       },
       {
         title: 'Storage & CDN',
-        description: 'Asset storage ayarlarını yönetin.',
+        description: 'Manage asset storage settings.',
         href: '/settings/storage',
         icon: Cloud,
         roles: ['super_admin'],
       },
       {
         title: 'Change Password',
-        description: 'Şifrenizi güncelleyin.',
+        description: 'Update your password.',
         href: '/change-password',
         icon: ShieldCheck,
         roles: ['super_admin'],

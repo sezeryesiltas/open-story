@@ -29,17 +29,17 @@ type StoryGroupOption = {
 
 const formSchema = z
   .object({
-    name: z.string().trim().min(2, 'Story adı en az 2 karakter olmalıdır.').max(256, 'Story adı en fazla 256 karakter olabilir.'),
-    groupId: z.string().uuid('Bir Story Group seçin.'),
-    position: z.string().trim().regex(/^[1-9]\d*$/, 'Geçerli bir sıra pozisyonu seçin.'),
+    name: z.string().trim().min(2, 'Story name must be at least 2 characters.').max(256, 'Story name can be at most 256 characters.'),
+    groupId: z.string().uuid('Select a Story Group.'),
+    position: z.string().trim().regex(/^[1-9]\d*$/, 'Select a valid order position.'),
     mediaType: z.enum(['image', 'video']).default('image'),
-    assetId: z.string().uuid('Story media asset zorunludur.'),
+    assetId: z.string().uuid('Story media asset is required.'),
     posterAssetId: z.string().optional(),
     imageDurationSeconds: z.string().trim().optional(),
     hasCta: z.boolean().default(false),
-    ctaLabel: z.string().trim().max(64, 'CTA label en fazla 64 karakter olabilir.').optional(),
+    ctaLabel: z.string().trim().max(64, 'CTA label can be at most 64 characters.').optional(),
     ctaType: z.enum(['url', 'deeplink']).default('url'),
-    ctaValue: z.string().trim().max(2048, 'CTA target value en fazla 2048 karakter olabilir.').optional(),
+    ctaValue: z.string().trim().max(2048, 'CTA target value can be at most 2048 characters.').optional(),
   })
   .superRefine((values, context) => {
     if (values.mediaType === 'video') {
@@ -47,7 +47,7 @@ const formSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['posterAssetId'],
-          message: 'Video story için poster zorunludur.',
+          message: 'A poster is required for video stories.',
         });
       }
 
@@ -55,7 +55,7 @@ const formSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['imageDurationSeconds'],
-          message: 'Image duration override yalnızca image story için geçerlidir.',
+          message: 'Image duration override only applies to image stories.',
         });
       }
     }
@@ -67,7 +67,7 @@ const formSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['imageDurationSeconds'],
-          message: 'Image duration saniye cinsinden pozitif tam sayı olmalıdır.',
+          message: 'Image duration must be a positive integer in seconds.',
         });
       }
     }
@@ -80,7 +80,7 @@ const formSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['ctaLabel'],
-        message: 'CTA aktifse label zorunludur.',
+        message: 'CTA label is required when CTA is active.',
       });
     }
 
@@ -88,7 +88,7 @@ const formSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['ctaValue'],
-        message: 'CTA aktifse target value zorunludur.',
+        message: 'CTA target value is required when CTA is active.',
       });
     }
   });
@@ -235,9 +235,9 @@ export function StoryForm({
     <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleFormSubmit}>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6 sm:px-8">
         <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
-          <p className="text-sm font-medium">{mode === 'edit' ? 'Story düzenleme' : 'Yeni Story oluştur'}</p>
+          <p className="text-sm font-medium">{mode === 'edit' ? 'Edit Story' : 'Create New Story'}</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Story adı, grubu, medyası ve CTA bilgileri burada düzenlenir.
+            Edit the Story name, group, media, and CTA details here.
           </p>
         </div>
 
@@ -248,7 +248,7 @@ export function StoryForm({
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="storyName">Story adı</Label>
+          <Label htmlFor="storyName">Story name</Label>
           <Input id="storyName" placeholder="Spring Launch Story" {...register('name')} />
           {errors.name ? <p className="text-sm text-destructive">{errors.name.message}</p> : null}
         </div>
@@ -262,7 +262,7 @@ export function StoryForm({
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger id="storyGroupId">
-                    <SelectValue placeholder="Bir Story Group seçin" />
+                    <SelectValue placeholder="Select a Story Group" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -273,7 +273,7 @@ export function StoryForm({
                           value={storyGroup.id}
                         >
                           {storyGroup.archiveState === 'archived'
-                            ? `${storyGroup.name} (Arşivde)`
+                            ? `${storyGroup.name} (Archived)`
                             : storyGroup.name}
                         </SelectItem>
                       ))}
@@ -286,24 +286,24 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.groupId.message}</p>
             ) : selectedGroup ? (
               <p className="text-xs leading-5 text-muted-foreground">
-                {selectedGroup.storyCount} story içeriyor. {selectedGroup.archiveState === 'archived' ? 'Bu group arşivde.' : 'Bu group aktif.'}
+                Contains {selectedGroup.storyCount} stories. {selectedGroup.archiveState === 'archived' ? 'This group is archived.' : 'This group is active.'}
               </p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                Story için bir Story Group seçin.
+                Select a Story Group for the story.
               </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="storyPosition">Group içi sıra</Label>
+            <Label htmlFor="storyPosition">Order within group</Label>
             <Controller
               control={control}
               name="position"
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger id="storyPosition">
-                    <SelectValue placeholder="Sıra seçin" />
+                    <SelectValue placeholder="Select order" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -321,7 +321,7 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.position.message}</p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                `1` en üst sırayı gösterir.
+                `1` is the top position.
               </p>
             )}
           </div>
@@ -335,7 +335,7 @@ export function StoryForm({
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value}>
                 <SelectTrigger id="storyMediaType">
-                  <SelectValue placeholder="Media type seçin" />
+                  <SelectValue placeholder="Select media type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -366,8 +366,8 @@ export function StoryForm({
           ) : (
             <p className="text-xs leading-5 text-muted-foreground">
               {selectedMediaType === 'video'
-                ? 'Uygun ölçüde bir video seçin.'
-                : 'Uygun ölçüde bir görsel seçin.'}
+                ? 'Select a video with a suitable size.'
+                : 'Select an image with a suitable size.'}
             </p>
           )}
         </div>
@@ -386,13 +386,13 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.posterAssetId.message}</p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                Video için bir poster görseli seçin.
+                Select a poster image for the video.
               </p>
             )}
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="imageDurationSeconds">Image duration override (saniye)</Label>
+            <Label htmlFor="imageDurationSeconds">Image duration override (seconds)</Label>
             <Input
               id="imageDurationSeconds"
               inputMode="numeric"
@@ -404,7 +404,7 @@ export function StoryForm({
               <p className="text-sm text-destructive">{errors.imageDurationSeconds.message}</p>
             ) : (
               <p className="text-xs leading-5 text-muted-foreground">
-                Boş bırakırsanız 5 saniye kullanılır.
+                Leave empty to use 5 seconds.
               </p>
             )}
           </div>
@@ -415,7 +415,7 @@ export function StoryForm({
             <div>
               <p className="text-sm font-medium">CTA</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                CTA eklemek için tüm alanları doldurun.
+                Fill all fields to add a CTA.
               </p>
             </div>
             <Controller
@@ -432,7 +432,7 @@ export function StoryForm({
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ctaLabel">CTA label</Label>
-              <Input id="ctaLabel" placeholder="İncele" {...register('ctaLabel')} />
+              <Input id="ctaLabel" placeholder="Learn more" {...register('ctaLabel')} />
               {errors.ctaLabel ? <p className="text-sm text-destructive">{errors.ctaLabel.message}</p> : null}
             </div>
 
@@ -444,7 +444,7 @@ export function StoryForm({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger id="ctaType">
-                      <SelectValue placeholder="CTA type seçin" />
+                      <SelectValue placeholder="Select CTA type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
@@ -468,7 +468,7 @@ export function StoryForm({
                 <p className="text-sm text-destructive">{errors.ctaValue.message}</p>
               ) : (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Geçerli bir bağlantı veya deeplink girin.
+                  Enter a valid URL or deeplink.
                 </p>
               )}
             </div>
@@ -478,16 +478,16 @@ export function StoryForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-border/60 px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
         <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="outline">
-          Vazgeç
+          Cancel
         </Button>
         <Button disabled={isSubmitting} type="submit">
           {isSubmitting
             ? mode === 'edit'
-              ? 'Kaydediliyor...'
-              : 'Oluşturuluyor...'
+              ? 'Saving...'
+              : 'Creating...'
             : mode === 'edit'
-              ? 'Değişiklikleri kaydet'
-              : 'Story oluştur'}
+              ? 'Save changes'
+              : 'Create Story'}
         </Button>
       </div>
     </form>

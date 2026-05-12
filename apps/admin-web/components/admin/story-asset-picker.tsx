@@ -53,38 +53,38 @@ const ASSET_TYPE_CONFIG: Record<
   }
 > = {
   story_image: {
-    title: 'Story görseli',
-    buttonLabel: 'Story görseli seç',
-    emptyLabel: 'Henüz story görseli seçilmedi',
-    emptyDescription: 'JPG, PNG veya WEBP görsel seçin ya da yükleyin. 9:16 oran önerilir, farklı oranlar kabul edilir.',
-    dialogTitle: 'Story görseli seç',
-    dialogDescription: 'Mevcut görselleri seçin veya yeni bir görsel yükleyin.',
-    existingDescription: 'Kayıtlı story görselleri listelenir.',
-    uploadDescription: 'JPG, PNG veya WEBP formatında görsel yükleyin. 9:16 oran önerilir.',
+    title: 'Story image',
+    buttonLabel: 'Select story image',
+    emptyLabel: 'No story image selected yet',
+    emptyDescription: 'Select or upload a JPG, PNG, or WEBP image. 9:16 is recommended; other ratios are accepted.',
+    dialogTitle: 'Select story image',
+    dialogDescription: 'Select an existing image or upload a new one.',
+    existingDescription: 'Registered story images are listed.',
+    uploadDescription: 'Upload a JPG, PNG, or WEBP image. 9:16 is recommended.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
   },
   story_video: {
     title: 'Story videosu',
-    buttonLabel: 'Story videosu seç',
-    emptyLabel: 'Henüz story videosu seçilmedi',
-    emptyDescription: 'MP4 video seçin. 9:16 oran önerilir; maksimum süre 30 saniye, maksimum boyut 50 MB olmalıdır.',
-    dialogTitle: 'Story videosu seç',
-    dialogDescription: 'Mevcut videoları seçin veya yeni bir video yükleyin.',
-    existingDescription: 'Kayıtlı story videoları listelenir.',
-    uploadDescription: 'MP4 formatında ve 30 saniyeyi aşmayan video yükleyin. 9:16 oran önerilir.',
+    buttonLabel: 'Select story video',
+    emptyLabel: 'No story video selected yet',
+    emptyDescription: 'Select an MP4 video. 9:16 is recommended; maximum duration is 30 seconds and maximum size is 50 MB.',
+    dialogTitle: 'Select story video',
+    dialogDescription: 'Select an existing video or upload a new one.',
+    existingDescription: 'Registered story videos are listed.',
+    uploadDescription: 'Upload an MP4 video up to 30 seconds. 9:16 is recommended.',
     accepts: 'video/mp4',
     previewKind: 'video',
   },
   story_poster: {
     title: 'Poster',
-    buttonLabel: 'Poster seç',
-    emptyLabel: 'Henüz poster seçilmedi',
-    emptyDescription: 'Video story için poster zorunludur. JPG, PNG veya WEBP poster seçin; 9:16 oran önerilir.',
-    dialogTitle: 'Poster seç',
-    dialogDescription: 'Mevcut posterleri seçin veya yeni bir poster yükleyin.',
-    existingDescription: 'Kayıtlı posterler listelenir.',
-    uploadDescription: 'JPG, PNG veya WEBP formatında video poster yükleyin. 9:16 oran önerilir.',
+    buttonLabel: 'Select poster',
+    emptyLabel: 'No poster selected yet',
+    emptyDescription: 'A poster is required for video stories. Select a JPG, PNG, or WEBP poster; 9:16 is recommended.',
+    dialogTitle: 'Select poster',
+    dialogDescription: 'Select an existing poster or upload a new one.',
+    existingDescription: 'Registered posters are listed.',
+    uploadDescription: 'Upload a JPG, PNG, or WEBP video poster. 9:16 is recommended.',
     accepts: 'image/png,image/jpeg,image/webp',
     previewKind: 'image',
   },
@@ -125,7 +125,7 @@ function readImageMetaFromFile(file: File): Promise<{ width: number; height: num
 
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Görsel metadata okunamadı.'));
+      reject(new Error('Image metadata could not be read.'));
     };
 
     image.src = objectUrl;
@@ -141,7 +141,7 @@ function readVideoMetaFromSource(source: string): Promise<{ width: number; heigh
       const durationMs = Math.round(video.duration * 1000);
 
       if (!Number.isFinite(durationMs) || durationMs <= 0) {
-        reject(new Error('Video süresi okunamadı.'));
+        reject(new Error('Video duration could not be read.'));
         return;
       }
 
@@ -152,7 +152,7 @@ function readVideoMetaFromSource(source: string): Promise<{ width: number; heigh
       });
     };
 
-    const handleError = () => reject(new Error('Video metadata okunamadı.'));
+    const handleError = () => reject(new Error('Video metadata could not be read.'));
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
     video.addEventListener('error', handleError, { once: true });
@@ -182,7 +182,7 @@ async function readVideoMetaFromFile(file: File): Promise<{
 
 function validateVideoMetadata(durationMs: number): void {
   if (durationMs > 30_000) {
-    throw new Error('Video süresi en fazla 30 saniye olabilir.');
+    throw new Error('Video duration can be at most 30 seconds.');
   }
 }
 
@@ -304,7 +304,7 @@ export function StoryAssetPicker({
 
       if (!response.ok) {
         throw new ApiRequestError(
-          payloadJson?.error?.message ?? `Upload başarısız oldu (${response.status}).`,
+          payloadJson?.error?.message ?? `Upload failed (${response.status}).`,
           response.status,
           payloadJson?.error?.code,
         );
@@ -365,14 +365,14 @@ export function StoryAssetPicker({
         }
       } else {
         if (file.size > 50 * 1024 * 1024) {
-          throw new Error('Video dosyası 50 MB sınırını aşamaz.');
+          throw new Error('Video file cannot exceed the 50 MB limit.');
         }
 
         const { width, height, durationMs, objectUrl } = await readVideoMetaFromFile(file);
 
         try {
           if (file.type && file.type !== 'video/mp4') {
-            throw new Error('Yalnızca MP4 video yüklenebilir.');
+            throw new Error('Only MP4 videos can be uploaded.');
           }
 
           validateVideoMetadata(durationMs);
@@ -388,7 +388,7 @@ export function StoryAssetPicker({
         }
       }
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Dosya yüklenemedi.');
+      setUploadError(error instanceof Error ? error.message : 'File could not be uploaded.');
     } finally {
       event.target.value = '';
     }
@@ -398,14 +398,14 @@ export function StoryAssetPicker({
     setUrlError(null);
 
     if (!urlValue.trim()) {
-      setUrlError('Asset URL zorunludur.');
+      setUrlError('Asset URL is required.');
       return;
     }
 
     try {
       await importAssetFromUrlMutation.mutateAsync(urlValue.trim());
     } catch (error) {
-      setUrlError(error instanceof Error ? error.message : 'Asset URL ile içe alınamadı.');
+      setUrlError(error instanceof Error ? error.message : 'Asset could not be imported by URL.');
     }
   };
 
@@ -436,10 +436,10 @@ export function StoryAssetPicker({
             </div>
           ) : value ? (
             <div className="space-y-2">
-              <p className="font-medium">Seçili asset ID</p>
+              <p className="font-medium">Selected asset ID</p>
               <p className="truncate text-xs text-muted-foreground">{value}</p>
               <p className="text-xs leading-5 text-muted-foreground">
-                Asset listesinde eşleşen kayıt bulunamadı. Picker içinden yeni asset seçebilirsiniz.
+                No matching record was found in the asset list. You can select a new asset from the picker.
               </p>
             </div>
           ) : (
@@ -453,7 +453,7 @@ export function StoryAssetPicker({
         <DialogTrigger asChild>
           <Button className="gap-2" type="button" variant="outline">
             <ImagePlus className="h-4 w-4" />
-            {selectedAsset || value ? `${config.title} değiştir` : config.buttonLabel}
+            {selectedAsset || value ? `Change ${config.title}` : config.buttonLabel}
           </Button>
         </DialogTrigger>
       </div>
@@ -470,7 +470,7 @@ export function StoryAssetPicker({
           </Button>
           {serverUploadAllowed ? (
             <Button onClick={() => setMode('upload')} type="button" variant={effectiveMode === 'upload' ? 'default' : 'outline'}>
-              Bilgisayardan yükle
+              Upload from computer
             </Button>
           ) : null}
           <Button
@@ -478,10 +478,10 @@ export function StoryAssetPicker({
             type="button"
             variant={effectiveMode === 'cloud_upload' ? 'default' : 'outline'}
           >
-            CDN&apos;e yükle
+            Upload to CDN
           </Button>
           <Button onClick={() => setMode('url')} type="button" variant={effectiveMode === 'url' ? 'default' : 'outline'}>
-            URL ile içe al
+            Import by URL
           </Button>
         </div>
 
@@ -497,7 +497,7 @@ export function StoryAssetPicker({
                 variant="outline"
               >
                 <RefreshCcw className="h-4 w-4" />
-                Yenile
+                Refresh
               </Button>
             </div>
 
@@ -509,11 +509,11 @@ export function StoryAssetPicker({
               </div>
             ) : assetsQuery.isError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {(assetsQuery.error as Error | undefined)?.message ?? 'Asset listesi yüklenemedi.'}
+                {(assetsQuery.error as Error | undefined)?.message ?? 'Asset list could not be loaded.'}
               </div>
             ) : (assetsQuery.data?.length ?? 0) === 0 ? (
               <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
-                Bu tip için henüz kayıtlı asset yok. Upload sekmesinden yeni asset oluşturun.
+                No registered assets exist for this type yet. Create a new asset from the Upload tab.
               </div>
             ) : (
               <div className="grid max-h-[420px] gap-3 overflow-y-auto md:grid-cols-2">
@@ -544,12 +544,12 @@ export function StoryAssetPicker({
                     <Upload className="h-4 w-4 text-muted-foreground" />
                   )}
                   <p className="font-medium">
-                    {effectiveMode === 'cloud_upload' ? `${config.title} CDN'e yükle` : `${config.title} yükle`}
+                    {effectiveMode === 'cloud_upload' ? `Upload ${config.title} to CDN` : `Upload ${config.title}`}
                   </p>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {effectiveMode === 'cloud_upload'
-                    ? 'Production için önerilir. Görseller optimize edilir; medya aktif Cloud Storage/CDN hedefinde saklanır.'
+                    ? 'Recommended for production. Images are optimized; media is stored in the active Cloud Storage/CDN target.'
                     : config.uploadDescription}
                 </p>
                 <Input accept={config.accepts} onChange={handleFileChange} type="file" />
@@ -571,7 +571,7 @@ export function StoryAssetPicker({
             ) : null}
 
             {uploadAssetMutation.isPending ? (
-              <div className="text-sm text-muted-foreground">Dosya yükleniyor...</div>
+              <div className="text-sm text-muted-foreground">Uploading file...</div>
             ) : null}
           </div>
         ) : null}
@@ -582,10 +582,10 @@ export function StoryAssetPicker({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <ImagePlus className="h-4 w-4 text-muted-foreground" />
-                  <p className="font-medium">{config.title} URL ile içe al</p>
+                  <p className="font-medium">Import {config.title} by URL</p>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Bir dosya bağlantısı girin. Dosya eklenip seçim listesine kaydedilir.
+                  Enter a file link. The file is added and saved to the selection list.
                 </p>
                 <Input
                   onChange={(event) => setUrlValue(event.target.value)}
@@ -603,7 +603,7 @@ export function StoryAssetPicker({
                   type="button"
                   variant="outline"
                 >
-                  URL ile içe al
+                  Import by URL
                 </Button>
               </div>
             </div>
@@ -615,7 +615,7 @@ export function StoryAssetPicker({
             ) : null}
 
             {importAssetFromUrlMutation.isPending ? (
-              <div className="text-sm text-muted-foreground">URL&apos;den içe aktarılıyor...</div>
+              <div className="text-sm text-muted-foreground">Importing from URL...</div>
             ) : null}
           </div>
         ) : null}

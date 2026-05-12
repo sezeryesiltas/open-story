@@ -43,7 +43,7 @@ export class SettingsService {
       return this.db.updateDatabaseSettings(payload);
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Database ayarları güncellenemedi.',
+        error instanceof Error ? error.message : 'Database settings could not be updated.',
       );
     }
   }
@@ -60,7 +60,7 @@ export class SettingsService {
       return {
         ok: false,
         provider: null,
-        message: error instanceof Error ? error.message : 'Database bağlantısı test edilemedi.',
+        message: error instanceof Error ? error.message : 'Database connection could not be tested.',
         resolvedDatabaseUrl: null,
       };
     }
@@ -81,7 +81,7 @@ export class SettingsService {
       return this.assetStorageSettingsStore.updateSettings(payload);
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Storage ayarları güncellenemedi.',
+        error instanceof Error ? error.message : 'Storage settings could not be updated.',
       );
     }
   }
@@ -100,7 +100,7 @@ export class SettingsService {
         return {
           ok: true,
           provider: 'local',
-          message: 'Local asset storage ayarı geçerli.',
+          message: 'Local asset storage setting is valid.',
           bucketName: null,
           publicAssetBaseUrl: settings.localPublicAssetBaseUrl,
         };
@@ -109,14 +109,14 @@ export class SettingsService {
       if (settings.activeProvider === 'supabase_s3') {
         const bucketName = settings.supabaseS3.bucketName;
         if (!bucketName) {
-          throw new Error('Supabase bucket adı boş bırakılamaz.');
+          throw new Error('Supabase bucket name cannot be empty.');
         }
 
         const endpoint = settings.supabaseS3.endpoint;
         const accessKeyId = settings.supabaseS3.accessKeyId;
         const secretAccessKey = supabaseS3SecretAccessKey;
         if (!endpoint || !accessKeyId || !secretAccessKey) {
-          throw new Error('Supabase S3 endpoint, access key ID ve secret access key zorunludur.');
+          throw new Error('Supabase S3 endpoint, access key ID, and secret access key are required.');
         }
 
         const client = new S3Client({
@@ -133,7 +133,7 @@ export class SettingsService {
         return {
           ok: true,
           provider: 'supabase_s3',
-          message: 'Supabase bucket erişimi doğrulandı.',
+          message: 'Supabase bucket access was verified.',
           bucketName,
           publicAssetBaseUrl: settings.supabaseS3.publicAssetBaseUrl,
         };
@@ -141,19 +141,19 @@ export class SettingsService {
 
       const bucketName = settings.gcs.bucketName;
       if (!bucketName) {
-        throw new Error('Google Cloud bucket adı boş bırakılamaz.');
+        throw new Error('Google Cloud bucket name cannot be empty.');
       }
 
       const storage = new Storage(settings.gcs.projectId ? { projectId: settings.gcs.projectId } : undefined);
       const [exists] = await storage.bucket(bucketName).exists();
       if (!exists) {
-        throw new Error(`Google Cloud bucket bulunamadı: ${bucketName}`);
+        throw new Error(`Google Cloud bucket was not found: ${bucketName}`);
       }
 
       return {
         ok: true,
         provider: 'gcs',
-        message: 'Google Cloud bucket erişimi doğrulandı.',
+        message: 'Google Cloud bucket access was verified.',
         bucketName,
         publicAssetBaseUrl: settings.gcs.publicAssetBaseUrl,
       };
@@ -161,7 +161,7 @@ export class SettingsService {
       return {
         ok: false,
         provider: null,
-        message: error instanceof Error ? error.message : 'Storage bağlantısı test edilemedi.',
+        message: error instanceof Error ? error.message : 'Storage connection could not be tested.',
         bucketName: null,
         publicAssetBaseUrl: null,
       };

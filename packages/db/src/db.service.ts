@@ -199,7 +199,7 @@ function ensureParentDirectory(filePath: string): void {
 function resolveSqlitePath(input: string): string {
   const normalizedInput = input.trim();
   if (!normalizedInput) {
-    throw new Error('Database URL veya path boş bırakılamaz.');
+    throw new Error('Database URL or path cannot be empty.');
   }
 
   if (normalizedInput.startsWith('file://')) {
@@ -209,14 +209,14 @@ function resolveSqlitePath(input: string): string {
   if (normalizedInput.startsWith('sqlite://')) {
     const value = normalizedInput.slice('sqlite://'.length);
     if (!value) {
-      throw new Error('sqlite URL geçerli bir dosya yolu içermelidir.');
+      throw new Error('sqlite URL must contain a valid file path.');
     }
 
     return normalize(isAbsolute(value) ? value : resolve(process.cwd(), value));
   }
 
   if (/^[a-zA-Z]+:\/\//.test(normalizedInput)) {
-    throw new Error('Bu sürümde sqlite için sadece sqlite/file tabanlı database URL formatları desteklenir.');
+    throw new Error('This version only supports sqlite/file-based database URL formats for sqlite.');
   }
 
   return normalize(isAbsolute(normalizedInput) ? normalizedInput : resolve(process.cwd(), normalizedInput));
@@ -343,7 +343,7 @@ function parseConfig(rawValue: string): BootstrapConfig {
 function assertProductionPostgresConfigured(config: PostgresExternalDatabaseConfig | null): void {
   if (process.env.NODE_ENV === 'production' && !config) {
     throw new Error(
-      'Production runtime için Postgres bağlantısı gereklidir. OPEN_STORY_POSTGRES_* env değişkenlerini veya database-config.json içindeki Postgres ayarını kullanın.',
+      'Postgres connection is required in production runtime. Use OPEN_STORY_POSTGRES_* env variables or the Postgres setting in database-config.json.',
     );
   }
 }
@@ -470,7 +470,7 @@ function normalizePostgresPort(value: string | number | null | undefined): numbe
         ? POSTGRES_DEFAULT_PORT
         : Number(value);
   if (!Number.isInteger(normalizedValue) || normalizedValue < 1 || normalizedValue > 65535) {
-    throw new Error('Postgres port 1 ile 65535 arasında bir tam sayı olmalıdır.');
+    throw new Error('Postgres port must be an integer between 1 and 65535.');
   }
 
   return normalizedValue;
@@ -483,11 +483,11 @@ function normalizePostgresSslMode(value: PostgresSslMode | null | undefined): Po
 function normalizeRequiredPostgresField(value: string | null | undefined, label: string, maxLength: number): string {
   const normalizedValue = value?.trim();
   if (!normalizedValue) {
-    throw new Error(`${label} boş bırakılamaz.`);
+    throw new Error(`${label} cannot be empty.`);
   }
 
   if (normalizedValue.length > maxLength) {
-    throw new Error(`${label} en fazla ${maxLength} karakter olabilir.`);
+    throw new Error(`${label} can be at most ${maxLength} characters.`);
   }
 
   return normalizedValue;
@@ -514,15 +514,15 @@ function normalizePostgresDatabaseSettings(
   const nextWithoutPassword: PostgresExternalDatabaseConfig = {
     host: normalizeRequiredPostgresField(input.host, 'Postgres host', 255),
     port: normalizePostgresPort(input.port),
-    database: normalizeRequiredPostgresField(input.database, 'Postgres database adı', 128),
-    username: normalizeRequiredPostgresField(input.username, 'Postgres kullanıcı adı', 128),
+    database: normalizeRequiredPostgresField(input.database, 'Postgres database name', 128),
+    username: normalizeRequiredPostgresField(input.username, 'Postgres username', 128),
     password: '',
     sslMode: normalizePostgresSslMode(input.sslMode),
   };
 
   const password = typeof input.password === 'string' ? input.password : '';
   if (password.length > 1024) {
-    throw new Error('Postgres password en fazla 1024 karakter olabilir.');
+    throw new Error('Postgres password can be at most 1024 characters.');
   }
 
   return {
@@ -631,7 +631,7 @@ export class DbService {
 
     const sqlite = activeConnection.sqlite;
     if (!sqlite) {
-      throw new Error('SQLite bağlantısı açılamadı.');
+      throw new Error('SQLite connection could not be opened.');
     }
 
     const rows = sqlite
@@ -643,7 +643,7 @@ export class DbService {
 
   insert<T extends { id: string }>(table: TableName, row: T): T {
     if (!row.id?.trim()) {
-      throw new Error(`Table "${table}" için geçerli bir id gereklidir.`);
+      throw new Error(`A valid id is required for table "${table}".`);
     }
 
     const activeConnection = this.database();
@@ -656,7 +656,7 @@ export class DbService {
 
     const sqlite = activeConnection.sqlite;
     if (!sqlite) {
-      throw new Error('SQLite bağlantısı açılamadı.');
+      throw new Error('SQLite connection could not be opened.');
     }
     const updatedAt = new Date().toISOString();
 
@@ -683,7 +683,7 @@ export class DbService {
         : (() => {
               const sqlite = activeConnection.sqlite;
               if (!sqlite) {
-                throw new Error('SQLite bağlantısı açılamadı.');
+                throw new Error('SQLite connection could not be opened.');
               }
 
               return sqlite
@@ -724,7 +724,7 @@ export class DbService {
 
     const sqlite = activeConnection.sqlite;
     if (!sqlite) {
-      throw new Error('SQLite bağlantısı açılamadı.');
+      throw new Error('SQLite connection could not be opened.');
     }
 
     const result = sqlite
@@ -761,7 +761,7 @@ export class DbService {
     const now = new Date().toISOString();
     const postgresDatabase = normalizePostgresDatabaseSettings(payload.postgres, currentConfig);
     if (!postgresDatabase) {
-      throw new Error('Postgres bağlantı bilgileri gereklidir.');
+      throw new Error('Postgres connection details are required.');
     }
 
     const nextConfig: BootstrapConfig = {
@@ -789,14 +789,14 @@ export class DbService {
         return {
           ok: true,
           provider: 'postgres',
-          message: 'Postgres bağlantısı başarılı.',
+          message: 'Postgres connection succeeded.',
           resolvedDatabaseUrl: toPostgresDisplayUrl(postgresDatabase),
         };
       } catch (error) {
         return {
           ok: false,
           provider: 'postgres',
-          message: error instanceof Error ? error.message : 'Postgres bağlantısı test edilemedi.',
+          message: error instanceof Error ? error.message : 'Postgres connection could not be tested.',
           resolvedDatabaseUrl: toPostgresDisplayUrl(postgresDatabase),
         };
       }
@@ -805,7 +805,7 @@ export class DbService {
     return {
       ok: false,
       provider: null,
-      message: 'Test için Postgres bağlantı bilgisi girin.',
+      message: 'Enter Postgres connection details for the test.',
       resolvedDatabaseUrl: null,
     };
   }
@@ -819,7 +819,7 @@ export class DbService {
 
     const sqlite = activeConnection.sqlite;
     if (!sqlite) {
-      throw new Error('SQLite bağlantısı açılamadı.');
+      throw new Error('SQLite connection could not be opened.');
     }
 
     return sqliteCountRows(sqlite);

@@ -139,7 +139,7 @@ function formatDuration(durationMs: number | null): string | null {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -206,13 +206,13 @@ function AssetStats({ assets }: { assets: AssetApiRecord[] }) {
     },
     {
       icon: CheckCircle2,
-      label: 'Kullanılan',
+      label: 'Used',
       unit: 'Used',
       value: usedCount,
     },
     {
       icon: CircleSlash,
-      label: 'Kullanılmayan',
+      label: 'Unused',
       unit: 'Unused',
       value: unusedCount,
     },
@@ -259,7 +259,7 @@ function AssetUsageSummary({ asset }: { asset: AssetApiRecord }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <Badge className="w-fit" variant={asset.usageCount > 0 ? 'default' : 'outline'}>
-        {asset.usageCount > 0 ? `${asset.usageCount} referans` : 'Kullanılmıyor'}
+        {asset.usageCount > 0 ? `${asset.usageCount} references` : 'Not used'}
       </Badge>
       {asset.usageReferences[0] ? (
         <p className="truncate text-xs text-muted-foreground">{asset.usageReferences[0].name}</p>
@@ -303,12 +303,12 @@ function AssetActions({
               <Badge variant="secondary">{formatFileSize(asset.sizeBytes)}</Badge>
               <Badge variant="secondary">{getAssetSourceLabel(asset.source)}</Badge>
               <Badge variant={asset.usageCount > 0 ? 'default' : 'outline'}>
-                {asset.usageCount > 0 ? `${asset.usageCount} referans` : 'Kullanılmıyor'}
+                {asset.usageCount > 0 ? `${asset.usageCount} references` : 'Not used'}
               </Badge>
             </div>
             {asset.usageReferences[0] ? (
               <p className="truncate text-xs text-muted-foreground">
-                İlk referans: {asset.usageReferences[0].name} / {getUsageLabel(asset.usageReferences[0])}
+                First reference: {asset.usageReferences[0].name} / {getUsageLabel(asset.usageReferences[0])}
               </p>
             ) : null}
           </div>
@@ -322,7 +322,7 @@ function AssetActions({
         variant="outline"
       >
         <Trash2 className="h-4 w-4" />
-        <span className="sr-only">Sil</span>
+        <span className="sr-only">Delete</span>
       </Button>
     </div>
   );
@@ -352,7 +352,7 @@ function AssetCardList({
   if (assets.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border/60 bg-background/45 p-8 text-center text-sm text-muted-foreground xl:hidden">
-        Asset bulunamadı.
+        Asset was not found.
       </div>
     );
   }
@@ -387,13 +387,13 @@ function AssetCardList({
             </div>
             <div>
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Kullanım
+                Usage
               </p>
               <AssetUsageSummary asset={asset} />
             </div>
             <div>
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Oluşturma
+                Created
               </p>
               <p className="text-xs text-muted-foreground">{formatDate(asset.createdAt)}</p>
             </div>
@@ -426,7 +426,7 @@ function EmptyRows({ isLoading }: { isLoading: boolean }) {
   return (
     <TableRow>
       <TableCell className="h-28 text-center text-sm text-muted-foreground" colSpan={7}>
-        Asset bulunamadı.
+        Asset was not found.
       </TableCell>
     </TableRow>
   );
@@ -466,7 +466,7 @@ export function AssetsWorkspace() {
 
   const assets = assetsQuery.data ?? emptyAssets;
   const filteredAssets = useMemo(() => {
-    const normalizedSearch = searchValue.trim().toLocaleLowerCase('tr-TR');
+    const normalizedSearch = searchValue.trim().toLocaleLowerCase('en-US');
 
     return assets.filter((asset) => {
       if (typeFilter !== 'all' && asset.type !== typeFilter) {
@@ -489,7 +489,7 @@ export function AssetsWorkspace() {
         return true;
       }
 
-      const searchableValue = `${asset.name} ${asset.id} ${asset.url}`.toLocaleLowerCase('tr-TR');
+      const searchableValue = `${asset.name} ${asset.id} ${asset.url}`.toLocaleLowerCase('en-US');
       return searchableValue.includes(normalizedSearch);
     });
   }, [assets, searchValue, sourceFilter, typeFilter, usageFilter]);
@@ -535,7 +535,7 @@ export function AssetsWorkspace() {
 
       if (!response.ok) {
         throw new ApiRequestError(
-          responsePayload?.error?.message ?? `Upload başarısız oldu (${response.status}).`,
+          responsePayload?.error?.message ?? `Upload failed (${response.status}).`,
           response.status,
           responsePayload?.error?.code,
         );
@@ -613,7 +613,7 @@ export function AssetsWorkspace() {
     try {
       if (effectiveCreateMode === 'upload' || effectiveCreateMode === 'cloud_upload') {
         if (!selectedFile) {
-          setCreateError('Upload için dosya seçin.');
+          setCreateError('Select a file for upload.');
           return;
         }
 
@@ -627,14 +627,14 @@ export function AssetsWorkspace() {
       }
 
       if (!urlValue.trim()) {
-        setCreateError('URL ile eklemek için asset URL girin.');
+        setCreateError('Enter an asset URL to add by URL.');
         return;
       }
 
       await importAssetMutation.mutateAsync({ type: createType, url: urlValue.trim() });
       handleCreateSheetChange(false);
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : 'Asset oluşturulamadı.');
+      setCreateError(error instanceof Error ? error.message : 'Asset could not be created.');
     }
   };
 
@@ -642,11 +642,11 @@ export function AssetsWorkspace() {
     setDeleteError(null);
 
     if (asset.usageCount > 0) {
-      setDeleteError('Kullanılan asset silinemez.');
+      setDeleteError('Used assets cannot be deleted.');
       return;
     }
 
-    const confirmed = window.confirm(`${asset.name} asset kaydı silinsin mi?`);
+    const confirmed = window.confirm(`Delete the ${asset.name} asset record?`);
     if (!confirmed) {
       return;
     }
@@ -654,7 +654,7 @@ export function AssetsWorkspace() {
     try {
       await deleteAssetMutation.mutateAsync(asset.id);
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : 'Asset silinemedi.');
+      setDeleteError(error instanceof Error ? error.message : 'Asset could not be deleted.');
     }
   };
 
@@ -666,7 +666,7 @@ export function AssetsWorkspace() {
         actions={
           <PageHeaderActionButton onClick={openCreateSheet} type="button">
             <Plus aria-hidden data-icon="inline-start" />
-            Yeni Asset
+            New Asset
           </PageHeaderActionButton>
         }
         title="Assets"
@@ -682,24 +682,24 @@ export function AssetsWorkspace() {
               <>
                 <div className="flex flex-col gap-2">
                   <span className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                    Arama
+                    Search
                   </span>
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       className="h-10 rounded-lg border-border/70 bg-background/60 pl-9"
                       onChange={(event) => setSearchValue(event.target.value)}
-                      placeholder="İsim, ID veya URL ara"
+                      placeholder="Search by name, ID, or URL"
                       value={searchValue}
                     />
                   </div>
                 </div>
 
                 <AdminFilterSelect
-                  label="Tip"
+                  label="Type"
                   onChange={(value) => setTypeFilter(value as AssetType | 'all')}
                   options={[
-                    { label: 'Tüm tipler', value: 'all' },
+                    { label: 'All types', value: 'all' },
                     ...ASSET_TYPES.map((type) => ({
                       label: type.label,
                       value: type.value,
@@ -709,21 +709,21 @@ export function AssetsWorkspace() {
                 />
 
                 <AdminFilterSelect
-                  label="Kullanım"
+                  label="Usage"
                   onChange={(value) => setUsageFilter(value as UsageFilter)}
                   options={[
-                    { label: 'Tüm kullanım', value: 'all' },
-                    { label: 'Kullanılan', value: 'used' },
-                    { label: 'Kullanılmayan', value: 'unused' },
+                    { label: 'All usage', value: 'all' },
+                    { label: 'Used', value: 'used' },
+                    { label: 'Unused', value: 'unused' },
                   ]}
                   value={usageFilter}
                 />
 
                 <AdminFilterSelect
-                  label="Kaynak"
+                  label="Source"
                   onChange={(value) => setSourceFilter(value as SourceFilter)}
                   options={[
-                    { label: 'Tüm kaynaklar', value: 'all' },
+                    { label: 'All sources', value: 'all' },
                     { label: 'Server Upload', value: 'upload' },
                     { label: 'Cloud Upload', value: 'cloud_upload' },
                     { label: 'URL', value: 'url' },
@@ -743,7 +743,7 @@ export function AssetsWorkspace() {
               <div className="space-y-3 p-4">
                 {assetsQuery.error ? (
                   <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {assetsQuery.error instanceof Error ? assetsQuery.error.message : 'Asset listesi okunamadı.'}
+                    {assetsQuery.error instanceof Error ? assetsQuery.error.message : 'Asset list could not be read.'}
                   </div>
                 ) : null}
 
@@ -768,12 +768,12 @@ export function AssetsWorkspace() {
               <TableHeader className="bg-muted/30">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[28%] border-b border-border/60">Asset</TableHead>
-                  <TableHead className="w-[13%] border-b border-border/60">Tip</TableHead>
+                  <TableHead className="w-[13%] border-b border-border/60">Type</TableHead>
                   <TableHead className="w-[14%] border-b border-border/60">Metadata</TableHead>
-                  <TableHead className="w-[18%] border-b border-border/60">Kullanım</TableHead>
-                  <TableHead className="w-[12%] border-b border-border/60">Kaynak</TableHead>
-                  <TableHead className="w-[11%] border-b border-border/60">Oluşturma</TableHead>
-                  <TableHead className="w-[92px] border-b border-border/60 text-right">Aksiyon</TableHead>
+                  <TableHead className="w-[18%] border-b border-border/60">Usage</TableHead>
+                  <TableHead className="w-[12%] border-b border-border/60">Source</TableHead>
+                  <TableHead className="w-[11%] border-b border-border/60">Created</TableHead>
+                  <TableHead className="w-[92px] border-b border-border/60 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -826,9 +826,9 @@ export function AssetsWorkspace() {
       <Sheet onOpenChange={handleCreateSheetChange} open={isCreateSheetOpen}>
         <SheetContent className="p-0">
           <SheetHeader>
-            <SheetTitle>Yeni Asset oluştur</SheetTitle>
+            <SheetTitle>Create new Asset</SheetTitle>
             <SheetDescription>
-              Asset tipini, kaynak yöntemini ve medya bilgisini girin.
+              Enter the asset type, source method, and media information.
             </SheetDescription>
           </SheetHeader>
 
@@ -843,7 +843,7 @@ export function AssetsWorkspace() {
               <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                 <p className="text-sm font-medium">Asset bilgileri</p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Upload veya URL ile eklenen asset kayıtları Story ve Story Group içeriklerinde kullanılabilir.
+                  Asset records added by upload or URL can be used in Story and Story Group content.
                 </p>
               </div>
 
@@ -854,10 +854,10 @@ export function AssetsWorkspace() {
               ) : null}
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="asset-create-type">Tip</Label>
+                <Label htmlFor="asset-create-type">Type</Label>
                 <Select onValueChange={(value) => setCreateType(value as AssetType)} value={createType}>
                   <SelectTrigger id="asset-create-type">
-                    <SelectValue placeholder="Asset tipi" />
+                    <SelectValue placeholder="Asset type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -872,7 +872,7 @@ export function AssetsWorkspace() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label>Kaynak</Label>
+                <Label>Source</Label>
                 <div
                   className={cn(
                     'grid gap-2 rounded-lg border border-border/60 bg-muted/20 p-1',
@@ -916,7 +916,7 @@ export function AssetsWorkspace() {
 
               {effectiveCreateMode === 'upload' || effectiveCreateMode === 'cloud_upload' ? (
                 <div className="flex flex-col gap-2" key="asset-file-fields">
-                  <Label htmlFor="asset-upload">Dosya</Label>
+                  <Label htmlFor="asset-upload">File</Label>
                   <Input
                     accept={getAssetAccept(createType)}
                     id="asset-upload"
@@ -930,11 +930,11 @@ export function AssetsWorkspace() {
                   ) : null}
                   {effectiveCreateMode === 'cloud_upload' ? (
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Production için önerilen yol. Görseller optimize edilir; medya aktif Cloud Storage/CDN hedefinde saklanır.
+                      Recommended for production. Images are optimized; media is stored in the active Cloud Storage/CDN target.
                     </p>
                   ) : (
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Local geliştirme ve küçük kurulumlar için. Production ortamında Cloud Upload önerilir.
+                      For local development and small setups. Cloud Upload is recommended in production.
                     </p>
                   )}
                 </div>
@@ -959,11 +959,11 @@ export function AssetsWorkspace() {
                 type="button"
                 variant="outline"
               >
-                Vazgeç
+                Cancel
               </Button>
               <Button disabled={isCreating} type="submit">
                 <ImagePlus className="mr-2 h-4 w-4" />
-                {isCreating ? 'Ekleniyor...' : 'Asset oluştur'}
+                {isCreating ? 'Adding...' : 'Create Asset'}
               </Button>
             </div>
           </form>

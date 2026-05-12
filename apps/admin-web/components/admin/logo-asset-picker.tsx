@@ -71,7 +71,7 @@ function readImageMetaFromFile(file: File): Promise<{ width: number; height: num
 
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Seçilen dosya için önizleme alınamadı.'));
+      reject(new Error('Preview could not be generated for the selected file.'));
     };
 
     image.src = objectUrl;
@@ -174,7 +174,7 @@ export function LogoAssetPicker({
 
       if (!response.ok) {
         throw new ApiRequestError(
-          payloadJson?.error?.message ?? `Upload başarısız oldu (${response.status}).`,
+          payloadJson?.error?.message ?? `Upload failed (${response.status}).`,
           response.status,
           payloadJson?.error?.code,
         );
@@ -223,7 +223,7 @@ export function LogoAssetPicker({
       const { width, height, objectUrl } = await readImageMetaFromFile(file);
       try {
         if (width !== height) {
-          setUploadError('Group logo kare olmalıdır.');
+          setUploadError('Group logo must be square.');
           return;
         }
 
@@ -237,7 +237,7 @@ export function LogoAssetPicker({
         URL.revokeObjectURL(objectUrl);
       }
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Dosya yüklenemedi.');
+      setUploadError(error instanceof Error ? error.message : 'File could not be uploaded.');
     } finally {
       event.target.value = '';
     }
@@ -247,14 +247,14 @@ export function LogoAssetPicker({
     setUrlError(null);
 
     if (!urlValue.trim()) {
-      setUrlError('Asset URL zorunludur.');
+      setUrlError('Asset URL is required.');
       return;
     }
 
     try {
       await importAssetFromUrlMutation.mutateAsync(urlValue.trim());
     } catch (error) {
-      setUrlError(error instanceof Error ? error.message : 'Asset URL ile içe alınamadı.');
+      setUrlError(error instanceof Error ? error.message : 'Asset could not be imported by URL.');
     }
   };
 
@@ -285,17 +285,17 @@ export function LogoAssetPicker({
             </div>
           ) : value ? (
             <div className="space-y-2">
-              <p className="font-medium">Seçili asset ID</p>
+              <p className="font-medium">Selected asset ID</p>
               <p className="text-xs text-muted-foreground">{value}</p>
               <p className="text-xs leading-5 text-muted-foreground">
-                Asset listesinde eşleşen kayıt bulunamadı. Picker içinden yeni asset seçebilirsiniz.
+                No matching record was found in the asset list. You can select a new asset from the picker.
               </p>
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="font-medium">Henüz logo asset seçilmedi</p>
+              <p className="font-medium">No logo asset selected yet</p>
               <p className="text-xs leading-5 text-muted-foreground">
-                Mevcut asset seçebilir veya bilgisayarınızdan yeni bir asset yükleyebilirsiniz.
+                You can select an existing asset or upload a new asset from your computer.
               </p>
             </div>
           )}
@@ -304,16 +304,16 @@ export function LogoAssetPicker({
         <DialogTrigger asChild>
           <Button className="gap-2" type="button" variant="outline">
             <ImagePlus className="h-4 w-4" />
-            {selectedAsset || value ? 'Logo asset değiştir' : 'Logo asset seç'}
+            {selectedAsset || value ? 'Change logo asset' : 'Select logo asset'}
           </Button>
         </DialogTrigger>
       </div>
 
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Logo seç</DialogTitle>
+          <DialogTitle>Select logo</DialogTitle>
           <DialogDescription>
-            Mevcut logolardan seçin veya yeni bir logo yükleyin.
+            Select an existing logo or upload a new one.
           </DialogDescription>
         </DialogHeader>
 
@@ -323,7 +323,7 @@ export function LogoAssetPicker({
           </Button>
           {serverUploadAllowed ? (
             <Button onClick={() => setMode('upload')} type="button" variant={effectiveMode === 'upload' ? 'default' : 'outline'}>
-              Bilgisayardan yükle
+              Upload from computer
             </Button>
           ) : null}
           <Button
@@ -331,17 +331,17 @@ export function LogoAssetPicker({
             type="button"
             variant={effectiveMode === 'cloud_upload' ? 'default' : 'outline'}
           >
-            CDN&apos;e yükle
+            Upload to CDN
           </Button>
           <Button onClick={() => setMode('url')} type="button" variant={effectiveMode === 'url' ? 'default' : 'outline'}>
-            URL ile içe al
+            Import by URL
           </Button>
         </div>
 
         {mode === 'existing' ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Yalnızca grup logoları listelenir.</p>
+              <p className="text-sm text-muted-foreground">Only group logos are listed.</p>
               <Button
                 className="gap-2"
                 onClick={() => assetsQuery.refetch()}
@@ -350,7 +350,7 @@ export function LogoAssetPicker({
                 variant="outline"
               >
                 <RefreshCcw className="h-4 w-4" />
-                Yenile
+                Refresh
               </Button>
             </div>
 
@@ -362,11 +362,11 @@ export function LogoAssetPicker({
               </div>
             ) : assetsQuery.isError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {(assetsQuery.error as Error | undefined)?.message ?? 'Asset listesi yüklenemedi.'}
+                {(assetsQuery.error as Error | undefined)?.message ?? 'Asset list could not be loaded.'}
               </div>
             ) : (assetsQuery.data?.length ?? 0) === 0 ? (
               <div className="rounded-lg border border-border/60 border-dashed px-4 py-8 text-sm text-muted-foreground">
-                Henüz kayıtlı group logo asseti yok. Upload sekmesinden yeni asset oluşturun.
+                No registered group logo assets yet. Create a new asset from the Upload tab.
               </div>
             ) : (
               <div className="grid max-h-[420px] gap-3 overflow-y-auto md:grid-cols-2">
@@ -397,13 +397,13 @@ export function LogoAssetPicker({
                     <Upload className="h-4 w-4 text-muted-foreground" />
                   )}
                   <p className="font-medium">
-                    {effectiveMode === 'cloud_upload' ? "CDN'e kare logo yükle" : 'Bilgisayardan kare logo yükle'}
+                    {effectiveMode === 'cloud_upload' ? 'Upload square logo to CDN' : 'Upload square logo from computer'}
                   </p>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {effectiveMode === 'cloud_upload'
-                    ? 'Production için önerilir. Raster görseller optimize edilip aktif Cloud Storage/CDN hedefinde saklanır.'
-                    : 'JPG, PNG, WEBP veya SVG formatlarını yükleyebilirsiniz. Raster görseller için kare kontrolü yapılır.'}
+                    ? 'Recommended for production. Raster images are optimized and stored in the active Cloud Storage/CDN target.'
+                    : 'You can upload JPG, PNG, WEBP, or SVG files. Square validation is applied to raster images.'}
                 </p>
                 <Input accept="image/*" onChange={handleFileChange} type="file" />
                 {selectedFileName ? (
@@ -424,7 +424,7 @@ export function LogoAssetPicker({
             ) : null}
 
             {uploadAssetMutation.isPending ? (
-              <div className="text-sm text-muted-foreground">Dosya yükleniyor...</div>
+              <div className="text-sm text-muted-foreground">Uploading file...</div>
             ) : null}
           </div>
         ) : null}
@@ -435,10 +435,10 @@ export function LogoAssetPicker({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <ImagePlus className="h-4 w-4 text-muted-foreground" />
-                  <p className="font-medium">Logo URL ile içe al</p>
+                  <p className="font-medium">Import logo by URL</p>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Bir görsel bağlantısı girin. Görsel eklenip seçim listesine kaydedilir.
+                  Enter an image link. The image is added and saved to the selection list.
                 </p>
                 <Input
                   onChange={(event) => setUrlValue(event.target.value)}
@@ -452,7 +452,7 @@ export function LogoAssetPicker({
                   type="button"
                   variant="outline"
                 >
-                  URL ile içe al
+                  Import by URL
                 </Button>
               </div>
             </div>
@@ -464,7 +464,7 @@ export function LogoAssetPicker({
             ) : null}
 
             {importAssetFromUrlMutation.isPending ? (
-              <div className="text-sm text-muted-foreground">URL&apos;den içe aktarılıyor...</div>
+              <div className="text-sm text-muted-foreground">Importing from URL...</div>
             ) : null}
           </div>
         ) : null}

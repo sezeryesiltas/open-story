@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   if (!getAdminAuthTokenFromRequest(request)) {
-    return jsonError('Oturum bulunamadı.', 401, 'unauthorized');
+    return jsonError('Session was not found.', 401, 'unauthorized');
   }
 
   try {
@@ -35,6 +35,6 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    return jsonError('Oturum doğrulanamadı.', 500, 'validation_error');
+    return jsonError('Session could not be verified.', 500, 'validation_error');
   }
 }

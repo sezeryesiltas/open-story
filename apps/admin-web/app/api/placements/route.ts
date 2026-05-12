@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Placement listesi okunamadı.', 500, 'validation_error');
+    return jsonError('Placement list could not be read.', 500, 'validation_error');
   }
 }
 
@@ -27,6 +27,6 @@ export async function POST(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Placement oluşturulamadı.', 500, 'validation_error');
+    return jsonError('Placement could not be created.', 500, 'validation_error');
   }
 }

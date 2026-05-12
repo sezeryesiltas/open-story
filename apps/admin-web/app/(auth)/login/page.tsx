@@ -73,7 +73,7 @@ export default function LoginPage() {
       setErrorMessage(
         error instanceof ApiRequestError || error instanceof Error
           ? error.message
-          : 'Login başarısız oldu.',
+          : 'Login failed.',
       );
     } finally {
       setIsSubmitting(false);
@@ -117,7 +117,7 @@ export default function LoginPage() {
           ) : null}
 
           <Button className="w-full" disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş yap'}
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
       </CardContent>

@@ -17,6 +17,6 @@ export async function GET(request: NextRequest) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');
     }
 
-    return jsonError('Asset upload yetenekleri okunamadı.', 500, 'validation_error');
+    return jsonError('Asset upload capabilities could not be read.', 500, 'validation_error');
   }
 }

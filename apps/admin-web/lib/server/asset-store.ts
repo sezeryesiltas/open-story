@@ -68,7 +68,7 @@ function normalizeAssetType(value: unknown): AssetRecord['type'] {
     return normalizedValue;
   }
 
-  throw new AssetStoreError('Geçerli bir asset tipi seçin.', 400, 'validation_error');
+  throw new AssetStoreError('Select a valid asset type.', 400, 'validation_error');
 }
 
 function normalizeAsset(rawRecord: { id: string; [key: string]: unknown }): AssetRecord {
@@ -116,7 +116,7 @@ function findAdminWebRoot(startDir: string): string {
 
     const parentDir = dirname(currentDir);
     if (parentDir === currentDir) {
-      throw new AssetStoreError('admin-web kök dizini bulunamadı.', 500, 'validation_error');
+      throw new AssetStoreError('The admin-web root directory could not be found.', 500, 'validation_error');
     }
 
     currentDir = parentDir;
@@ -170,13 +170,13 @@ export function createUrlAsset(payload: {
   const url = parseString(payload.url);
 
   if (!url) {
-    throw new AssetStoreError('Asset URL zorunludur.', 400, 'validation_error');
+    throw new AssetStoreError('Asset URL is required.', 400, 'validation_error');
   }
 
   try {
     new URL(url);
   } catch {
-    throw new AssetStoreError('Geçerli bir asset URL girin.', 400, 'validation_error');
+    throw new AssetStoreError('Enter a valid asset URL.', 400, 'validation_error');
   }
 
   const now = new Date().toISOString();
@@ -207,7 +207,7 @@ export async function createUploadedAsset(payload: {
   const type = normalizeAssetType(payload.type);
 
   if (!payload.file || payload.file.size === 0) {
-    throw new AssetStoreError('Yüklenecek dosya zorunludur.', 400, 'validation_error');
+    throw new AssetStoreError('A file is required for upload.', 400, 'validation_error');
   }
 
   const uploadsDir = ensureUploadsDirectory();

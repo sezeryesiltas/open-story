@@ -41,7 +41,7 @@ const emptyPlacementFormValues: PlacementFormValues = {
 const emptyPlacements: PlacementRecord[] = [];
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('tr-TR', {
+  return new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -186,12 +186,12 @@ export function PlacementsWorkspace() {
       if (error instanceof ApiRequestError && error.status === 409) {
         return {
           fieldErrors: {
-            placementKey: 'Bu placement anahtarı zaten kullanımda.',
+            placementKey: 'This placement key is already in use.',
           },
         };
       }
 
-      setSubmitError(error instanceof Error ? error.message : 'Placement kaydedilemedi.');
+      setSubmitError(error instanceof Error ? error.message : 'Placement could not be saved.');
       return undefined;
     }
   };
@@ -202,10 +202,10 @@ export function PlacementsWorkspace() {
         actions={
           <PageHeaderActionButton onClick={openCreateSheet}>
             <Plus aria-hidden data-icon="inline-start" />
-            Yeni placement
+            New placement
           </PageHeaderActionButton>
         }
-        title="Placement yönetimi"
+        title="Placement Management"
       />
 
       <section>
@@ -214,15 +214,15 @@ export function PlacementsWorkspace() {
         ) : placementsQuery.isError ? (
           <Card className="rounded-2xl border-border/70 bg-card/80">
             <CardHeader>
-              <CardTitle>Placement listesi yüklenemedi</CardTitle>
+              <CardTitle>Placement list could not be loaded</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="rounded-[8px] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {(placementsQuery.error as Error | undefined)?.message ??
-                  'Placement listesi şu anda alınamıyor.'}
+                  'Placement list cannot be fetched right now.'}
               </div>
               <Button onClick={() => placementsQuery.refetch()} variant="outline">
-                Tekrar dene
+                Try again
               </Button>
             </CardContent>
           </Card>
@@ -232,12 +232,12 @@ export function PlacementsWorkspace() {
               <div className="inline-flex size-12 items-center justify-center rounded-[8px] bg-primary/10 text-primary">
                 <Shapes className="h-5 w-5" />
               </div>
-              <CardTitle className="text-xl">Henüz placement tanımı yok</CardTitle>
+              <CardTitle className="text-xl">No placement definitions yet</CardTitle>
             </CardHeader>
             <CardContent>
               <Button className="gap-2" onClick={openCreateSheet}>
                 <Plus className="h-4 w-4" />
-                İlk placement&apos;ı oluştur
+                Create the first placement
               </Button>
             </CardContent>
           </Card>
@@ -266,7 +266,7 @@ export function PlacementsWorkspace() {
                             {placement.placementKey}
                           </code>
                           <Button
-                            aria-label={`${placement.placementKey} anahtarını kopyala`}
+                            aria-label={`Copy ${placement.placementKey} key`}
                             className="shrink-0 text-muted-foreground hover:text-primary"
                             onClick={() => copyPlacementKey(placement.placementKey)}
                             size="icon"
@@ -293,7 +293,7 @@ export function PlacementsWorkspace() {
                 <CardContent className="relative grid gap-6 p-6 pt-0 md:grid-cols-2 md:p-8 md:pt-0">
                   <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
                     <BookOpen aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Bağlı Story Bar</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Linked Story Bars</p>
                     <div className="mt-6 flex items-baseline gap-3">
                       <span className="text-6xl font-bold leading-none tracking-tight tabular-nums">
                         {placement.connectedSetCount}
@@ -301,18 +301,18 @@ export function PlacementsWorkspace() {
                       <span className="text-lg font-medium text-primary">Active</span>
                     </div>
                     <p className="mt-4 text-base leading-7 text-muted-foreground">
-                      Bu placement altında bulunan Story Bar sayısı.
+                      Number of Story Bars under this placement.
                     </p>
                   </div>
 
                   <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/45 p-6">
                     <CalendarClock aria-hidden className="absolute right-5 top-5 size-10 text-foreground/10" />
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Son güncelleme</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Last Update</p>
                     <p className="mt-6 text-3xl font-bold tracking-tight text-foreground">
                       {formatDate(placement.updatedAt)}
                     </p>
                     <p className="mt-4 text-base leading-7 text-muted-foreground">
-                      Oluşturulma: {formatDate(placement.createdAt)}
+                      Created: {formatDate(placement.createdAt)}
                     </p>
                   </div>
                 </CardContent>

@@ -17,7 +17,7 @@ async function loadDashboardDataVolume() {
       errorMessage:
         error instanceof BackendApiError || error instanceof Error
           ? error.message
-          : 'Aktif veri hacmi okunamadi.',
+          : 'Active data volume could not be read.',
     };
   }
 }
@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        description="Genel bakış ve içerik özetleri"
+        description="Overview and content summaries"
         title="Dashboard"
       />
 

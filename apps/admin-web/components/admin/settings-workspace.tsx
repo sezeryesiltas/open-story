@@ -45,18 +45,18 @@ const DEFAULT_POSTGRES_SSL_MODE: PostgresSslModeDto = 'require';
 
 const formSchema = z
   .object({
-    postgresHost: z.string().trim().max(255, 'Postgres host en fazla 255 karakter olabilir.').optional(),
-    postgresPort: z.string().trim().max(5, 'Postgres port en fazla 5 karakter olabilir.').optional(),
-    postgresDatabase: z.string().trim().max(128, 'Postgres database adı en fazla 128 karakter olabilir.').optional(),
-    postgresUsername: z.string().trim().max(128, 'Postgres kullanıcı adı en fazla 128 karakter olabilir.').optional(),
-    postgresPassword: z.string().max(1024, 'Postgres password en fazla 1024 karakter olabilir.').optional(),
+    postgresHost: z.string().trim().max(255, 'Postgres host can be at most 255 characters.').optional(),
+    postgresPort: z.string().trim().max(5, 'Postgres port can be at most 5 characters.').optional(),
+    postgresDatabase: z.string().trim().max(128, 'Postgres database name can be at most 128 characters.').optional(),
+    postgresUsername: z.string().trim().max(128, 'Postgres username can be at most 128 characters.').optional(),
+    postgresPassword: z.string().max(1024, 'Postgres password can be at most 1024 characters.').optional(),
     postgresSslMode: z.enum(['disable', 'require']).optional(),
   })
   .superRefine((values, context) => {
     if (!values.postgresHost?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Postgres host boş bırakılamaz.',
+        message: 'Postgres host cannot be empty.',
         path: ['postgresHost'],
       });
     }
@@ -64,7 +64,7 @@ const formSchema = z
     if (!values.postgresDatabase?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Postgres database adı boş bırakılamaz.',
+        message: 'Postgres database name cannot be empty.',
         path: ['postgresDatabase'],
       });
     }
@@ -72,7 +72,7 @@ const formSchema = z
     if (!values.postgresUsername?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Postgres kullanıcı adı boş bırakılamaz.',
+        message: 'Postgres username cannot be empty.',
         path: ['postgresUsername'],
       });
     }
@@ -81,7 +81,7 @@ const formSchema = z
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Postgres port 1 ile 65535 arasında bir tam sayı olmalıdır.',
+        message: 'Postgres port must be an integer between 1 and 65535.',
         path: ['postgresPort'],
       });
     }
@@ -193,7 +193,7 @@ export function SettingsWorkspace() {
       });
       setNotice({
         tone: 'success',
-        message: 'Postgres relational veritabanı ayarları kaydedildi.',
+        message: 'Postgres relational database settings were saved.',
       });
     },
     onError: (error) => {
@@ -202,7 +202,7 @@ export function SettingsWorkspace() {
         message:
           error instanceof ApiRequestError || error instanceof Error
             ? error.message
-            : 'Database ayarı güncellenemedi.',
+            : 'Database setting could not be updated.',
       });
     },
     onSettled: () => {
@@ -220,7 +220,7 @@ export function SettingsWorkspace() {
       setNotice({
         tone: data.ok ? 'success' : 'error',
         message: data.resolvedDatabaseUrl
-          ? `${data.message} Hedef: ${data.resolvedDatabaseUrl}`
+          ? `${data.message} Target: ${data.resolvedDatabaseUrl}`
           : data.message,
       });
     },
@@ -230,7 +230,7 @@ export function SettingsWorkspace() {
         message:
           error instanceof ApiRequestError || error instanceof Error
             ? error.message
-            : 'Database bağlantısı test edilemedi.',
+            : 'Database connection could not be tested.',
       });
     },
     onSettled: () => {
@@ -259,7 +259,7 @@ export function SettingsWorkspace() {
   if (settingsQuery.isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Veritabanı ayarları" />
+        <PageHeader title="Database Settings" />
         <LoadingCards />
       </div>
     );
@@ -272,19 +272,19 @@ export function SettingsWorkspace() {
           actions={
             <Button className="gap-2" onClick={() => settingsQuery.refetch()} variant="outline">
               <RefreshCcw className="h-4 w-4" />
-              Tekrar dene
+              Try again
             </Button>
           }
-          title="Veritabanı ayarları"
+          title="Database Settings"
         />
 
         <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle>Veritabanı ayarları okunamadı</CardTitle>
+            <CardTitle>Database settings could not be read</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {(settingsQuery.error as Error | undefined)?.message ?? 'Ayarlar şu anda alınamıyor.'}
+              {(settingsQuery.error as Error | undefined)?.message ?? 'Settings cannot be fetched right now.'}
             </div>
           </CardContent>
         </Card>
@@ -294,20 +294,20 @@ export function SettingsWorkspace() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Veritabanı ayarları" />
+      <PageHeader title="Database Settings" />
 
       <Card className="border-border/60 bg-card/80">
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
-              <CardTitle>Aktif veritabanı</CardTitle>
+              <CardTitle>Active Database</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Runtime önce `OPEN_STORY_POSTGRES_*` env değerlerine, sonra config dosyasına bakar. Production
-                ortamında Postgres zorunludur; local fallback yalnızca non-production/test kullanım içindir.
+                Runtime checks `OPEN_STORY_POSTGRES_*` env values first, then the config file. Postgres is
+                required in production; local fallback is only for non-production/test use.
               </p>
             </div>
             <Badge className="w-fit" variant={settings.activeProvider === 'postgres' ? 'default' : 'secondary'}>
-              {settings.activeProvider === 'postgres' ? 'Postgres relational aktif' : 'Postgres yapılandırılmamış'}
+              {settings.activeProvider === 'postgres' ? 'Postgres relational active' : 'Postgres is not configured'}
             </Badge>
           </div>
         </CardHeader>
@@ -329,7 +329,7 @@ export function SettingsWorkspace() {
             <div className="rounded-lg border border-border/60 bg-muted/30 p-5">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Database className="h-4 w-4" />
-                Aktif database
+                Active database
               </div>
               <p className="mt-3 break-all text-sm leading-6 text-muted-foreground">
                 {settings.activeDatabaseUrl}
@@ -339,10 +339,10 @@ export function SettingsWorkspace() {
             <div className="rounded-lg border border-border/60 bg-muted/30 p-5">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Server className="h-4 w-4" />
-                Runtime modeli
+                Runtime model
               </div>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                Normalize Postgres tabloları, revision ve composition ilişkileri DB constraint&apos;leri ile korunur.
+                Normalized Postgres tables, revisions, and composition relationships are protected with DB constraints.
               </p>
             </div>
           </div>
@@ -351,7 +351,7 @@ export function SettingsWorkspace() {
 
       <Card className="border-border/60 bg-card/80">
         <CardHeader>
-          <CardTitle>Postgres bağlantı bilgileri</CardTitle>
+          <CardTitle>Postgres Connection Details</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -377,7 +377,7 @@ export function SettingsWorkspace() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="postgresUsername">Kullanıcı adı</Label>
+              <Label htmlFor="postgresUsername">Username</Label>
               <Input id="postgresUsername" autoComplete="username" placeholder="postgres" {...register('postgresUsername')} />
               {errors.postgresUsername ? (
                 <p className="text-sm text-destructive">{errors.postgresUsername.message}</p>
@@ -389,7 +389,7 @@ export function SettingsWorkspace() {
               <Input
                 id="postgresPassword"
                 autoComplete="current-password"
-                placeholder={settings.postgresDatabase?.passwordConfigured ? 'Mevcut password korunur' : '••••••••'}
+                placeholder={settings.postgresDatabase?.passwordConfigured ? 'Existing password is preserved' : '••••••••'}
                 type="password"
                 {...register('postgresPassword')}
               />
@@ -426,10 +426,10 @@ export function SettingsWorkspace() {
 
             <div className="flex flex-col gap-3 sm:flex-row md:col-span-2">
               <Button disabled={isBusy} onClick={testPostgres} type="button" variant="outline">
-                {isActionPending('postgres-test') ? 'Test ediliyor...' : 'Postgres connection test'}
+                {isActionPending('postgres-test') ? 'Testing...' : 'Test Postgres connection'}
               </Button>
               <Button disabled={isBusy} onClick={savePostgres} type="button">
-                {isActionPending('postgres-save') ? 'Kaydediliyor...' : 'Postgres ayarını kaydet'}
+                {isActionPending('postgres-save') ? 'Saving...' : 'Save Postgres settings'}
               </Button>
             </div>
           </form>

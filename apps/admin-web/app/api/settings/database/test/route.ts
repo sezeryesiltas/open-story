@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     return jsonError(
-      error instanceof Error ? error.message : 'Database bağlantısı test edilemedi.',
+      error instanceof Error ? error.message : 'Database connection could not be tested.',
       400,
       'validation_error',
     );

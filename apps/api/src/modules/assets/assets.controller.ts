@@ -52,7 +52,7 @@ export class AssetsController {
     @Headers('authorization') authorization?: string,
   ): Promise<AssetDto> {
     if (!uploadedFile?.originalname || !uploadedFile.buffer || typeof typeValue !== 'string') {
-      throw new BadRequestException('Multipart upload body `type` ve `file` alanlarını içermelidir.');
+      throw new BadRequestException('Multipart upload body must include `type` and `file` fields.');
     }
 
     return this.service.upload(
@@ -74,7 +74,7 @@ export class AssetsController {
     @Headers('authorization') authorization?: string,
   ): Promise<AssetDto> {
     if (!uploadedFile?.originalname || !uploadedFile.buffer || typeof typeValue !== 'string') {
-      throw new BadRequestException('Multipart cloud upload body `type` ve `file` alanlarını içermelidir.');
+      throw new BadRequestException('Multipart cloud upload body must include `type` and `file` fields.');
     }
 
     return this.service.cloudUpload(
@@ -94,7 +94,7 @@ export class AssetsController {
     @Headers('authorization') authorization?: string,
   ): Promise<AssetDto> {
     if (typeof body?.type !== 'string' || typeof body?.url !== 'string') {
-      throw new BadRequestException('JSON body `type` ve `url` alanlarını içermelidir.');
+      throw new BadRequestException('JSON body must include `type` and `url` fields.');
     }
 
     return this.service.importFromUrl(

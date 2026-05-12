@@ -162,11 +162,11 @@ function getSplitGauges(card: DashboardDataVolumeCard): DashboardGauge[] | null 
 
 function getStoryBarStatLabel(label: string): string {
   if (label === 'Active') {
-    return 'Aktif';
+    return 'Active';
   }
 
-  if (label === 'Deactive') {
-    return 'Pasif';
+  if (label === 'Inactive') {
+    return 'Inactive';
   }
 
   return label;
@@ -241,7 +241,7 @@ function RingChart({
   value,
   tone,
   centerValue = total,
-  centerLabel = 'Toplam',
+  centerLabel = 'Total',
 }: {
   total: number;
   value: number;
@@ -289,7 +289,7 @@ function SegmentedRingChart({
   total,
   segments,
   centerValue = total,
-  centerLabel = 'Toplam',
+  centerLabel = 'Total',
 }: {
   total: number;
   segments: Array<{
@@ -377,9 +377,9 @@ function GaugeBlock({
 }) {
   const total = getStatsTotal(gauge.stats);
   const centerLabel =
-    gauge.key === 'archive-state' ? 'Active' : gauge.key === 'publish-state' ? 'Published' : 'Toplam';
+    gauge.key === 'archive-state' ? 'Active' : gauge.key === 'publish-state' ? 'Published' : 'Total';
   const centerValue =
-    centerLabel === 'Toplam' ? total : gauge.stats.find((stat) => stat.label === centerLabel)?.value ?? 0;
+    centerLabel === 'Total' ? total : gauge.stats.find((stat) => stat.label === centerLabel)?.value ?? 0;
   const segments = gauge.stats.map((stat) => ({
     tone: getStatTone(cardKey, stat.label),
     value: stat.value,
@@ -413,11 +413,11 @@ export function DashboardDataVolume({
     return (
       <Card className="rounded-[8px] border-border/70 bg-card">
         <CardHeader>
-          <CardTitle>Aktif veri hacmi okunamadı</CardTitle>
+          <CardTitle>Active data volume could not be read</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-[8px] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {errorMessage ?? 'Database snapshot şu anda yüklenemiyor.'}
+            {errorMessage ?? 'Database snapshot cannot be loaded right now.'}
           </div>
         </CardContent>
       </Card>
@@ -439,35 +439,35 @@ export function DashboardDataVolume({
     value: number;
   }> = [
     {
-      caption: 'Toplam',
+      caption: 'Total',
       icon: Shapes,
       label: 'Placements',
       tone: 'teal',
       value: placementsCount,
     },
     {
-      caption: 'Aktif',
+      caption: 'Active',
       icon: Layers,
       label: 'Live Story Bars',
       tone: 'teal',
       value: storyBarsCard ? getCardStat(storyBarsCard, 'Active') : 0,
     },
     {
-      caption: 'Toplam',
+      caption: 'Total',
       icon: SquareStack,
       label: 'Published Groups',
       tone: 'purple',
       value: storyGroupsCard ? getCardStat(storyGroupsCard, 'Published') : 0,
     },
     {
-      caption: 'Toplam',
+      caption: 'Total',
       icon: Clapperboard,
       label: 'Published Stories',
       tone: 'pink',
       value: storiesCard ? getCardStat(storiesCard, 'Published') : 0,
     },
     {
-      caption: 'Toplam',
+      caption: 'Total',
       icon: Images,
       label: 'Video Assets',
       tone: 'yellow',
@@ -525,7 +525,7 @@ export function DashboardDataVolume({
                 </div>
 
                 <div className="text-right">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Toplam</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Total</p>
                   <p className="text-2xl font-semibold tracking-tight tabular-nums">{formatMetricCount(headerTotal)}</p>
                 </div>
               </CardHeader>
@@ -548,7 +548,7 @@ export function DashboardDataVolume({
                       <SegmentedRingChart total={chartTotal} segments={assetSegments} />
                     ) : (
                       <RingChart
-                        centerLabel={card.key === 'story-bars' ? 'Aktif' : undefined}
+                        centerLabel={card.key === 'story-bars' ? 'Active' : undefined}
                         centerValue={card.key === 'story-bars' ? primaryValue : undefined}
                         total={chartTotal}
                         value={primaryValue}
@@ -568,7 +568,7 @@ export function DashboardDataVolume({
               <CardFooter className="justify-end border-t border-border/60 p-6 pt-4">
                 <Button asChild className="bg-muted/70 hover:bg-muted" size="sm" variant="secondary">
                   <Link href={meta.href}>
-                    Tümünü Gör
+                    View All
                     <ArrowRight aria-hidden className="size-4" data-icon="inline-end" />
                   </Link>
                 </Button>

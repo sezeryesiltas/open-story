@@ -110,7 +110,7 @@ export function AdminTablePanel({
                 Filtreleri temizle
               </Button>
             ) : null}
-            <Badge variant="secondary">{visibleCount} görünür satır</Badge>
+            <Badge variant="secondary">{visibleCount} visible rows</Badge>
             {toolbarContent}
           </div>
         </div>
@@ -122,7 +122,7 @@ export function AdminTablePanel({
 
       <CardFooter className="flex flex-col items-stretch gap-3 border-t border-border/60 bg-muted/20 p-4 pt-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span>{visibleCount} görünür satır</span>
+          <span>{visibleCount} visible rows</span>
           <span className="rounded-md border border-border/60 bg-background/50 px-2.5 py-1">
             Sayfa boyutu:{' '}
             <span className="font-semibold text-foreground">{pageSize}</span>
@@ -135,7 +135,7 @@ export function AdminTablePanel({
           </span>
           <div className="flex items-center gap-2">
             <Button
-              aria-label="Önceki sayfa"
+              aria-label="Previous page"
               disabled={normalizedPage <= 1}
               onClick={() => onPageChange(normalizedPage - 1)}
               size="icon"

@@ -35,8 +35,8 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
 
   if (!response.ok) {
     const fallbackMessage = contentType.includes('text/html')
-      ? `API endpoint bulunamadı veya yanlış sunucuya gidildi (${response.status} ${response.statusText}).`
-      : `İstek başarısız oldu (${response.status} ${response.statusText}).`;
+      ? `API endpoint was not found or the request reached the wrong server (${response.status} ${response.statusText}).`
+      : `Request failed (${response.status} ${response.statusText}).`;
 
     throw new ApiRequestError(
       payload?.error?.message ?? fallbackMessage,
