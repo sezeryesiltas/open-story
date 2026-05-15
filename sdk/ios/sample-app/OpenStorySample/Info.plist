@@ -21,13 +21,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>OPEN_STORY_BASE_URL</key>
-	<string>http://127.0.0.1:3001</string>
+	<string>https://api.openstory.cloud/</string>
 	<key>OPEN_STORY_CLIENT_ID</key>
 	<string>public-client-id</string>
 	<key>OPEN_STORY_PLACEMENT_KEY</key>
-	<string>home_top_story_bar</string>
+	<string>placement_home</string>
 	<key>OPEN_STORY_STATIC_TOKEN</key>
-	<string>ost_MLEJhIZKTV-WM20JdqDtMhGT7b2WxO5j</string>
+	<string>ost_r5XVXMIyXxTwIXLu1rcT95v8-VhGfjdt</string>
 	<key>OPEN_STORY_USER_SEGMENTS_CSV</key>
 	<string>premium</string>
 	<key>UIApplicationSceneManifest</key>
