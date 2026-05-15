@@ -107,7 +107,6 @@
 				5584C7414E2143FFB8C44570 /* Sources */,
 				32E78FCC3D54AACD4EB7A61B /* Frameworks */,
 				75CB01B4959376C2D91637A8 /* Resources */,
-				C71CC569F0CB71F6661E3271 /* Sync Open Story Local Properties */,
 			);
 			buildRules = (
 			);
@@ -164,27 +163,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		C71CC569F0CB71F6661E3271 /* Sync Open Story Local Properties */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Sync Open Story Local Properties";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\n\nLOCAL_PROPERTIES_PATH=\"\"\nfor candidate in \\\n  \"$SRCROOT/../../android/local.properties\" \\\n  \"$SRCROOT/../android/local.properties\" \\\n  \"$SRCROOT/../../../android/local.properties\"; do\n  if [ -r \"$candidate\" ]; then\n    LOCAL_PROPERTIES_PATH=\"$candidate\"\n    break\n  fi\ndone\n\nif [ -z \"$LOCAL_PROPERTIES_PATH\" ]; then\n  exit 0\nfi\n\nINFO_PLIST_PATH=\"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\nif [ ! -f \"$INFO_PLIST_PATH\" ]; then\n  exit 0\nfi\n\nread_property() {\n  local key=\"$1\"\n  local line\n  line=$(grep -E \"^${key}=\" \"$LOCAL_PROPERTIES_PATH\" | tail -n 1 || true)\n  if [ -z \"$line\" ]; then\n    return 0\n  fi\n  printf \"%s\" \"${line#*=}\" | sed 's/^\\s*//;s/\\s*$//'\n}\n\nwrite_plist_value() {\n  local key=\"$1\"\n  local value=\"$2\"\n  if [ -z \"$value\" ]; then\n    return 0\n  fi\n\n  if /usr/libexec/PlistBuddy -c \"Print :$key\" \"$INFO_PLIST_PATH\" >/dev/null 2>&1; then\n    /usr/libexec/PlistBuddy -c \"Set :$key $value\" \"$INFO_PLIST_PATH\"\n  else\n    /usr/libexec/PlistBuddy -c \"Add :$key string $value\" \"$INFO_PLIST_PATH\"\n  fi\n}\n\nwrite_plist_value \"OPEN_STORY_CLIENT_ID\" \"$(read_property OPEN_STORY_CLIENT_ID)\"\nwrite_plist_value \"OPEN_STORY_STATIC_TOKEN\" \"$(read_property OPEN_STORY_STATIC_TOKEN)\"\n\nBASE_URL_RAW=\"$(read_property OPEN_STORY_BASE_URL)\"\n# Android uses 10.0.2.2 for host loopback; remap to 127.0.0.1 for iOS simulator\nBASE_URL_IOS=\"${BASE_URL_RAW//10.0.2.2/127.0.0.1}\"\nwrite_plist_value \"OPEN_STORY_BASE_URL\" \"$BASE_URL_IOS\"\nwrite_plist_value \"OPEN_STORY_PLACEMENT_KEY\" \"$(read_property OPEN_STORY_PLACEMENT_KEY)\"\nwrite_plist_value \"OPEN_STORY_USER_SEGMENTS_CSV\" \"$(read_property OPEN_STORY_USER_SEGMENTS_CSV)\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5584C7414E2143FFB8C44570 /* Sources */ = {

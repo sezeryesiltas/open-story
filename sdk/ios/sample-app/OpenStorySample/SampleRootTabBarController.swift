@@ -4,6 +4,12 @@ final class SampleRootTabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithOpaqueBackground()
+        tabAppearance.backgroundColor = Theme.barBackground
+        tabAppearance.shadowColor = Theme.separator
+        tabBar.standardAppearance = tabAppearance
+        tabBar.scrollEdgeAppearance = tabAppearance
         tabBar.tintColor = Theme.accent
         tabBar.unselectedItemTintColor = Theme.tabBarUnselected
 
@@ -46,6 +52,15 @@ final class SampleRootTabBarController: UITabBarController {
             selectedImage: nil
         )
         navigationController.navigationBar.prefersLargeTitles = true
+        let navigationAppearance = UINavigationBarAppearance()
+        navigationAppearance.configureWithOpaqueBackground()
+        navigationAppearance.backgroundColor = Theme.barBackground
+        navigationAppearance.shadowColor = Theme.separator
+        navigationAppearance.titleTextAttributes = [.foregroundColor: Theme.primaryText]
+        navigationAppearance.largeTitleTextAttributes = [.foregroundColor: Theme.primaryText]
+        navigationController.navigationBar.standardAppearance = navigationAppearance
+        navigationController.navigationBar.compactAppearance = navigationAppearance
+        navigationController.navigationBar.scrollEdgeAppearance = navigationAppearance
         navigationController.navigationBar.tintColor = Theme.navBarTint
         return navigationController
     }
