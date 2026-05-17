@@ -13,10 +13,9 @@ val localProperties = Properties().apply {
 }
 
 fun readLocalConfig(key: String, defaultValue: String): String {
-    return providers.environmentVariable(key)
-        .orElse(localProperties.getProperty(key))
-        .orElse(defaultValue)
-        .get()
+    return providers.environmentVariable(key).orNull
+        ?: localProperties.getProperty(key)
+        ?: defaultValue
 }
 
 android {

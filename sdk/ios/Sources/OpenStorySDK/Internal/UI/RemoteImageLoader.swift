@@ -11,7 +11,7 @@ internal enum RemoteImageLoader {
     static func loadImage(
         from urlString: String?,
         into imageView: UIImageView,
-        onImageSet: (@MainActor @Sendable (UIImage?) -> Void)? = nil
+        onImageSet: (@MainActor (UIImage?) -> Void)? = nil
     ) {
         objc_setAssociatedObject(
             imageView,

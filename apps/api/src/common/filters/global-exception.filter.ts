@@ -9,13 +9,18 @@ import {
   UnauthorizedException,
   ConflictException,
 } from '@nestjs/common';
-import { FastifyReply } from 'fastify';
 import { ApiErrorResponse, ApiServiceError } from './api-error.ts';
+
+type HttpResponse = {
+  status(statusCode: number): {
+    send(body: ApiErrorResponse): void;
+  };
+};
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
-    const response = host.switchToHttp().getResponse<FastifyReply>();
+    const response = host.switchToHttp().getResponse<HttpResponse>();
 
     if (exception instanceof UnauthorizedException) {
       return this.send(response, HttpStatus.UNAUTHORIZED, {
@@ -68,7 +73,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     });
   }
 
-  private send(response: FastifyReply, statusCode: number, body: ApiErrorResponse): void {
+  private send(response: HttpResponse, statusCode: number, body: ApiErrorResponse): void {
     response.status(statusCode).send(body);
   }
 }
