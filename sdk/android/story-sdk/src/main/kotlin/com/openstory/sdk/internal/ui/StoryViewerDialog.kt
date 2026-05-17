@@ -18,6 +18,7 @@ import android.os.SystemClock
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.TextureView
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
@@ -34,13 +35,14 @@ import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import coil.load
 import com.openstory.sdk.OpenStoryCallbacks
 import com.openstory.sdk.R
 import com.openstory.sdk.internal.cache.ViewedStorySession
+import com.openstory.sdk.internal.network.SdkFeedAssetPayload
 import com.openstory.sdk.internal.network.SdkFeedGroupPayload
 import com.openstory.sdk.internal.network.SdkFeedResponsePayload
 import com.openstory.sdk.internal.network.SdkFeedStoryPayload
@@ -611,12 +613,42 @@ internal class StoryViewerDialog private constructor(
         imageProgressState = StoryPlaybackProgressState.started(DEFAULT_IMAGE_DURATION_MS)
         storyPlaybackStartedAtMs = 0L
 
-        addMediaBackdrop(
-            mediaHost = mediaHost,
-            imageUrl = story.viewerBackdropImageUrl,
-        )
+        if (story.mediaType != "video") {
+            addMediaBackdrop(
+                mediaHost = mediaHost,
+                imageUrl = story.viewerBackdropImageUrl,
+            )
+        }
 
         if (story.mediaType == "video") {
+            val targetMediaHost = mediaHost
+            val videoFrame = AspectRatioFrameLayout(context).apply {
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                story.asset.widthToHeightRatio()?.let(::setAspectRatio)
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    Gravity.CENTER,
+                )
+            }
+            val textureView = TextureView(context).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                )
+            }
+            videoFrame.addView(textureView)
+            val videoPosterView = story.posterAsset?.url?.takeIf { it.isNotBlank() }?.let { posterUrl ->
+                WidthFitImageView(context).apply {
+                    targetHeightToWidthRatio = story.asset.heightToWidthRatio()
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                    )
+                    load(posterUrl)
+                }
+            }
+
             val player = ExoPlayer.Builder(context).build().also { exoPlayer ->
                 exoPlayer.setMediaItem(MediaItem.fromUri(story.asset.url))
                 exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
@@ -631,24 +663,29 @@ internal class StoryViewerDialog private constructor(
                                 }
                             }
                         }
+
+                        override fun onVideoSizeChanged(videoSize: VideoSize) {
+                            videoSize.widthToHeightRatio()?.let(videoFrame::setAspectRatio)
+                            videoSize.heightToWidthRatio()?.let { ratio ->
+                                videoPosterView?.targetHeightToWidthRatio = ratio
+                            }
+                        }
+
+                        override fun onRenderedFirstFrame() {
+                            if (currentPlayer === exoPlayer) {
+                                videoPosterView?.let(targetMediaHost::removeView)
+                            }
+                        }
                     },
                 )
+                exoPlayer.setVideoTextureView(textureView)
                 exoPlayer.prepare()
                 exoPlayer.playWhenReady = pauseReasons.isEmpty()
             }
             currentPlayer = player
 
-            val playerView = PlayerView(context).apply {
-                useController = false
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                setShutterBackgroundColor(Color.TRANSPARENT)
-                this.player = player
-                layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                )
-            }
-            mediaHost.addView(playerView)
+            targetMediaHost.addView(videoFrame)
+            videoPosterView?.let(targetMediaHost::addView)
             soundButton.isVisible = true
             updateSoundButton(activeStage)
             startVideoProgressMonitoring(player, story)
@@ -674,10 +711,12 @@ internal class StoryViewerDialog private constructor(
         story: SdkFeedStoryPayload,
     ) {
         stage.mediaHost.removeAllViews()
-        addMediaBackdrop(
-            mediaHost = stage.mediaHost,
-            imageUrl = story.viewerBackdropImageUrl,
-        )
+        if (story.mediaType != "video") {
+            addMediaBackdrop(
+                mediaHost = stage.mediaHost,
+                imageUrl = story.viewerBackdropImageUrl,
+            )
+        }
 
         val imageView = WidthFitImageView(context).apply {
             layoutParams = FrameLayout.LayoutParams(
@@ -1514,6 +1553,11 @@ internal class StoryViewerDialog private constructor(
 
 private class WidthFitImageView(context: Context) : ImageView(context) {
     private val widthFitMatrix = Matrix()
+    var targetHeightToWidthRatio: Float? = null
+        set(value) {
+            field = value
+            updateWidthFitMatrix()
+        }
 
     init {
         scaleType = ScaleType.MATRIX
@@ -1537,16 +1581,59 @@ private class WidthFitImageView(context: Context) : ImageView(context) {
             return
         }
 
-        val scale = width.toFloat() / drawableWidth.toFloat()
+        val frameWidth = width.toFloat()
+        val frameHeight = targetHeightToWidthRatio
+            ?.takeIf { it > 0f }
+            ?.let { frameWidth * it }
+            ?: (drawableHeight * (frameWidth / drawableWidth.toFloat()))
+        val frameTop = (height - frameHeight) / 2f
+        val scale = maxOf(frameWidth / drawableWidth.toFloat(), frameHeight / drawableHeight.toFloat())
+        val scaledWidth = drawableWidth * scale
         val scaledHeight = drawableHeight * scale
-        val topOffset = (height - scaledHeight) / 2f
+        val leftOffset = (frameWidth - scaledWidth) / 2f
+        val topOffset = frameTop + ((frameHeight - scaledHeight) / 2f)
 
         widthFitMatrix.reset()
         widthFitMatrix.setScale(scale, scale)
-        widthFitMatrix.postTranslate(0f, topOffset)
+        widthFitMatrix.postTranslate(leftOffset, topOffset)
         imageMatrix = widthFitMatrix
     }
 }
+
+private fun SdkFeedAssetPayload.heightToWidthRatio(): Float? {
+    val assetWidth = width ?: return null
+    val assetHeight = height ?: return null
+    if (assetWidth <= 0 || assetHeight <= 0) {
+        return null
+    }
+    return assetHeight.toFloat() / assetWidth.toFloat()
+}
+
+private fun SdkFeedAssetPayload.widthToHeightRatio(): Float? =
+    heightToWidthRatio()?.let { 1f / it }
+
+private fun VideoSize.heightToWidthRatio(): Float? {
+    if (width <= 0 || height <= 0 || pixelWidthHeightRatio <= 0f) {
+        return null
+    }
+
+    val normalizedRotation = ((unappliedRotationDegrees % 360) + 360) % 360
+    val isSideways = normalizedRotation == 90 || normalizedRotation == 270
+    val displayWidth = if (isSideways) {
+        height.toFloat()
+    } else {
+        width * pixelWidthHeightRatio
+    }
+    val displayHeight = if (isSideways) {
+        width * pixelWidthHeightRatio
+    } else {
+        height.toFloat()
+    }
+    return displayHeight / displayWidth
+}
+
+private fun VideoSize.widthToHeightRatio(): Float? =
+    heightToWidthRatio()?.let { 1f / it }
 
 private fun Context.findActivity(): Activity? {
     var currentContext: Context? = this

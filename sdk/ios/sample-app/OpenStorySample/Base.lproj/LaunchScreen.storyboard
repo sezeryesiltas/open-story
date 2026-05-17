@@ -17,12 +17,12 @@
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="open-story" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wM2-yJ-pN6">
                                 <rect key="frame" x="123" y="396" width="147" height="39"/>
                                 <fontDescription key="fontDescription" type="system" weight="bold" pointSize="32"/>
-                                <color key="textColor" red="1" green="0.83529411760000003" blue="0.46274509800000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <color key="textColor" red="0.23000000000000001" green="0.81999999999999995" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="0.1960784314" green="0.1176470588" blue="0.070588235290000001" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.040000000000000001" green="0.040000000000000001" blue="0.050000000000000003" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="wM2-yJ-pN6" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="Bcl-D8-C70"/>
                             <constraint firstItem="wM2-yJ-pN6" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="og4-WN-hPv"/>

@@ -253,12 +253,22 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         imageProgressState = StoryPlaybackProgressState.started(Self.defaultImageDurationMs)
         storyPlaybackStartedAtMs = 0
 
-        addMediaBackdrop(
-            to: activeStage.mediaHost,
-            imageURL: story.viewerBackdropImageURL
-        )
+        if story.mediaType != "video" {
+            addMediaBackdrop(
+                to: activeStage.mediaHost,
+                imageURL: story.viewerBackdropImageURL
+            )
+        }
 
         if story.mediaType == "video", let url = URL(string: story.asset.url) {
+            if let posterAsset = story.posterAsset {
+                addWidthFittedImageView(
+                    to: activeStage.mediaHost,
+                    imageURL: posterAsset.url,
+                    asset: story.asset
+                )
+            }
+
             let player = AVPlayer(url: url)
             player.isMuted = isMuted
             let playerSurfaceView = PlayerSurfaceView()
@@ -312,10 +322,12 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
     ) {
         stage.mediaHost.subviews.forEach { $0.removeFromSuperview() }
         let previewURL = story.posterAsset?.url ?? story.asset.url
-        addMediaBackdrop(
-            to: stage.mediaHost,
-            imageURL: story.viewerBackdropImageURL
-        )
+        if story.mediaType != "video" {
+            addMediaBackdrop(
+                to: stage.mediaHost,
+                imageURL: story.viewerBackdropImageURL
+            )
+        }
 
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false

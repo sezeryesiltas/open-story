@@ -100,7 +100,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         contentStack.axis = .vertical
         contentStack.spacing = 18
         contentStack.isLayoutMarginsRelativeArrangement = true
-        contentStack.layoutMargins = UIEdgeInsets(top: 10, left: 20, bottom: 28, right: 20)
+        contentStack.layoutMargins = UIEdgeInsets(top: 10, left: 10, bottom: 28, right: 10)
 
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         statusLabel.font = .systemFont(ofSize: 14, weight: .semibold)
@@ -135,22 +135,29 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
 
         let topStorySurface = makeTopStorySurface()
 
+        let storyBarWrapper = UIView()
+        storyBarWrapper.translatesAutoresizingMaskIntoConstraints = false
+        storyBarWrapper.backgroundColor = .clear
+        storyBarWrapper.addSubview(storyBarHost)
+        NSLayoutConstraint.activate([
+            storyBarHost.topAnchor.constraint(equalTo: storyBarWrapper.topAnchor),
+            storyBarHost.bottomAnchor.constraint(equalTo: storyBarWrapper.bottomAnchor),
+            storyBarHost.leadingAnchor.constraint(equalTo: storyBarWrapper.leadingAnchor, constant: 10),
+            storyBarHost.trailingAnchor.constraint(equalTo: storyBarWrapper.trailingAnchor, constant: -10),
+        ])
+
+        contentStack.addArrangedSubview(storyBarWrapper)
         contentStack.addArrangedSubview(topStorySurface)
         contentStack.addArrangedSubview(heroCard)
         contentStack.addArrangedSubview(placementCard)
         contentStack.addArrangedSubview(reloadButton)
         contentStack.addArrangedSubview(callbackCard)
 
-        view.addSubview(storyBarHost)
         view.addSubview(scrollView)
         scrollView.addSubview(contentStack)
 
         NSLayoutConstraint.activate([
-            storyBarHost.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 4),
-            storyBarHost.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 18),
-            storyBarHost.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -18),
-
-            scrollView.topAnchor.constraint(equalTo: storyBarHost.bottomAnchor, constant: 8),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -184,7 +191,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
     private func makeHeroCard() -> UIView {
         let card = LayoutAwareView()
         card.translatesAutoresizingMaskIntoConstraints = false
-        card.layer.cornerRadius = 30
+        card.layer.cornerRadius = 5
         card.layer.cornerCurve = .continuous
         card.layer.masksToBounds = true
 
@@ -243,7 +250,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         let surface = LayoutAwareView()
         surface.translatesAutoresizingMaskIntoConstraints = false
         surface.backgroundColor = Theme.background
-        surface.layer.cornerRadius = 28
+        surface.layer.cornerRadius = 5
         surface.layer.cornerCurve = .continuous
         surface.layer.masksToBounds = true
 
@@ -259,14 +266,14 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
         titleLabel.textColor = Theme.secondaryText
         titleLabel.numberOfLines = 0
-        titleLabel.text = "Story bar sabit olarak üst yüzeyde durur."
+        titleLabel.text = "Story bar sayfa içeriğiyle birlikte kayar."
 
         let subtitleLabel = UILabel()
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         subtitleLabel.font = .systemFont(ofSize: 14, weight: .medium)
         subtitleLabel.textColor = Theme.tertiaryText
         subtitleLabel.numberOfLines = 0
-        subtitleLabel.text = "Container yerine doğrudan host yüzeyinin üstünde render edilir. Aşağıdaki içerik sadece sayfa kabuğunu simüle eder."
+        subtitleLabel.text = "Story bar artık sticky değil; scroll view içinde diğer kartlarla birlikte hareket eder."
 
         let stack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -380,7 +387,7 @@ private final class CardView: UIView {
         super.init(frame: frame)
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = Theme.cardBackground
-        layer.cornerRadius = 26
+        layer.cornerRadius = 5
         layer.cornerCurve = .continuous
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = Theme.cardShadowOpacity(for: traitCollection)
