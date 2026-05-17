@@ -18,6 +18,9 @@ sdk/android/.gradle/
 sdk/android/local.properties
 sdk/android/**/build/
 sdk/ios/.build/
+sdk/ios/.swiftpm/xcode/xcuserdata/
+**/xcuserdata/
+*.xcuserstate
 sdk/flutter/.dart_tool/
 sdk/flutter/.flutter-plugins
 sdk/flutter/.flutter-plugins-dependencies

@@ -367,37 +367,24 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
 
-        var heightConstraint = activateWidthFittedMediaConstraints(
+        let heightConstraint = activateWidthFittedMediaConstraints(
             for: imageView,
             in: mediaHost,
             width: asset.width,
             height: asset.height
         )
         let hasAssetAspect = Self.aspectMultiplier(width: asset.width, height: asset.height) != nil
+        let imageAspectApplier = WidthFittedImageAspectApplier(
+            imageView: imageView,
+            heightConstraint: heightConstraint,
+            hasAssetAspect: hasAssetAspect
+        )
 
-        func applyImageAspect(_ image: UIImage?) {
-            guard
-                !hasAssetAspect,
-                let image,
-                image.size.width > 0,
-                image.size.height > 0
-            else {
-                return
-            }
-
-            heightConstraint.isActive = false
-            heightConstraint = imageView.heightAnchor.constraint(
-                equalTo: imageView.widthAnchor,
-                multiplier: image.size.height / image.size.width
-            )
-            heightConstraint.isActive = true
-        }
-
-        applyImageAspect(imageView.image)
+        imageAspectApplier.apply(imageView.image)
         RemoteImageLoader.loadImage(
             from: imageURL,
             into: imageView,
-            onImageSet: applyImageAspect
+            onImageSet: imageAspectApplier.apply
         )
     }
 
@@ -1299,6 +1286,42 @@ internal final class StoryViewerViewController: UIViewController, UIGestureRecog
 
     private var interactiveGroupSwipeCompletionThreshold: CGFloat {
         groupSwipeThreshold / max(1, stageSurface.bounds.width)
+    }
+}
+
+@MainActor
+private final class WidthFittedImageAspectApplier {
+    private weak var imageView: UIImageView?
+    private var heightConstraint: NSLayoutConstraint
+    private let hasAssetAspect: Bool
+
+    init(
+        imageView: UIImageView,
+        heightConstraint: NSLayoutConstraint,
+        hasAssetAspect: Bool
+    ) {
+        self.imageView = imageView
+        self.heightConstraint = heightConstraint
+        self.hasAssetAspect = hasAssetAspect
+    }
+
+    func apply(_ image: UIImage?) {
+        guard
+            !hasAssetAspect,
+            let imageView,
+            let image,
+            image.size.width > 0,
+            image.size.height > 0
+        else {
+            return
+        }
+
+        heightConstraint.isActive = false
+        heightConstraint = imageView.heightAnchor.constraint(
+            equalTo: imageView.widthAnchor,
+            multiplier: image.size.height / image.size.width
+        )
+        heightConstraint.isActive = true
     }
 }
 

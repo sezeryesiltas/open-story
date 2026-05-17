@@ -1,5 +1,6 @@
 package com.openstory.sdk.internal.ui
 
+import android.annotation.SuppressLint
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -31,11 +32,13 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.OptIn
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import coil.load
@@ -601,6 +604,7 @@ internal class StoryViewerDialog private constructor(
         )
     }
 
+    @OptIn(UnstableApi::class)
     private fun renderMedia(story: SdkFeedStoryPayload) {
         currentProgressAnimator?.cancel()
         currentProgressAnimator = null
@@ -1551,6 +1555,7 @@ internal class StoryViewerDialog private constructor(
     }
 }
 
+@SuppressLint("AppCompatCustomView")
 private class WidthFitImageView(context: Context) : ImageView(context) {
     private val widthFitMatrix = Matrix()
     var targetHeightToWidthRatio: Float? = null

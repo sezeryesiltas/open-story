@@ -142,17 +142,23 @@ class _OpenStoryBarState extends State<OpenStoryBar> {
     return <String, Object?>{
       "placementKey": widget.placementKey,
       "callbackChannel": _callbackChannelName,
-      "titleColorValue": widget.titleColor?.toARGB32(),
-      "viewedTitleColorValue": widget.viewedTitleColor?.toARGB32(),
+      "titleColorValue": _toArgb32(widget.titleColor),
+      "viewedTitleColorValue": _toArgb32(widget.viewedTitleColor),
     };
   }
 
   String get _platformViewKey {
     return [
       widget.placementKey,
-      widget.titleColor?.toARGB32().toString() ?? "default-title",
-      widget.viewedTitleColor?.toARGB32().toString() ?? "default-viewed-title",
+      _toArgb32(widget.titleColor)?.toString() ?? "default-title",
+      _toArgb32(widget.viewedTitleColor)?.toString() ?? "default-viewed-title",
     ].join("|");
+  }
+
+  int? _toArgb32(Color? color) {
+    // Flutter 3.22 does not expose Color.toARGB32.
+    // ignore: deprecated_member_use
+    return color?.value;
   }
 
   void _handlePlatformViewCreated(int _) {
