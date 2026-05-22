@@ -14,6 +14,7 @@
 		72EF93BBA75B6CFB75497F10 /* SampleRootTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF70CA51372926EE304C6E77 /* SampleRootTabBarController.swift */; };
 		814F1E71B1B9DE04EEB16F73 /* SamplePlaceholderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C89E0F668F6E207DD41F65E2 /* SamplePlaceholderViewController.swift */; };
 		CACFE97CF2AA3432B9848C3B /* SampleHomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 760A00247B74ECB0EEDB3297 /* SampleHomeViewController.swift */; };
+		D11AE9F32C8A4F00B1D9E4A8 /* SampleDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11AE9F22C8A4F00B1D9E4A7 /* SampleDetailViewController.swift */; };
 		DD7569F664514E4D0B515192 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9485EFD0EDF61A28701E1FFC /* AppDelegate.swift */; };
 		F76748A65A2F4EAAFD07990C /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CBA003F826BB412D91CF7F /* SceneDelegate.swift */; };
 		FA3D7E1B2C8A4F00B1D9E4A7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3D7E1A2C8A4F00B1D9E4A6 /* Theme.swift */; };
@@ -29,6 +30,7 @@
 		A371F25020AEB886020A3A67 /* SampleConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SampleConfig.swift; sourceTree = "<group>"; };
 		C7CBA003F826BB412D91CF7F /* SceneDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		C89E0F668F6E207DD41F65E2 /* SamplePlaceholderViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SamplePlaceholderViewController.swift; sourceTree = "<group>"; };
+		D11AE9F22C8A4F00B1D9E4A7 /* SampleDetailViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SampleDetailViewController.swift; sourceTree = "<group>"; };
 		CF70CA51372926EE304C6E77 /* SampleRootTabBarController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SampleRootTabBarController.swift; sourceTree = "<group>"; };
 		EB5D996E48B4F048BC0B9A04 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		FA3D7E1A2C8A4F00B1D9E4A6 /* Theme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 				EB5D996E48B4F048BC0B9A04 /* LaunchScreen.storyboard */,
 				A371F25020AEB886020A3A67 /* SampleConfig.swift */,
 				760A00247B74ECB0EEDB3297 /* SampleHomeViewController.swift */,
+				D11AE9F22C8A4F00B1D9E4A7 /* SampleDetailViewController.swift */,
 				C89E0F668F6E207DD41F65E2 /* SamplePlaceholderViewController.swift */,
 				CF70CA51372926EE304C6E77 /* SampleRootTabBarController.swift */,
 				C7CBA003F826BB412D91CF7F /* SceneDelegate.swift */,
@@ -169,6 +172,7 @@
 				DD7569F664514E4D0B515192 /* AppDelegate.swift in Sources */,
 				5E7D98146D9974D27EC7CB52 /* SampleConfig.swift in Sources */,
 				CACFE97CF2AA3432B9848C3B /* SampleHomeViewController.swift in Sources */,
+				D11AE9F32C8A4F00B1D9E4A8 /* SampleDetailViewController.swift in Sources */,
 				814F1E71B1B9DE04EEB16F73 /* SamplePlaceholderViewController.swift in Sources */,
 				72EF93BBA75B6CFB75497F10 /* SampleRootTabBarController.swift in Sources */,
 				F76748A65A2F4EAAFD07990C /* SceneDelegate.swift in Sources */,

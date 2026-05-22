@@ -121,7 +121,7 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         reloadButton.configuration?.baseForegroundColor = .white
         reloadButton.addTarget(self, action: #selector(handleReloadTap), for: .touchUpInside)
 
-        let heroCard = makeHeroCard()
+        let heroCard = makeHeroListTile()
         let placementCard = makeDetailCard(
             title: "Placement",
             rows: [
@@ -188,62 +188,97 @@ final class SampleHomeViewController: UIViewController, OpenStoryCallbacks {
         updateStatus("SDK initialized. Waiting for story bar render.")
     }
 
-    private func makeHeroCard() -> UIView {
-        let card = LayoutAwareView()
-        card.translatesAutoresizingMaskIntoConstraints = false
-        card.layer.cornerRadius = 5
-        card.layer.cornerCurve = .continuous
-        card.layer.masksToBounds = true
+    private func makeHeroListTile() -> UIView {
+        let tile = LayoutAwareView()
+        tile.translatesAutoresizingMaskIntoConstraints = false
+        tile.layer.cornerRadius = 12
+        tile.layer.cornerCurve = .continuous
+        tile.layer.masksToBounds = true
 
         let gradientLayer = CAGradientLayer()
         gradientLayer.colors = Theme.heroGradientColors(for: traitCollection)
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer.endPoint = CGPoint(x: 1, y: 1)
-        card.layer.insertSublayer(gradientLayer, at: 0)
+        tile.layer.insertSublayer(gradientLayer, at: 0)
         heroGradientLayer = gradientLayer
 
         let icon = UIImageView(image: UIImage(systemName: "sparkles.tv.fill"))
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.tintColor = Theme.heroIconTint
-        icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 32, weight: .bold)
+        icon.contentMode = .scaleAspectFit
+        icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
+        icon.setContentHuggingPriority(.required, for: .horizontal)
 
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         titleLabel.textColor = Theme.heroTitle
-        titleLabel.numberOfLines = 0
+        titleLabel.numberOfLines = 1
         titleLabel.text = "open-story iOS host app"
 
         let subtitleLabel = UILabel()
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        subtitleLabel.font = .systemFont(ofSize: 13, weight: .medium)
         subtitleLabel.textColor = Theme.heroSubtitle
-        subtitleLabel.numberOfLines = 0
-        subtitleLabel.text = "This host stays intentionally narrow: tab shell, placement reload, callback visibility, and fixed viewer validation."
+        subtitleLabel.numberOfLines = 2
+        subtitleLabel.text = "Detay ekrana git ve geri dön — story bar geçiş animasyonunu test et."
 
-        let stack = UIStackView(arrangedSubviews: [icon, titleLabel, subtitleLabel])
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.alignment = .leading
-        stack.spacing = 16
+        let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        textStack.translatesAutoresizingMaskIntoConstraints = false
+        textStack.axis = .vertical
+        textStack.spacing = 4
 
-        card.addSubview(stack)
-        card.layoutIfNeeded()
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+        chevron.tintColor = Theme.heroSubtitle
+        chevron.contentMode = .scaleAspectFit
+        chevron.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        chevron.setContentHuggingPriority(.required, for: .horizontal)
+
+        let rowStack = UIStackView(arrangedSubviews: [icon, textStack, chevron])
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        rowStack.axis = .horizontal
+        rowStack.alignment = .center
+        rowStack.spacing = 14
+
+        tile.addSubview(rowStack)
 
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 26),
-            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -24),
-            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -26),
+            rowStack.topAnchor.constraint(equalTo: tile.topAnchor, constant: 14),
+            rowStack.leadingAnchor.constraint(equalTo: tile.leadingAnchor, constant: 16),
+            rowStack.trailingAnchor.constraint(equalTo: tile.trailingAnchor, constant: -16),
+            rowStack.bottomAnchor.constraint(equalTo: tile.bottomAnchor, constant: -14),
+            icon.widthAnchor.constraint(equalToConstant: 32),
+            icon.heightAnchor.constraint(equalToConstant: 32),
         ])
 
-        card.heightAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
+        tile.heightAnchor.constraint(greaterThanOrEqualToConstant: 64).isActive = true
 
-        card.layoutSubviewsHandler = { view in
+        tile.layoutSubviewsHandler = { view in
             gradientLayer.frame = view.bounds
         }
 
-        return card
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleHeroTileTap(_:)))
+        tile.addGestureRecognizer(tap)
+        tile.isUserInteractionEnabled = true
+        tile.accessibilityTraits = .button
+        tile.accessibilityLabel = "open-story iOS host app, detayı aç"
+
+        return tile
+    }
+
+    @objc
+    private func handleHeroTileTap(_ sender: UITapGestureRecognizer) {
+        guard let tile = sender.view else { return }
+        UIView.animate(
+            withDuration: 0.08,
+            animations: { tile.alpha = 0.6 },
+            completion: { _ in
+                UIView.animate(withDuration: 0.12) { tile.alpha = 1.0 }
+            }
+        )
+        let detail = SampleDetailViewController()
+        navigationController?.pushViewController(detail, animated: true)
     }
 
     private func makeTopStorySurface() -> UIView {

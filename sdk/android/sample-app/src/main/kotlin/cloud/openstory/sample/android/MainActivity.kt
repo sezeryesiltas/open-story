@@ -1,4 +1,4 @@
-package com.openstory.sdk.sample
+package cloud.openstory.sample.android
 
 import android.os.Bundle
 import android.widget.FrameLayout

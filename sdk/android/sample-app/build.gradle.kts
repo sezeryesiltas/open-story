@@ -19,11 +19,11 @@ fun readLocalConfig(key: String, defaultValue: String): String {
 }
 
 android {
-    namespace = "com.openstory.sdk.sample"
+    namespace = "cloud.openstory.sample.android"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.openstory.sdk.sample"
+        applicationId = "cloud.openstory.sample.android"
         minSdk = 21
         targetSdk = 34
         versionCode = 1

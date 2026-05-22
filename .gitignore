@@ -31,3 +31,5 @@ sdk/flutter/ios/Flutter/
 sdk/flutter/ios/Pods/
 sdk/flutter/ios/.symlinks/
 DerivedData/
+DerivedData-*/
+.DS_Store
