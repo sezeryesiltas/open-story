@@ -41,6 +41,17 @@ class StoryBarViewTest {
     }
 
     @Test
+    fun clipsStoryBarContentToNativeViewport() {
+        val view = StoryBarView(ApplicationProvider.getApplicationContext())
+        val scrollView = view.getChildAt(1) as android.widget.HorizontalScrollView
+
+        assertThat(view.clipChildren).isTrue()
+        assertThat(view.clipToPadding).isTrue()
+        assertThat(scrollView.clipChildren).isTrue()
+        assertThat(scrollView.clipToPadding).isTrue()
+    }
+
+    @Test
     fun renderSnapshotUsesConfiguredTextColorForUnviewedGroups() {
         val view = StoryBarView(ApplicationProvider.getApplicationContext())
         val textColor = Color.WHITE

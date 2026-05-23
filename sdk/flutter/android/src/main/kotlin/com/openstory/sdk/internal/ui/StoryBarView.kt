@@ -44,7 +44,8 @@ internal class StoryBarView @JvmOverloads constructor(
     private val scrollView = HorizontalScrollView(context).apply {
         isHorizontalScrollBarEnabled = false
         overScrollMode = View.OVER_SCROLL_NEVER
-        clipToPadding = false
+        clipChildren = true
+        clipToPadding = true
     }
 
     private val groupRow = LinearLayout(context).apply {
@@ -67,8 +68,8 @@ internal class StoryBarView @JvmOverloads constructor(
     private var viewedTitleTextColor: Int = DEFAULT_VIEWED_TITLE_TEXT_COLOR
 
     init {
-        clipChildren = false
-        clipToPadding = false
+        clipChildren = true
+        clipToPadding = true
         scrollView.addView(
             groupRow,
             ViewGroup.LayoutParams(

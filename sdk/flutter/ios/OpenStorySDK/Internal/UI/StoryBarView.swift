@@ -152,7 +152,7 @@ internal final class StoryBarView: UIView {
     }
 
     private func buildUI() {
-        clipsToBounds = false
+        clipsToBounds = true
 
         emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyStateLabel.isHidden = true
@@ -168,7 +168,7 @@ internal final class StoryBarView: UIView {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.isHidden = true
         scrollView.showsHorizontalScrollIndicator = false
-        scrollView.clipsToBounds = false
+        scrollView.clipsToBounds = true
         scrollView.delaysContentTouches = false
         scrollView.canCancelContentTouches = true
         scrollView.panGestureRecognizer.cancelsTouchesInView = false

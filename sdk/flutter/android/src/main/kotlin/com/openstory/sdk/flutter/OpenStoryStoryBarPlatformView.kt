@@ -14,7 +14,10 @@ internal class OpenStoryStoryBarPlatformView(
     messenger: BinaryMessenger,
     creationParams: Map<*, *>,
 ) : PlatformView {
-    private val container = FrameLayout(context)
+    private val container = FrameLayout(context).apply {
+        clipChildren = true
+        clipToPadding = true
+    }
     private val eventStreamHandler = BufferedEventStreamHandler()
     private val eventChannel: EventChannel
 

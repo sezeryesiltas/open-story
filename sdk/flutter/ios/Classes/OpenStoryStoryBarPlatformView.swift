@@ -15,6 +15,7 @@ final class OpenStoryStoryBarPlatformView: NSObject, FlutterPlatformView {
     ) {
         containerView = UIView(frame: frame)
         containerView.backgroundColor = .clear
+        containerView.clipsToBounds = true
         streamHandler = OpenStoryEventStreamHandler()
 
         let payload = arguments as? [String: Any] ?? [:]

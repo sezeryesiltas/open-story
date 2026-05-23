@@ -137,7 +137,7 @@ internal final class StoryBarView: UIView {
     }
 
     private func buildUI() {
-        clipsToBounds = false
+        clipsToBounds = true
 
         emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyStateLabel.font = .systemFont(ofSize: 12, weight: .semibold)
@@ -151,7 +151,7 @@ internal final class StoryBarView: UIView {
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsHorizontalScrollIndicator = false
-        scrollView.clipsToBounds = false
+        scrollView.clipsToBounds = true
         scrollView.delaysContentTouches = false
         scrollView.canCancelContentTouches = true
         scrollView.panGestureRecognizer.cancelsTouchesInView = false
