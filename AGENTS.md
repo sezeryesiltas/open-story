@@ -6,8 +6,8 @@ This repository is **OpenStory**.
 
 Use this Codex/VS Code session only for OpenStory work. If the user asks for
 work that belongs to TETO Flutter
-(`/Volumes/Macintosh SSD/projects/tetoapp`) or TETO Backend
-(`/Volumes/Macintosh SSD/projects/tetov2`), stop and ask the user to switch to
+(`/Volumes/MacintoshSSD/projects/tetoapp`) or TETO Backend
+(`/Volumes/MacintoshSSD/projects/tetov2`), stop and ask the user to switch to
 the correct project/session before editing files.
 
 ---
