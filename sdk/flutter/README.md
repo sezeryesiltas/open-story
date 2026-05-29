@@ -33,6 +33,17 @@ SDKs under `android/` and `ios/`. That keeps the Flutter package self-contained
 for path, git, or copied-directory usage, while preserving native viewer/cache
 behavior.
 
+The iOS wrapper supports both CocoaPods and Flutter Swift Package Manager. The
+CocoaPods spec remains at `ios/open_story_flutter.podspec`; the Swift package
+manifest is at `ios/open_story_flutter/Package.swift`.
+
+The Android wrapper currently uses Flutter 3.44's KGP compatibility path so
+host apps can keep building while AGP built-in Kotlin support settles. It
+applies the Kotlin Gradle Plugin intentionally, so Flutter may list
+`open_story_flutter` in the KGP warning. Room code generation still uses KSP
+`2.2.20-2.0.4`; Room is pinned to `2.7.2` so KSP2 is supported while preserving
+the SDK's `minSdkVersion 21`.
+
 When the sibling native SDKs change in this repository, update the vendored
 snapshots intentionally with:
 

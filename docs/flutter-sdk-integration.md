@@ -50,14 +50,18 @@ normal host-app integration.
 
 ### Flutter
 
-- Flutter 3.22 or newer
-- Dart 3.3 or newer
+- Flutter 3.44 or newer
+- Dart 3.12 or newer
 
 ### Android host app
 
 - `minSdkVersion 21`
 - JDK 17
-- Android Gradle Plugin / Gradle setup compatible with Kotlin 2.x
+- Android Gradle Plugin 9 or newer
+- The plugin currently uses Flutter 3.44's KGP compatibility path and
+  intentionally applies `org.jetbrains.kotlin.android` and
+  `org.jetbrains.kotlin.plugin.serialization`, so Flutter may list
+  `open_story_flutter` in the KGP warning.
 
 The plugin carries `INTERNET` and `ACCESS_NETWORK_STATE` in its Android
 manifest, so those permissions merge into the host app automatically.
@@ -65,10 +69,22 @@ manifest, so those permissions merge into the host app automatically.
 ### iOS host app
 
 - iOS deployment target `15.0`
-- CocoaPods enabled Flutter iOS project
+- CocoaPods or Swift Package Manager enabled Flutter iOS project
 - Xcode toolchain capable of building the existing native iOS SDK
 
 Set your `ios/Podfile` platform to at least `15.0` if it is lower today.
+
+The Flutter SDK keeps both iOS package managers supported:
+
+- CocoaPods: `sdk/flutter/ios/open_story_flutter.podspec`
+- Swift Package Manager: `sdk/flutter/ios/open_story_flutter/Package.swift`
+
+Flutter's Swift Package Manager integration is opt-in in current Flutter
+tooling. Enable it for host apps with:
+
+```bash
+flutter config --enable-swift-package-manager
+```
 
 ## Add the dependency
 
@@ -251,7 +267,10 @@ Flutter SDK itself.
 Native behavior is delegated to the existing SDKs:
 
 - Android ships a vendored snapshot of the current native Kotlin implementation
-- iOS ships a vendored snapshot of the current Swift/UIKit implementation
+  and builds the Flutter wrapper with Kotlin `2.2.20`, KSP `2.2.20-2.0.4`,
+  and Room `2.7.2`
+- iOS ships a vendored snapshot of the current Swift/UIKit implementation under
+  `ios/open_story_flutter/Sources/open_story_flutter/OpenStorySDK`
 
 That keeps the Flutter layer narrow and avoids a parallel implementation of
 cache, viewer, media, or viewed-state logic in Dart, without forcing host apps

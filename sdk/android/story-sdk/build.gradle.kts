@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
 
@@ -43,7 +42,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.coroutines.android)
-    implementation(libs.serialization.json)
     implementation(libs.okhttp)
     implementation(libs.coil)
     implementation(libs.media3.exoplayer)

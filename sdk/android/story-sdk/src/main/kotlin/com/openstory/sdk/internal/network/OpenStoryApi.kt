@@ -5,9 +5,6 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -15,7 +12,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 internal class OpenStoryApi(
     configuration: OpenStoryConfiguration,
-    private val json: Json,
 ) {
     private val baseUrl = configuration.normalizedBaseUrl()
 
@@ -28,7 +24,7 @@ internal class OpenStoryApi(
         requestPayload: SdkFeedRequestPayload,
         staticToken: String,
     ): SdkFeedResponsePayload = withContext(Dispatchers.IO) {
-        val body = json.encodeToString(requestPayload)
+        val body = SdkFeedJsonCodec.encodeRequest(requestPayload)
             .toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
@@ -52,7 +48,7 @@ internal class OpenStoryApi(
                 ?: throw IOException("Story feed response body is empty.")
 
             SdkFeedResponseNormalizer.normalizeLoopbackUrls(
-                response = json.decodeFromString<SdkFeedResponsePayload>(responseBody),
+                response = SdkFeedJsonCodec.decodeResponse(responseBody),
                 baseUrl = baseUrl,
             )
         }

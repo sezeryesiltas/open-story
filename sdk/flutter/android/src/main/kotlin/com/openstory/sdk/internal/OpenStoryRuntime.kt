@@ -17,6 +17,7 @@ import com.openstory.sdk.internal.context.AppVersionProvider
 import com.openstory.sdk.internal.context.UserContextStore
 import com.openstory.sdk.internal.network.OpenStoryApi
 import com.openstory.sdk.internal.network.OpenStoryAuthorizationException
+import com.openstory.sdk.internal.network.SdkFeedJsonCodec
 import com.openstory.sdk.internal.network.SdkFeedRequestPayload
 import com.openstory.sdk.internal.network.SdkFeedResponsePayload
 import com.openstory.sdk.internal.ui.StoryBarView
@@ -31,9 +32,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 internal class OpenStoryRuntime(
     context: Context,
@@ -44,11 +42,7 @@ internal class OpenStoryRuntime(
     private val appContext = context.applicationContext
     private val appVersionProvider = AppVersionProvider(appContext)
     private val userContextStore = UserContextStore()
-    private val json = Json {
-        ignoreUnknownKeys = true
-        explicitNulls = false
-    }
-    private val api = OpenStoryApi(configuration, json)
+    private val api = OpenStoryApi(configuration)
     private val database = Room.databaseBuilder(
         appContext,
         OpenStoryDatabase::class.java,
@@ -119,7 +113,7 @@ internal class OpenStoryRuntime(
             val cachedSnapshot = withContext(ioDispatcher) {
                 cachedEntity?.payloadJson?.let { payloadJson ->
                     runCatching {
-                        json.decodeFromString<SdkFeedResponsePayload>(payloadJson)
+                        SdkFeedJsonCodec.decodeResponse(payloadJson)
                     }.getOrElse {
                         database.storyFeedSnapshotDao().delete(cacheKey.databaseKey)
                         null
@@ -134,7 +128,7 @@ internal class OpenStoryRuntime(
                 }
 
                 withContext(ioDispatcher) {
-                    val responseJson = json.encodeToString(response)
+                    val responseJson = SdkFeedJsonCodec.encodeResponse(response)
                     database.storyFeedSnapshotDao().upsert(
                         StoryFeedSnapshotEntity(
                             cacheKey = cacheKey.databaseKey,

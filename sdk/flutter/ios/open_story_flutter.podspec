@@ -9,7 +9,7 @@ Thin Flutter wrapper around the open-story native Android and iOS SDKs.
   s.license          = { :type => 'Proprietary', :text => 'Internal use only.' }
   s.author           = { 'open-story' => 'engineering@example.com' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*', 'OpenStorySDK/**/*.swift'
+  s.source_files     = 'open_story_flutter/Sources/open_story_flutter/**/*.swift'
   s.platform         = :ios, '15.0'
   s.swift_version    = '5.9'
   s.static_framework = true

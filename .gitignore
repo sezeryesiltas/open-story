@@ -28,6 +28,8 @@ sdk/flutter/.packages
 sdk/flutter/build/
 sdk/flutter/pubspec.lock
 sdk/flutter/ios/Flutter/
+sdk/flutter/ios/open_story_flutter/.build/
+sdk/flutter/ios/open_story_flutter/.swiftpm/
 sdk/flutter/ios/Pods/
 sdk/flutter/ios/.symlinks/
 DerivedData/

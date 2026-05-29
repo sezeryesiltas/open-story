@@ -37,7 +37,7 @@ if [[ $# -eq 1 ]]; then
 fi
 
 ios_source="$repo_root/sdk/ios/Sources/OpenStorySDK"
-ios_target="$repo_root/sdk/flutter/ios/OpenStorySDK"
+ios_target="$repo_root/sdk/flutter/ios/open_story_flutter/Sources/open_story_flutter/OpenStorySDK"
 
 android_source_root="$repo_root/sdk/android/story-sdk/src/main"
 android_target_root="$repo_root/sdk/flutter/android/src/main"
