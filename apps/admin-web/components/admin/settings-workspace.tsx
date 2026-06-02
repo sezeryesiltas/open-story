@@ -2,6 +2,7 @@
 
 import type {
   DatabaseSettingsDto,
+  MysqlIpTypeDto,
   MysqlSslModeDto,
   PostgresSslModeDto,
   TestDatabaseConnectionResponseDto,
@@ -46,6 +47,7 @@ type DatabaseAction = 'mysql-test' | 'mysql-save' | 'postgres-test' | 'postgres-
 const MYSQL_DEFAULT_PORT = '3306';
 const POSTGRES_DEFAULT_PORT = '5432';
 const DEFAULT_MYSQL_SSL_MODE: MysqlSslModeDto = 'disable';
+const DEFAULT_MYSQL_IP_TYPE: MysqlIpTypeDto = 'PUBLIC';
 const DEFAULT_POSTGRES_SSL_MODE: PostgresSslModeDto = 'require';
 
 const mysqlFormSchema = z
@@ -53,16 +55,18 @@ const mysqlFormSchema = z
     host: z.string().trim().max(255, 'MySQL host can be at most 255 characters.').optional(),
     port: z.string().trim().max(5, 'MySQL port can be at most 5 characters.').optional(),
     socketPath: z.string().trim().max(1024, 'MySQL socket path can be at most 1024 characters.').optional(),
+    instanceConnectionName: z.string().trim().max(255, 'MySQL instance connection name can be at most 255 characters.').optional(),
+    ipType: z.enum(['PUBLIC', 'PRIVATE', 'PSC']).optional(),
     database: z.string().trim().max(128, 'MySQL database name can be at most 128 characters.').optional(),
     username: z.string().trim().max(128, 'MySQL username can be at most 128 characters.').optional(),
     password: z.string().max(1024, 'MySQL password can be at most 1024 characters.').optional(),
     sslMode: z.enum(['disable', 'require']).optional(),
   })
   .superRefine((values, context) => {
-    if (!values.host?.trim() && !values.socketPath?.trim()) {
+    if (!values.host?.trim() && !values.socketPath?.trim() && !values.instanceConnectionName?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'MySQL host or socket path is required.',
+        message: 'MySQL host, socket path, or instance connection name is required.',
         path: ['host'],
       });
     }
@@ -172,6 +176,8 @@ function toMysqlPayload(values: MysqlFormValues): UpdateDatabaseSettingsDto {
       host: values.host?.trim() ?? '',
       port: values.port?.trim() || MYSQL_DEFAULT_PORT,
       socketPath: values.socketPath?.trim() ?? '',
+      instanceConnectionName: values.instanceConnectionName?.trim() ?? '',
+      ipType: (values.ipType ?? DEFAULT_MYSQL_IP_TYPE) as MysqlIpTypeDto,
       database: values.database?.trim() ?? '',
       username: values.username?.trim() ?? '',
       password: values.password ?? '',
@@ -219,6 +225,8 @@ export function SettingsWorkspace() {
       host: '',
       port: MYSQL_DEFAULT_PORT,
       socketPath: '',
+      instanceConnectionName: '',
+      ipType: DEFAULT_MYSQL_IP_TYPE,
       database: '',
       username: '',
       password: '',
@@ -243,6 +251,8 @@ export function SettingsWorkspace() {
       host: settings.mysqlDatabase?.host ?? '',
       port: String(settings.mysqlDatabase?.port ?? MYSQL_DEFAULT_PORT),
       socketPath: settings.mysqlDatabase?.socketPath ?? '',
+      instanceConnectionName: settings.mysqlDatabase?.instanceConnectionName ?? '',
+      ipType: settings.mysqlDatabase?.ipType ?? DEFAULT_MYSQL_IP_TYPE,
       database: settings.mysqlDatabase?.database ?? '',
       username: settings.mysqlDatabase?.username ?? '',
       password: '',
@@ -323,6 +333,7 @@ export function SettingsWorkspace() {
   const isBusy = settingsQuery.isLoading || updateMutation.isPending || connectionTestMutation.isPending;
   const settings = settingsQuery.data;
   const mysqlSslMode = (mysqlForm.watch('sslMode') ?? DEFAULT_MYSQL_SSL_MODE) as MysqlSslModeDto;
+  const mysqlIpType = (mysqlForm.watch('ipType') ?? DEFAULT_MYSQL_IP_TYPE) as MysqlIpTypeDto;
   const postgresSslMode = (postgresForm.watch('sslMode') ?? DEFAULT_POSTGRES_SSL_MODE) as PostgresSslModeDto;
 
   const saveMysql = mysqlForm.handleSubmit((values) => {
@@ -451,8 +462,8 @@ export function SettingsWorkspace() {
             <div className="space-y-2">
               <CardTitle>MySQL Connection Details</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Cloud Run can use TCP host details or a Cloud SQL Unix socket such as
-                {' '}<code>/cloudsql/project:region:instance</code>.
+                Cloud Run should use the Cloud SQL Connector with an instance connection name. TCP host details and
+                Unix sockets remain available for compatible environments.
               </p>
             </div>
             {settings.mysqlDatabase?.configuredFromEnvironment ? (
@@ -480,6 +491,42 @@ export function SettingsWorkspace() {
             </div>
 
             <div className="flex flex-col gap-2 md:col-span-2">
+              <Label htmlFor="mysqlInstanceConnectionName">Cloud SQL instance connection name</Label>
+              <Input
+                id="mysqlInstanceConnectionName"
+                placeholder="project:region:instance"
+                {...mysqlForm.register('instanceConnectionName')}
+              />
+              {mysqlForm.formState.errors.instanceConnectionName ? (
+                <p className="text-sm text-destructive">{mysqlForm.formState.errors.instanceConnectionName.message}</p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="mysqlIpType">Cloud SQL IP type</Label>
+              <Select
+                onValueChange={(value) =>
+                  mysqlForm.setValue('ipType', value as MysqlIpTypeDto, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                value={mysqlIpType}
+              >
+                <SelectTrigger id="mysqlIpType">
+                  <SelectValue placeholder="IP type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="PUBLIC">PUBLIC</SelectItem>
+                    <SelectItem value="PRIVATE">PRIVATE</SelectItem>
+                    <SelectItem value="PSC">PSC</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
               <Label htmlFor="mysqlSocketPath">Cloud SQL socket path</Label>
               <Input
                 id="mysqlSocketPath"

@@ -51,7 +51,8 @@ If the `mysql` field is filled in the `PUT /v1/settings/database` payload, the M
 ```json
 {
   "mysql": {
-    "socketPath": "/cloudsql/project-id:region:instance-name",
+    "instanceConnectionName": "project-id:region:instance-name",
+    "ipType": "PUBLIC",
     "port": 3306,
     "database": "open_story",
     "username": "open_story_app",
@@ -61,7 +62,9 @@ If the `mysql` field is filled in the `PUT /v1/settings/database` payload, the M
 }
 ```
 
-Use `host` instead of `socketPath` for TCP connections. Password is not returned in the `GET` response. If it is sent empty for the same host/port/socketPath/database/username/sslMode, the existing MySQL password is preserved.
+Cloud Run should use `instanceConnectionName` so the API connects with the Cloud SQL Node.js Connector. Use `ipType: "PRIVATE"` only when the service has VPC access to the instance private IP. Direct `host` and compatible Unix `socketPath` connections remain supported. If a Unix socket rejects a connection, the runtime retries with the Node.js Connector by inferring the instance connection name from `/cloudsql/<instance-connection-name>`.
+
+Password is not returned in the `GET` response. If it is sent empty for the same endpoint/database/username settings, the existing MySQL password is preserved.
 
 ## Supported Supabase Storage S3 settings
 

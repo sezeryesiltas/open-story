@@ -20,6 +20,8 @@ const MYSQL_ENV_KEYS = [
   'OPEN_STORY_MYSQL_HOST',
   'OPEN_STORY_MYSQL_PORT',
   'OPEN_STORY_MYSQL_SOCKET_PATH',
+  'OPEN_STORY_MYSQL_INSTANCE_CONNECTION_NAME',
+  'OPEN_STORY_MYSQL_IP_TYPE',
   'OPEN_STORY_MYSQL_DATABASE',
   'OPEN_STORY_MYSQL_USERNAME',
   'OPEN_STORY_MYSQL_PASSWORD',
@@ -110,7 +112,7 @@ test('DbService validates mysql endpoint settings before switching providers', (
           username: 'open_story_app',
         },
       }),
-    /MySQL host or socket path is required/,
+    /MySQL host, socket path, or instance connection name is required/,
   );
 
   const settings = db.getDatabaseSettings();
@@ -245,6 +247,8 @@ test('DbService resolves mysql Cloud SQL socket settings from environment', () =
   assert.equal(settings.mysqlDatabase?.host, null);
   assert.equal(settings.mysqlDatabase?.port, 3306);
   assert.equal(settings.mysqlDatabase?.socketPath, '/cloudsql/project:region:instance');
+  assert.equal(settings.mysqlDatabase?.instanceConnectionName, null);
+  assert.equal(settings.mysqlDatabase?.ipType, 'PUBLIC');
   assert.equal(settings.mysqlDatabase?.database, 'open_story');
   assert.equal(settings.mysqlDatabase?.username, 'open_story_app');
   assert.equal(settings.mysqlDatabase?.sslMode, 'disable');
@@ -252,5 +256,27 @@ test('DbService resolves mysql Cloud SQL socket settings from environment', () =
   assert.equal(
     settings.activeDatabaseUrl,
     'mysql://open_story_app@unix(/cloudsql/project:region:instance)/open_story?sslmode=disable',
+  );
+});
+
+test('DbService resolves mysql Cloud SQL Connector settings from environment', () => {
+  configureTempSqliteFallback('open-story-db-mysql-connector-env-');
+  process.env.OPEN_STORY_DB_PROVIDER = 'mysql';
+  process.env.OPEN_STORY_MYSQL_INSTANCE_CONNECTION_NAME = 'project:region:instance';
+  process.env.OPEN_STORY_MYSQL_IP_TYPE = 'PRIVATE';
+  process.env.OPEN_STORY_MYSQL_DATABASE = 'open_story';
+  process.env.OPEN_STORY_MYSQL_USERNAME = 'open_story_app';
+  process.env.OPEN_STORY_MYSQL_PASSWORD = 'env_secret';
+
+  const settings = new DbService().getDatabaseSettings();
+
+  assert.equal(settings.activeProvider, 'mysql');
+  assert.equal(settings.mysqlDatabase?.host, null);
+  assert.equal(settings.mysqlDatabase?.socketPath, null);
+  assert.equal(settings.mysqlDatabase?.instanceConnectionName, 'project:region:instance');
+  assert.equal(settings.mysqlDatabase?.ipType, 'PRIVATE');
+  assert.equal(
+    settings.activeDatabaseUrl,
+    'mysql://open_story_app@cloudsql(project:region:instance;iptype=PRIVATE)/open_story?sslmode=disable',
   );
 });

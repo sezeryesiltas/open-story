@@ -8,6 +8,8 @@ export type RelationalMysqlConfig = {
   host: string | null;
   port: number;
   socketPath: string | null;
+  instanceConnectionName: string | null;
+  ipType: 'PUBLIC' | 'PRIVATE' | 'PSC';
   database: string;
   username: string;
   password: string;

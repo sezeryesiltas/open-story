@@ -28,6 +28,7 @@ export type TableName = StoryPlatformTableName;
 export type DatabaseProvider = 'sqlite' | 'postgres' | 'mysql';
 export type PostgresSslMode = 'disable' | 'require';
 export type MysqlSslMode = 'disable' | 'require';
+export type MysqlIpType = 'PUBLIC' | 'PRIVATE' | 'PSC';
 
 type PostgresExternalDatabaseConfig = {
   host: string;
@@ -42,6 +43,8 @@ type MysqlExternalDatabaseConfig = {
   host: string | null;
   port: number;
   socketPath: string | null;
+  instanceConnectionName: string | null;
+  ipType: MysqlIpType;
   database: string;
   username: string;
   password: string;
@@ -139,6 +142,8 @@ export type MysqlDatabaseSettingsSnapshot = {
   host: string | null;
   port: number;
   socketPath: string | null;
+  instanceConnectionName: string | null;
+  ipType: MysqlIpType;
   database: string;
   username: string;
   sslMode: MysqlSslMode;
@@ -150,6 +155,8 @@ export type UpdateMysqlDatabaseSettingsInput = {
   host?: string | null;
   port?: string | number | null;
   socketPath?: string | null;
+  instanceConnectionName?: string | null;
+  ipType?: MysqlIpType | null;
   database?: string | null;
   username?: string | null;
   password?: string | null;
@@ -200,6 +207,8 @@ const POSTGRES_SSL_MODE_ENV = 'OPEN_STORY_POSTGRES_SSL_MODE';
 const MYSQL_HOST_ENV = 'OPEN_STORY_MYSQL_HOST';
 const MYSQL_PORT_ENV = 'OPEN_STORY_MYSQL_PORT';
 const MYSQL_SOCKET_PATH_ENV = 'OPEN_STORY_MYSQL_SOCKET_PATH';
+const MYSQL_INSTANCE_CONNECTION_NAME_ENV = 'OPEN_STORY_MYSQL_INSTANCE_CONNECTION_NAME';
+const MYSQL_IP_TYPE_ENV = 'OPEN_STORY_MYSQL_IP_TYPE';
 const MYSQL_DATABASE_ENV = 'OPEN_STORY_MYSQL_DATABASE';
 const MYSQL_USERNAME_ENV = 'OPEN_STORY_MYSQL_USERNAME';
 const MYSQL_PASSWORD_ENV = 'OPEN_STORY_MYSQL_PASSWORD';
@@ -208,6 +217,8 @@ const MYSQL_ENV_KEYS = [
   MYSQL_HOST_ENV,
   MYSQL_PORT_ENV,
   MYSQL_SOCKET_PATH_ENV,
+  MYSQL_INSTANCE_CONNECTION_NAME_ENV,
+  MYSQL_IP_TYPE_ENV,
   MYSQL_DATABASE_ENV,
   MYSQL_USERNAME_ENV,
   MYSQL_PASSWORD_ENV,
@@ -396,6 +407,10 @@ function parseMysqlSslMode(value: unknown): MysqlSslMode {
   return value === 'require' ? 'require' : 'disable';
 }
 
+function parseMysqlIpType(value: unknown): MysqlIpType {
+  return value === 'PRIVATE' || value === 'PSC' ? value : 'PUBLIC';
+}
+
 function parseMysqlDatabaseConfig(value: unknown): MysqlExternalDatabaseConfig | null {
   if (!value || typeof value !== 'object') {
     return null;
@@ -404,11 +419,12 @@ function parseMysqlDatabaseConfig(value: unknown): MysqlExternalDatabaseConfig |
   const parsed = value as Partial<MysqlExternalDatabaseConfig>;
   const host = readString(parsed.host);
   const socketPath = readString(parsed.socketPath);
+  const instanceConnectionName = readString(parsed.instanceConnectionName);
   const database = readString(parsed.database);
   const username = readString(parsed.username);
   const port = Number(parsed.port);
 
-  if ((!host && !socketPath) || !database || !username || !Number.isInteger(port) || port < 1 || port > 65535) {
+  if ((!host && !socketPath && !instanceConnectionName) || !database || !username || !Number.isInteger(port) || port < 1 || port > 65535) {
     return null;
   }
 
@@ -416,6 +432,8 @@ function parseMysqlDatabaseConfig(value: unknown): MysqlExternalDatabaseConfig |
     host,
     port,
     socketPath,
+    instanceConnectionName,
+    ipType: parseMysqlIpType(parsed.ipType),
     database,
     username,
     password: typeof parsed.password === 'string' ? parsed.password : '',
@@ -426,15 +444,19 @@ function parseMysqlDatabaseConfig(value: unknown): MysqlExternalDatabaseConfig |
 function mergeMysqlDatabaseConfig(
   currentConfig: MysqlExternalDatabaseConfig | null,
 ): MysqlExternalDatabaseConfig | null {
-  const hasEndpointEnv = hasEnv(MYSQL_HOST_ENV) || hasEnv(MYSQL_SOCKET_PATH_ENV);
+  const hasEndpointEnv =
+    hasEnv(MYSQL_HOST_ENV) || hasEnv(MYSQL_SOCKET_PATH_ENV) || hasEnv(MYSQL_INSTANCE_CONNECTION_NAME_ENV);
   const host = hasEndpointEnv ? readString(process.env[MYSQL_HOST_ENV]) : currentConfig?.host ?? null;
   const socketPath = hasEndpointEnv
     ? readString(process.env[MYSQL_SOCKET_PATH_ENV])
     : currentConfig?.socketPath ?? null;
+  const instanceConnectionName = hasEndpointEnv
+    ? readString(process.env[MYSQL_INSTANCE_CONNECTION_NAME_ENV])
+    : currentConfig?.instanceConnectionName ?? null;
   const database = readString(process.env[MYSQL_DATABASE_ENV]) ?? currentConfig?.database ?? null;
   const username = readString(process.env[MYSQL_USERNAME_ENV]) ?? currentConfig?.username ?? null;
 
-  if ((!host && !socketPath) || !database || !username) {
+  if ((!host && !socketPath && !instanceConnectionName) || !database || !username) {
     return null;
   }
 
@@ -446,6 +468,10 @@ function mergeMysqlDatabaseConfig(
     host,
     port,
     socketPath,
+    instanceConnectionName,
+    ipType: hasEnv(MYSQL_IP_TYPE_ENV)
+      ? parseMysqlIpType(process.env[MYSQL_IP_TYPE_ENV])
+      : (currentConfig?.ipType ?? 'PUBLIC'),
     database,
     username,
     password: hasEnv(MYSQL_PASSWORD_ENV)
@@ -619,7 +645,11 @@ function toPostgresConnectionKey(config: PostgresExternalDatabaseConfig): string
 function toMysqlDisplayUrl(config: MysqlExternalDatabaseConfig): string {
   const username = encodeURIComponent(config.username);
   const database = encodeURIComponent(config.database);
-  const target = config.socketPath ? `unix(${config.socketPath})` : `${config.host}:${config.port}`;
+  const target = config.instanceConnectionName
+    ? `cloudsql(${config.instanceConnectionName};iptype=${config.ipType})`
+    : config.socketPath
+      ? `unix(${config.socketPath})`
+      : `${config.host}:${config.port}`;
   return `mysql://${username}@${target}/${database}?sslmode=${config.sslMode}`;
 }
 
@@ -628,6 +658,8 @@ function toMysqlConnectionKey(config: MysqlExternalDatabaseConfig): string {
     host: config.host,
     port: config.port,
     socketPath: config.socketPath,
+    instanceConnectionName: config.instanceConnectionName,
+    ipType: config.ipType,
     database: config.database,
     username: config.username,
     password: config.password,
@@ -765,9 +797,17 @@ function hasMysqlSettingsInput(
     return false;
   }
 
-  return [input.host, input.port, input.socketPath, input.database, input.username, input.password, input.sslMode].some(
-    (value) => String(value ?? '').trim().length > 0,
-  );
+  return [
+    input.host,
+    input.port,
+    input.socketPath,
+    input.instanceConnectionName,
+    input.ipType,
+    input.database,
+    input.username,
+    input.password,
+    input.sslMode,
+  ].some((value) => String(value ?? '').trim().length > 0);
 }
 
 function normalizeMysqlPort(value: string | number | null | undefined): number {
@@ -802,6 +842,8 @@ function mysqlIdentityMatches(left: MysqlExternalDatabaseConfig, right: MysqlExt
     left.host === right.host &&
     left.port === right.port &&
     left.socketPath === right.socketPath &&
+    left.instanceConnectionName === right.instanceConnectionName &&
+    left.ipType === right.ipType &&
     left.database === right.database &&
     left.username === right.username &&
     left.sslMode === right.sslMode
@@ -818,14 +860,21 @@ function normalizeMysqlDatabaseSettings(
 
   const host = normalizeOptionalMysqlField(input.host, 'MySQL host', 255);
   const socketPath = normalizeOptionalMysqlField(input.socketPath, 'MySQL socket path', 1024);
-  if (!host && !socketPath) {
-    throw new Error('MySQL host or socket path is required.');
+  const instanceConnectionName = normalizeOptionalMysqlField(
+    input.instanceConnectionName,
+    'MySQL instance connection name',
+    255,
+  );
+  if (!host && !socketPath && !instanceConnectionName) {
+    throw new Error('MySQL host, socket path, or instance connection name is required.');
   }
 
   const nextWithoutPassword: MysqlExternalDatabaseConfig = {
     host,
     port: normalizeMysqlPort(input.port),
     socketPath,
+    instanceConnectionName,
+    ipType: parseMysqlIpType(input.ipType),
     database: normalizeRequiredDatabaseField(input.database, 'MySQL database name', 128),
     username: normalizeRequiredDatabaseField(input.username, 'MySQL username', 128),
     password: '',
@@ -882,6 +931,8 @@ function toMysqlSnapshot(config: MysqlExternalDatabaseConfig | null): MysqlDatab
     host: config.host,
     port: config.port,
     socketPath: config.socketPath,
+    instanceConnectionName: config.instanceConnectionName,
+    ipType: config.ipType,
     database: config.database,
     username: config.username,
     sslMode: config.sslMode,

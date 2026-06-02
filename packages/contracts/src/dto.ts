@@ -92,6 +92,7 @@ export interface UpdateAdminUserRoleDto {
 export type DatabaseProvider = 'sqlite' | 'postgres' | 'mysql';
 export type PostgresSslModeDto = 'disable' | 'require';
 export type MysqlSslModeDto = 'disable' | 'require';
+export type MysqlIpTypeDto = 'PUBLIC' | 'PRIVATE' | 'PSC';
 
 export interface PostgresDatabaseSettingsDto {
   host: string;
@@ -106,6 +107,8 @@ export interface MysqlDatabaseSettingsDto {
   host: string | null;
   port: number;
   socketPath: string | null;
+  instanceConnectionName: string | null;
+  ipType: MysqlIpTypeDto;
   database: string;
   username: string;
   sslMode: MysqlSslModeDto;
@@ -136,6 +139,8 @@ export interface UpdateMysqlDatabaseSettingsDto {
   host?: string | null;
   port?: string | number | null;
   socketPath?: string | null;
+  instanceConnectionName?: string | null;
+  ipType?: MysqlIpTypeDto | null;
   database?: string | null;
   username?: string | null;
   password?: string | null;
