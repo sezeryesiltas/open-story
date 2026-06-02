@@ -12,12 +12,22 @@ import {
   relationalPostgresListPayloads,
   relationalPostgresTestConnection,
 } from './relational-postgres-store.ts';
+import {
+  initializeRelationalMysqlDatabase,
+  relationalMysqlCountRows,
+  relationalMysqlDeleteRecord,
+  relationalMysqlInsertRecord,
+  relationalMysqlListAllRecords,
+  relationalMysqlListPayloads,
+  relationalMysqlTestConnection,
+} from './relational-mysql-store.ts';
 
 const require = createRequire(import.meta.url);
 
 export type TableName = StoryPlatformTableName;
-export type DatabaseProvider = 'sqlite' | 'postgres';
+export type DatabaseProvider = 'sqlite' | 'postgres' | 'mysql';
 export type PostgresSslMode = 'disable' | 'require';
+export type MysqlSslMode = 'disable' | 'require';
 
 type PostgresExternalDatabaseConfig = {
   host: string;
@@ -28,11 +38,22 @@ type PostgresExternalDatabaseConfig = {
   sslMode: PostgresSslMode;
 };
 
+type MysqlExternalDatabaseConfig = {
+  host: string | null;
+  port: number;
+  socketPath: string | null;
+  database: string;
+  username: string;
+  password: string;
+  sslMode: MysqlSslMode;
+};
+
 type BootstrapConfig = {
-  version: 3;
+  version: 4;
   activeProvider: DatabaseProvider;
   localDatabaseUrl: string;
   externalPostgresDatabase: PostgresExternalDatabaseConfig | null;
+  externalMysqlDatabase: MysqlExternalDatabaseConfig | null;
   updatedAt: string;
 };
 
@@ -62,7 +83,15 @@ type PostgresDatabaseTarget = {
   config: PostgresExternalDatabaseConfig;
 };
 
-type DatabaseTarget = SqliteDatabaseTarget | PostgresDatabaseTarget;
+type MysqlDatabaseTarget = {
+  provider: 'mysql';
+  key: string;
+  url: string;
+  config: MysqlExternalDatabaseConfig;
+};
+
+type RelationalDatabaseTarget = PostgresDatabaseTarget | MysqlDatabaseTarget;
+type DatabaseTarget = SqliteDatabaseTarget | RelationalDatabaseTarget;
 
 type ActiveDatabaseConnection =
   | {
@@ -70,7 +99,7 @@ type ActiveDatabaseConnection =
       sqlite: SqliteDatabase;
     }
   | {
-      target: PostgresDatabaseTarget;
+      target: RelationalDatabaseTarget;
       sqlite: null;
     };
 
@@ -106,8 +135,30 @@ export type UpdatePostgresDatabaseSettingsInput = {
   sslMode?: PostgresSslMode | null;
 };
 
+export type MysqlDatabaseSettingsSnapshot = {
+  host: string | null;
+  port: number;
+  socketPath: string | null;
+  database: string;
+  username: string;
+  sslMode: MysqlSslMode;
+  passwordConfigured: boolean;
+  configuredFromEnvironment: boolean;
+};
+
+export type UpdateMysqlDatabaseSettingsInput = {
+  host?: string | null;
+  port?: string | number | null;
+  socketPath?: string | null;
+  database?: string | null;
+  username?: string | null;
+  password?: string | null;
+  sslMode?: MysqlSslMode | null;
+};
+
 export interface UpdateDatabaseSettingsInput {
   postgres?: UpdatePostgresDatabaseSettingsInput | null;
+  mysql?: UpdateMysqlDatabaseSettingsInput | null;
 }
 
 export interface TestDatabaseConnectionInput extends UpdateDatabaseSettingsInput {}
@@ -124,6 +175,7 @@ export interface DatabaseSettingsSnapshot {
   activeProvider: DatabaseProvider;
   activeDatabaseUrl: string;
   postgresDatabase: PostgresDatabaseSettingsSnapshot | null;
+  mysqlDatabase: MysqlDatabaseSettingsSnapshot | null;
   isUsingExternalDatabase: boolean;
   tableCounts: Record<string, number>;
 }
@@ -134,7 +186,9 @@ const SQLITE_FILENAME = 'open-story.sqlite';
 const CONFIG_FILENAME = 'database-config.json';
 const SQLITE_PATH_ENV = 'OPEN_STORY_SQLITE_PATH';
 const CONFIG_PATH_ENV = 'OPEN_STORY_DB_CONFIG_PATH';
+const DATABASE_PROVIDER_ENV = 'OPEN_STORY_DB_PROVIDER';
 const POSTGRES_DEFAULT_PORT = 5432;
+const MYSQL_DEFAULT_PORT = 3306;
 const SQL_READ_CACHE_TTL_ENV = 'OPEN_STORY_DB_READ_CACHE_TTL_MS';
 const DEFAULT_SQL_READ_CACHE_TTL_MS = 5_000;
 const POSTGRES_HOST_ENV = 'OPEN_STORY_POSTGRES_HOST';
@@ -143,6 +197,22 @@ const POSTGRES_DATABASE_ENV = 'OPEN_STORY_POSTGRES_DATABASE';
 const POSTGRES_USERNAME_ENV = 'OPEN_STORY_POSTGRES_USERNAME';
 const POSTGRES_PASSWORD_ENV = 'OPEN_STORY_POSTGRES_PASSWORD';
 const POSTGRES_SSL_MODE_ENV = 'OPEN_STORY_POSTGRES_SSL_MODE';
+const MYSQL_HOST_ENV = 'OPEN_STORY_MYSQL_HOST';
+const MYSQL_PORT_ENV = 'OPEN_STORY_MYSQL_PORT';
+const MYSQL_SOCKET_PATH_ENV = 'OPEN_STORY_MYSQL_SOCKET_PATH';
+const MYSQL_DATABASE_ENV = 'OPEN_STORY_MYSQL_DATABASE';
+const MYSQL_USERNAME_ENV = 'OPEN_STORY_MYSQL_USERNAME';
+const MYSQL_PASSWORD_ENV = 'OPEN_STORY_MYSQL_PASSWORD';
+const MYSQL_SSL_MODE_ENV = 'OPEN_STORY_MYSQL_SSL_MODE';
+const MYSQL_ENV_KEYS = [
+  MYSQL_HOST_ENV,
+  MYSQL_PORT_ENV,
+  MYSQL_SOCKET_PATH_ENV,
+  MYSQL_DATABASE_ENV,
+  MYSQL_USERNAME_ENV,
+  MYSQL_PASSWORD_ENV,
+  MYSQL_SSL_MODE_ENV,
+] as const;
 
 const STORAGE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS records (
@@ -247,10 +317,11 @@ function createFallbackConfig(): BootstrapConfig {
   const now = new Date().toISOString();
 
   return {
-    version: 3,
+    version: 4,
     activeProvider: 'sqlite',
     localDatabaseUrl: resolveDefaultLocalDatabaseUrl(),
     externalPostgresDatabase: null,
+    externalMysqlDatabase: null,
     updatedAt: now,
   };
 }
@@ -321,29 +392,149 @@ function mergePostgresDatabaseConfig(
   };
 }
 
+function parseMysqlSslMode(value: unknown): MysqlSslMode {
+  return value === 'require' ? 'require' : 'disable';
+}
+
+function parseMysqlDatabaseConfig(value: unknown): MysqlExternalDatabaseConfig | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const parsed = value as Partial<MysqlExternalDatabaseConfig>;
+  const host = readString(parsed.host);
+  const socketPath = readString(parsed.socketPath);
+  const database = readString(parsed.database);
+  const username = readString(parsed.username);
+  const port = Number(parsed.port);
+
+  if ((!host && !socketPath) || !database || !username || !Number.isInteger(port) || port < 1 || port > 65535) {
+    return null;
+  }
+
+  return {
+    host,
+    port,
+    socketPath,
+    database,
+    username,
+    password: typeof parsed.password === 'string' ? parsed.password : '',
+    sslMode: parseMysqlSslMode(parsed.sslMode),
+  };
+}
+
+function mergeMysqlDatabaseConfig(
+  currentConfig: MysqlExternalDatabaseConfig | null,
+): MysqlExternalDatabaseConfig | null {
+  const hasEndpointEnv = hasEnv(MYSQL_HOST_ENV) || hasEnv(MYSQL_SOCKET_PATH_ENV);
+  const host = hasEndpointEnv ? readString(process.env[MYSQL_HOST_ENV]) : currentConfig?.host ?? null;
+  const socketPath = hasEndpointEnv
+    ? readString(process.env[MYSQL_SOCKET_PATH_ENV])
+    : currentConfig?.socketPath ?? null;
+  const database = readString(process.env[MYSQL_DATABASE_ENV]) ?? currentConfig?.database ?? null;
+  const username = readString(process.env[MYSQL_USERNAME_ENV]) ?? currentConfig?.username ?? null;
+
+  if ((!host && !socketPath) || !database || !username) {
+    return null;
+  }
+
+  const port = normalizeMysqlPort(
+    readString(process.env[MYSQL_PORT_ENV]) ?? currentConfig?.port ?? MYSQL_DEFAULT_PORT,
+  );
+
+  return {
+    host,
+    port,
+    socketPath,
+    database,
+    username,
+    password: hasEnv(MYSQL_PASSWORD_ENV)
+      ? (process.env[MYSQL_PASSWORD_ENV] ?? '')
+      : (currentConfig?.password ?? ''),
+    sslMode: hasEnv(MYSQL_SSL_MODE_ENV)
+      ? parseMysqlSslMode(process.env[MYSQL_SSL_MODE_ENV])
+      : (currentConfig?.sslMode ?? 'disable'),
+  };
+}
+
+function hasAnyEnv(keys: readonly string[]): boolean {
+  return keys.some((key) => hasEnv(key));
+}
+
+function resolveConfiguredProvider(
+  configuredProvider: DatabaseProvider,
+  postgresDatabase: PostgresExternalDatabaseConfig | null,
+  mysqlDatabase: MysqlExternalDatabaseConfig | null,
+): DatabaseProvider {
+  const envProvider = readString(process.env[DATABASE_PROVIDER_ENV]);
+  if (envProvider && envProvider !== 'postgres' && envProvider !== 'mysql' && envProvider !== 'sqlite') {
+    throw new Error(`${DATABASE_PROVIDER_ENV} must be one of: postgres, mysql, sqlite.`);
+  }
+
+  if (envProvider === 'mysql' || (!envProvider && hasAnyEnv(MYSQL_ENV_KEYS))) {
+    if (!mysqlDatabase) {
+      throw new Error('MySQL connection details are incomplete. Configure OPEN_STORY_MYSQL_* env variables.');
+    }
+    return 'mysql';
+  }
+
+  if (envProvider === 'postgres') {
+    if (!postgresDatabase) {
+      throw new Error('Postgres connection details are incomplete. Configure OPEN_STORY_POSTGRES_* env variables.');
+    }
+    return 'postgres';
+  }
+
+  if (envProvider === 'sqlite') {
+    return 'sqlite';
+  }
+
+  if (configuredProvider === 'mysql' && mysqlDatabase) {
+    return 'mysql';
+  }
+
+  if (configuredProvider === 'postgres' && postgresDatabase) {
+    return 'postgres';
+  }
+
+  return postgresDatabase ? 'postgres' : mysqlDatabase ? 'mysql' : 'sqlite';
+}
+
 function parseConfig(rawValue: string): BootstrapConfig {
   const parsed = JSON.parse(rawValue) as Partial<BootstrapConfig>;
   const defaults = createFallbackConfig();
   const externalPostgresDatabase =
     parsePostgresDatabaseConfig(parsed.externalPostgresDatabase) ?? defaults.externalPostgresDatabase;
-  const activeProvider: DatabaseProvider = externalPostgresDatabase ? 'postgres' : 'sqlite';
+  const externalMysqlDatabase =
+    parseMysqlDatabaseConfig(parsed.externalMysqlDatabase) ?? defaults.externalMysqlDatabase;
+  const activeProvider =
+    parsed.activeProvider === 'mysql' && externalMysqlDatabase
+      ? 'mysql'
+      : parsed.activeProvider === 'postgres' && externalPostgresDatabase
+        ? 'postgres'
+        : externalPostgresDatabase
+          ? 'postgres'
+          : externalMysqlDatabase
+            ? 'mysql'
+            : 'sqlite';
 
   return {
-    version: 3,
+    version: 4,
     activeProvider,
     localDatabaseUrl:
       typeof parsed.localDatabaseUrl === 'string' && parsed.localDatabaseUrl.trim()
         ? toFileUrl(resolveSqlitePath(parsed.localDatabaseUrl))
         : defaults.localDatabaseUrl,
     externalPostgresDatabase,
+    externalMysqlDatabase,
     updatedAt: typeof parsed.updatedAt === 'string' && parsed.updatedAt.trim() ? parsed.updatedAt : defaults.updatedAt,
   };
 }
 
-function assertProductionPostgresConfigured(config: PostgresExternalDatabaseConfig | null): void {
-  if (process.env.NODE_ENV === 'production' && !config) {
+function assertProductionRelationalDatabaseConfigured(provider: DatabaseProvider): void {
+  if (process.env.NODE_ENV === 'production' && provider === 'sqlite') {
     throw new Error(
-      'Postgres connection is required in production runtime. Use OPEN_STORY_POSTGRES_* env variables or the Postgres setting in database-config.json.',
+      'A Postgres or MySQL connection is required in production runtime. Use OPEN_STORY_POSTGRES_* or OPEN_STORY_MYSQL_* env variables, or configure a relational database in database-config.json.',
     );
   }
 }
@@ -376,13 +567,16 @@ function resolveRuntimeSqliteUrl(configuredUrl: string): string {
 
 function resolveRuntimeBootstrapConfig(config: BootstrapConfig): BootstrapConfig {
   const externalPostgresDatabase = mergePostgresDatabaseConfig(config.externalPostgresDatabase);
-  assertProductionPostgresConfigured(externalPostgresDatabase);
+  const externalMysqlDatabase = mergeMysqlDatabaseConfig(config.externalMysqlDatabase);
+  const activeProvider = resolveConfiguredProvider(config.activeProvider, externalPostgresDatabase, externalMysqlDatabase);
+  assertProductionRelationalDatabaseConfigured(activeProvider);
 
   return {
     ...config,
-    activeProvider: externalPostgresDatabase ? 'postgres' : 'sqlite',
+    activeProvider,
     localDatabaseUrl: resolveRuntimeSqliteUrl(config.localDatabaseUrl),
     externalPostgresDatabase,
+    externalMysqlDatabase,
   };
 }
 
@@ -422,6 +616,25 @@ function toPostgresConnectionKey(config: PostgresExternalDatabaseConfig): string
   });
 }
 
+function toMysqlDisplayUrl(config: MysqlExternalDatabaseConfig): string {
+  const username = encodeURIComponent(config.username);
+  const database = encodeURIComponent(config.database);
+  const target = config.socketPath ? `unix(${config.socketPath})` : `${config.host}:${config.port}`;
+  return `mysql://${username}@${target}/${database}?sslmode=${config.sslMode}`;
+}
+
+function toMysqlConnectionKey(config: MysqlExternalDatabaseConfig): string {
+  return JSON.stringify({
+    host: config.host,
+    port: config.port,
+    socketPath: config.socketPath,
+    database: config.database,
+    username: config.username,
+    password: config.password,
+    sslMode: config.sslMode,
+  });
+}
+
 function getSqliteTarget(databaseUrl: string): SqliteDatabaseTarget {
   const path = resolveSqlitePath(databaseUrl);
 
@@ -434,7 +647,16 @@ function getSqliteTarget(databaseUrl: string): SqliteDatabaseTarget {
 }
 
 function getActiveDatabaseTarget(config: BootstrapConfig): DatabaseTarget {
-  if (config.externalPostgresDatabase) {
+  if (config.activeProvider === 'mysql' && config.externalMysqlDatabase) {
+    return {
+      provider: 'mysql',
+      key: `mysql:${toMysqlConnectionKey(config.externalMysqlDatabase)}`,
+      url: toMysqlDisplayUrl(config.externalMysqlDatabase),
+      config: config.externalMysqlDatabase,
+    };
+  }
+
+  if (config.activeProvider === 'postgres' && config.externalPostgresDatabase) {
     return {
       provider: 'postgres',
       key: `postgres:${toPostgresConnectionKey(config.externalPostgresDatabase)}`,
@@ -480,7 +702,7 @@ function normalizePostgresSslMode(value: PostgresSslMode | null | undefined): Po
   return value === 'disable' ? 'disable' : 'require';
 }
 
-function normalizeRequiredPostgresField(value: string | null | undefined, label: string, maxLength: number): string {
+function normalizeRequiredDatabaseField(value: string | null | undefined, label: string, maxLength: number): string {
   const normalizedValue = value?.trim();
   if (!normalizedValue) {
     throw new Error(`${label} cannot be empty.`);
@@ -512,10 +734,10 @@ function normalizePostgresDatabaseSettings(
   }
 
   const nextWithoutPassword: PostgresExternalDatabaseConfig = {
-    host: normalizeRequiredPostgresField(input.host, 'Postgres host', 255),
+    host: normalizeRequiredDatabaseField(input.host, 'Postgres host', 255),
     port: normalizePostgresPort(input.port),
-    database: normalizeRequiredPostgresField(input.database, 'Postgres database name', 128),
-    username: normalizeRequiredPostgresField(input.username, 'Postgres username', 128),
+    database: normalizeRequiredDatabaseField(input.database, 'Postgres database name', 128),
+    username: normalizeRequiredDatabaseField(input.username, 'Postgres username', 128),
     password: '',
     sslMode: normalizePostgresSslMode(input.sslMode),
   };
@@ -532,6 +754,96 @@ function normalizePostgresDatabaseSettings(
       (currentConfig.externalPostgresDatabase &&
       postgresIdentityMatches(nextWithoutPassword, currentConfig.externalPostgresDatabase)
         ? currentConfig.externalPostgresDatabase.password
+        : ''),
+  };
+}
+
+function hasMysqlSettingsInput(
+  input: UpdateMysqlDatabaseSettingsInput | null | undefined,
+): input is UpdateMysqlDatabaseSettingsInput {
+  if (!input) {
+    return false;
+  }
+
+  return [input.host, input.port, input.socketPath, input.database, input.username, input.password, input.sslMode].some(
+    (value) => String(value ?? '').trim().length > 0,
+  );
+}
+
+function normalizeMysqlPort(value: string | number | null | undefined): number {
+  const normalizedValue =
+    typeof value === 'string'
+      ? Number(value.trim() || MYSQL_DEFAULT_PORT)
+      : value === null || value === undefined
+        ? MYSQL_DEFAULT_PORT
+        : Number(value);
+  if (!Number.isInteger(normalizedValue) || normalizedValue < 1 || normalizedValue > 65535) {
+    throw new Error('MySQL port must be an integer between 1 and 65535.');
+  }
+
+  return normalizedValue;
+}
+
+function normalizeMysqlSslMode(value: MysqlSslMode | null | undefined): MysqlSslMode {
+  return value === 'require' ? 'require' : 'disable';
+}
+
+function normalizeOptionalMysqlField(value: string | null | undefined, label: string, maxLength: number): string | null {
+  const normalizedValue = value?.trim() || null;
+  if (normalizedValue && normalizedValue.length > maxLength) {
+    throw new Error(`${label} can be at most ${maxLength} characters.`);
+  }
+
+  return normalizedValue;
+}
+
+function mysqlIdentityMatches(left: MysqlExternalDatabaseConfig, right: MysqlExternalDatabaseConfig): boolean {
+  return (
+    left.host === right.host &&
+    left.port === right.port &&
+    left.socketPath === right.socketPath &&
+    left.database === right.database &&
+    left.username === right.username &&
+    left.sslMode === right.sslMode
+  );
+}
+
+function normalizeMysqlDatabaseSettings(
+  input: UpdateMysqlDatabaseSettingsInput | null | undefined,
+  currentConfig: BootstrapConfig,
+): MysqlExternalDatabaseConfig | null {
+  if (!hasMysqlSettingsInput(input)) {
+    return null;
+  }
+
+  const host = normalizeOptionalMysqlField(input.host, 'MySQL host', 255);
+  const socketPath = normalizeOptionalMysqlField(input.socketPath, 'MySQL socket path', 1024);
+  if (!host && !socketPath) {
+    throw new Error('MySQL host or socket path is required.');
+  }
+
+  const nextWithoutPassword: MysqlExternalDatabaseConfig = {
+    host,
+    port: normalizeMysqlPort(input.port),
+    socketPath,
+    database: normalizeRequiredDatabaseField(input.database, 'MySQL database name', 128),
+    username: normalizeRequiredDatabaseField(input.username, 'MySQL username', 128),
+    password: '',
+    sslMode: normalizeMysqlSslMode(input.sslMode),
+  };
+
+  const password = typeof input.password === 'string' ? input.password : '';
+  if (password.length > 1024) {
+    throw new Error('MySQL password can be at most 1024 characters.');
+  }
+
+  return {
+    ...nextWithoutPassword,
+    password:
+      password ||
+      (currentConfig.externalMysqlDatabase &&
+      mysqlIdentityMatches(nextWithoutPassword, currentConfig.externalMysqlDatabase)
+        ? currentConfig.externalMysqlDatabase.password
         : ''),
   };
 }
@@ -561,8 +873,29 @@ function toPostgresSnapshot(config: PostgresExternalDatabaseConfig | null): Post
   };
 }
 
+function toMysqlSnapshot(config: MysqlExternalDatabaseConfig | null): MysqlDatabaseSettingsSnapshot | null {
+  if (!config) {
+    return null;
+  }
+
+  return {
+    host: config.host,
+    port: config.port,
+    socketPath: config.socketPath,
+    database: config.database,
+    username: config.username,
+    sslMode: config.sslMode,
+    passwordConfigured: config.password.length > 0,
+    configuredFromEnvironment: hasAnyEnv(MYSQL_ENV_KEYS),
+  };
+}
+
 function testPostgresConnection(config: PostgresExternalDatabaseConfig): void {
   relationalPostgresTestConnection(config);
+}
+
+function testMysqlConnection(config: MysqlExternalDatabaseConfig): void {
+  relationalMysqlTestConnection(config);
 }
 
 function getSqlReadCacheTtlMs(): number {
@@ -625,7 +958,7 @@ export class DbService {
   list<T>(table: TableName): T[] {
     const activeConnection = this.database();
 
-    if (activeConnection.target.provider === 'postgres') {
+    if (activeConnection.target.provider !== 'sqlite') {
       return this.listRelationalPayloads(activeConnection.target, table).map((row) => JSON.parse(row.payload) as T);
     }
 
@@ -648,8 +981,12 @@ export class DbService {
 
     const activeConnection = this.database();
 
-    if (activeConnection.target.provider === 'postgres') {
-      relationalPostgresInsertRecord(activeConnection.target.config, table, row);
+    if (activeConnection.target.provider !== 'sqlite') {
+      if (activeConnection.target.provider === 'mysql') {
+        relationalMysqlInsertRecord(activeConnection.target.config, table, row);
+      } else {
+        relationalPostgresInsertRecord(activeConnection.target.config, table, row);
+      }
       DbService.invalidateSqlReadCache(activeConnection.target.key);
       return row;
     }
@@ -678,7 +1015,7 @@ export class DbService {
   findById<T extends { id: string }>(table: TableName, id: string): T | undefined {
     const activeConnection = this.database();
     const row =
-      activeConnection.target.provider === 'postgres'
+      activeConnection.target.provider !== 'sqlite'
         ? this.listRelationalPayloads(activeConnection.target, table).find((record) => record.id === id)
         : (() => {
               const sqlite = activeConnection.sqlite;
@@ -714,8 +1051,11 @@ export class DbService {
   deleteById(table: TableName, id: string): boolean {
     const activeConnection = this.database();
 
-    if (activeConnection.target.provider === 'postgres') {
-      const deleted = relationalPostgresDeleteRecord(activeConnection.target.config, table, id);
+    if (activeConnection.target.provider !== 'sqlite') {
+      const deleted =
+        activeConnection.target.provider === 'mysql'
+          ? relationalMysqlDeleteRecord(activeConnection.target.config, table, id)
+          : relationalPostgresDeleteRecord(activeConnection.target.config, table, id);
       if (deleted) {
         DbService.invalidateSqlReadCache(activeConnection.target.key);
       }
@@ -750,7 +1090,8 @@ export class DbService {
       activeProvider: activeTarget.provider,
       activeDatabaseUrl: activeTarget.url,
       postgresDatabase: toPostgresSnapshot(config.externalPostgresDatabase),
-      isUsingExternalDatabase: activeTarget.provider === 'postgres',
+      mysqlDatabase: toMysqlSnapshot(config.externalMysqlDatabase),
+      isUsingExternalDatabase: activeTarget.provider !== 'sqlite',
       tableCounts,
     };
   }
@@ -759,6 +1100,32 @@ export class DbService {
     const payload = normalizeUpdateInput(input);
     const currentConfig = readBootstrapConfig();
     const now = new Date().toISOString();
+    const hasMysqlSettings = hasMysqlSettingsInput(payload.mysql);
+    const hasPostgresSettings = hasPostgresSettingsInput(payload.postgres);
+    if (hasMysqlSettings && hasPostgresSettings) {
+      throw new Error('Send either MySQL or Postgres connection details, not both.');
+    }
+
+    if (hasMysqlSettings) {
+      const mysqlDatabase = normalizeMysqlDatabaseSettings(payload.mysql, currentConfig);
+      if (!mysqlDatabase) {
+        throw new Error('MySQL connection details are required.');
+      }
+
+      const nextConfig: BootstrapConfig = {
+        ...currentConfig,
+        activeProvider: 'mysql',
+        externalMysqlDatabase: mysqlDatabase,
+        updatedAt: now,
+      };
+
+      writeBootstrapConfig(nextConfig);
+      DbService.closeDatabase();
+      initializeRelationalMysqlDatabase(mysqlDatabase);
+
+      return this.getDatabaseSettings();
+    }
+
     const postgresDatabase = normalizePostgresDatabaseSettings(payload.postgres, currentConfig);
     if (!postgresDatabase) {
       throw new Error('Postgres connection details are required.');
@@ -781,6 +1148,41 @@ export class DbService {
   testDatabaseConnection(input: TestDatabaseConnectionInput): DatabaseConnectionTestResult {
     const payload = normalizeUpdateInput(input);
     const currentConfig = resolveRuntimeBootstrapConfig(readBootstrapConfig());
+    const hasMysqlSettings = hasMysqlSettingsInput(payload.mysql);
+    const hasPostgresSettings = hasPostgresSettingsInput(payload.postgres);
+    if (hasMysqlSettings && hasPostgresSettings) {
+      return {
+        ok: false,
+        provider: null,
+        message: 'Send either MySQL or Postgres connection details, not both.',
+        resolvedDatabaseUrl: null,
+      };
+    }
+
+    const mysqlDatabase = hasMysqlSettings
+      ? normalizeMysqlDatabaseSettings(payload.mysql, currentConfig)
+      : currentConfig.activeProvider === 'mysql'
+        ? currentConfig.externalMysqlDatabase
+        : null;
+    if (mysqlDatabase) {
+      try {
+        testMysqlConnection(mysqlDatabase);
+        return {
+          ok: true,
+          provider: 'mysql',
+          message: 'MySQL connection succeeded.',
+          resolvedDatabaseUrl: toMysqlDisplayUrl(mysqlDatabase),
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          provider: 'mysql',
+          message: error instanceof Error ? error.message : 'MySQL connection could not be tested.',
+          resolvedDatabaseUrl: toMysqlDisplayUrl(mysqlDatabase),
+        };
+      }
+    }
+
     const postgresDatabase = normalizePostgresDatabaseSettings(payload.postgres, currentConfig);
 
     if (postgresDatabase) {
@@ -805,7 +1207,7 @@ export class DbService {
     return {
       ok: false,
       provider: null,
-      message: 'Enter Postgres connection details for the test.',
+      message: 'Enter MySQL or Postgres connection details for the test.',
       resolvedDatabaseUrl: null,
     };
   }
@@ -813,7 +1215,7 @@ export class DbService {
   private getTableCounts(): Record<string, number> {
     const activeConnection = this.database();
 
-    if (activeConnection.target.provider === 'postgres') {
+    if (activeConnection.target.provider !== 'sqlite') {
       return this.getRelationalTableCounts(activeConnection.target);
     }
 
@@ -835,8 +1237,12 @@ export class DbService {
 
     DbService.closeDatabase();
 
-    if (activeTarget.provider === 'postgres') {
-      initializeRelationalPostgresDatabase(activeTarget.config);
+    if (activeTarget.provider !== 'sqlite') {
+      if (activeTarget.provider === 'mysql') {
+        initializeRelationalMysqlDatabase(activeTarget.config);
+      } else {
+        initializeRelationalPostgresDatabase(activeTarget.config);
+      }
       DbService.activeConnection = {
         target: activeTarget,
         sqlite: null,
@@ -861,25 +1267,29 @@ export class DbService {
     DbService.sqlReadCache = null;
   }
 
-  private listRelationalPayloads(target: PostgresDatabaseTarget, table: TableName): StoredRecord[] {
+  private listRelationalPayloads(target: RelationalDatabaseTarget, table: TableName): StoredRecord[] {
     const cache = this.getRelationalReadCache(target);
     if (cache) {
       return cache.recordsByTable.get(table) ?? [];
     }
 
-    return relationalPostgresListPayloads(target.config, table);
+    return target.provider === 'mysql'
+      ? relationalMysqlListPayloads(target.config, table)
+      : relationalPostgresListPayloads(target.config, table);
   }
 
-  private getRelationalTableCounts(target: PostgresDatabaseTarget): Record<string, number> {
+  private getRelationalTableCounts(target: RelationalDatabaseTarget): Record<string, number> {
     const cache = this.getRelationalReadCache(target);
     if (cache) {
       return { ...cache.tableCounts };
     }
 
-    return relationalPostgresCountRows(target.config);
+    return target.provider === 'mysql'
+      ? relationalMysqlCountRows(target.config)
+      : relationalPostgresCountRows(target.config);
   }
 
-  private getRelationalReadCache(target: PostgresDatabaseTarget): SqlReadCache | null {
+  private getRelationalReadCache(target: RelationalDatabaseTarget): SqlReadCache | null {
     const ttlMs = getSqlReadCacheTtlMs();
     if (ttlMs <= 0) {
       return null;
@@ -895,7 +1305,11 @@ export class DbService {
       return DbService.sqlReadCache;
     }
 
-    const groupedRecords = groupStoredRecordsByTable(relationalPostgresListAllRecords(target.config));
+    const groupedRecords = groupStoredRecordsByTable(
+      target.provider === 'mysql'
+        ? relationalMysqlListAllRecords(target.config)
+        : relationalPostgresListAllRecords(target.config),
+    );
     DbService.sqlReadCache = {
       targetKey,
       expiresAtMs: now + ttlMs,

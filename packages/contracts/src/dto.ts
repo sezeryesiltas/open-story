@@ -89,8 +89,9 @@ export interface UpdateAdminUserRoleDto {
   role: AdminRole;
 }
 
-export type DatabaseProvider = 'sqlite' | 'postgres';
+export type DatabaseProvider = 'sqlite' | 'postgres' | 'mysql';
 export type PostgresSslModeDto = 'disable' | 'require';
+export type MysqlSslModeDto = 'disable' | 'require';
 
 export interface PostgresDatabaseSettingsDto {
   host: string;
@@ -101,11 +102,23 @@ export interface PostgresDatabaseSettingsDto {
   passwordConfigured: boolean;
 }
 
+export interface MysqlDatabaseSettingsDto {
+  host: string | null;
+  port: number;
+  socketPath: string | null;
+  database: string;
+  username: string;
+  sslMode: MysqlSslModeDto;
+  passwordConfigured: boolean;
+  configuredFromEnvironment: boolean;
+}
+
 export interface DatabaseSettingsDto {
   defaultSqliteUrl: string;
   activeProvider: DatabaseProvider;
   activeDatabaseUrl: string;
   postgresDatabase: PostgresDatabaseSettingsDto | null;
+  mysqlDatabase: MysqlDatabaseSettingsDto | null;
   isUsingExternalDatabase: boolean;
   tableCounts: Record<string, number>;
 }
@@ -119,8 +132,19 @@ export interface UpdatePostgresDatabaseSettingsDto {
   sslMode?: PostgresSslModeDto | null;
 }
 
+export interface UpdateMysqlDatabaseSettingsDto {
+  host?: string | null;
+  port?: string | number | null;
+  socketPath?: string | null;
+  database?: string | null;
+  username?: string | null;
+  password?: string | null;
+  sslMode?: MysqlSslModeDto | null;
+}
+
 export interface UpdateDatabaseSettingsDto {
   postgres?: UpdatePostgresDatabaseSettingsDto | null;
+  mysql?: UpdateMysqlDatabaseSettingsDto | null;
 }
 
 export interface TestDatabaseConnectionDto extends UpdateDatabaseSettingsDto {}

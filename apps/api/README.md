@@ -4,12 +4,13 @@ Backend API module scaffold.
 
 ## Current database behavior
 
-- Production runtime uses real relational Postgres tables (`client`, `static_token`, `placement`, `story_group_set`, revision, and composition tables).
+- Production runtime uses real relational Postgres or MySQL tables (`client`, `static_token`, `placement`, `story_group_set`, revision, and composition tables).
 - The API resolves DB settings in this order: `env -> bootstrap config file inside OPEN_STORY_DB_CONFIG_PATH`; local SQLite fallback is only for non-production/test use.
 - `OPEN_STORY_POSTGRES_*` env variables override config file values for the same fields.
-- `GET /v1/settings/database` returns the active provider, Postgres connection summary, and relational table counts.
-- `PUT /v1/settings/database` saves Postgres connection details and prepares the relational schema.
-- The legacy single-table Postgres mode, alternate SQL targets, and migration script have been removed from the runtime surface.
+- `OPEN_STORY_MYSQL_*` env variables override config file values for the same fields. Set `OPEN_STORY_DB_PROVIDER=mysql` for Cloud SQL MySQL.
+- `GET /v1/settings/database` returns the active provider, Postgres/MySQL connection summaries, and relational table counts.
+- `PUT /v1/settings/database` saves Postgres or MySQL connection details and prepares the selected relational schema.
+- The legacy single-table SQL mode and migration script have been removed from the runtime surface.
 - The default SSL mode for Supabase Postgres should be `require`.
 
 ## Asset storage behavior
@@ -42,6 +43,25 @@ If the `postgres` field is filled in the `PUT /v1/settings/database` payload, th
 ```
 
 Password is not returned in the `GET` response; if it is sent empty for the same host/port/database/username/sslMode, the existing Postgres password is preserved.
+
+## Supported MySQL settings
+
+If the `mysql` field is filled in the `PUT /v1/settings/database` payload, the MySQL target is activated:
+
+```json
+{
+  "mysql": {
+    "socketPath": "/cloudsql/project-id:region:instance-name",
+    "port": 3306,
+    "database": "open_story",
+    "username": "open_story_app",
+    "password": "secret",
+    "sslMode": "disable"
+  }
+}
+```
+
+Use `host` instead of `socketPath` for TCP connections. Password is not returned in the `GET` response. If it is sent empty for the same host/port/socketPath/database/username/sslMode, the existing MySQL password is preserved.
 
 ## Supported Supabase Storage S3 settings
 

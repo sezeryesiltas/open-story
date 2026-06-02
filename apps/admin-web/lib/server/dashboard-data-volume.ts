@@ -213,6 +213,7 @@ function createContentOnlyDatabaseSettings({
     activeProvider: 'sqlite',
     activeDatabaseUrl: '',
     postgresDatabase: null,
+    mysqlDatabase: null,
     isUsingExternalDatabase: false,
     tableCounts: {
       clients: 0,

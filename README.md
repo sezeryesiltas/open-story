@@ -17,7 +17,7 @@ Initial monorepo foundation is created on branch:
     api/             # NestJS + Fastify delivery API
   packages/
     contracts/       # Shared API/domain contracts
-    db/              # Relational Postgres storage and DB utilities
+    db/              # Relational Postgres/MySQL storage and DB utilities
     config/          # Shared lint/ts/build configs
     ui/              # Shared admin web UI primitives
   sdk/
@@ -52,10 +52,11 @@ Feature implementation starts next in this order:
 
 ## Database
 
-- Production runtime relational Postgres tablolarını kullanır.
+- Production runtime relational Postgres veya MySQL tablolarını kullanır.
 - Runtime DB çözümleme sırası `env -> OPEN_STORY_DB_CONFIG_PATH içindeki config file` şeklindedir; local SQLite fallback yalnızca non-production/test kullanım içindir.
-- Admin `Settings` ekranı sadece Postgres bağlantı bilgilerini yönetir.
-- Eski tek tablo Postgres modu ve migration scripti artık runtime yüzeyinin parçası değildir.
+- Admin `Settings` ekranı Postgres ve MySQL bağlantı bilgilerini gösterir, bağlantı testi yapar ve config file tabanlı ayarları yönetir.
+- Cloud Run + Cloud SQL MySQL kurulumu için `docs/cloud-run-cloud-sql-mysql.md` dokümanını kullanın.
+- Eski tek tablo SQL modu ve migration scripti artık runtime yüzeyinin parçası değildir.
 
 ## Asset Storage
 

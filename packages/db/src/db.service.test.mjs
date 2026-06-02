@@ -16,9 +16,18 @@ const POSTGRES_ENV_KEYS = [
   'OPEN_STORY_POSTGRES_PASSWORD',
   'OPEN_STORY_POSTGRES_SSL_MODE',
 ];
+const MYSQL_ENV_KEYS = [
+  'OPEN_STORY_MYSQL_HOST',
+  'OPEN_STORY_MYSQL_PORT',
+  'OPEN_STORY_MYSQL_SOCKET_PATH',
+  'OPEN_STORY_MYSQL_DATABASE',
+  'OPEN_STORY_MYSQL_USERNAME',
+  'OPEN_STORY_MYSQL_PASSWORD',
+  'OPEN_STORY_MYSQL_SSL_MODE',
+];
 
 function clearDbEnv() {
-  for (const key of [...POSTGRES_ENV_KEYS, 'OPEN_STORY_SQLITE_PATH', 'OPEN_STORY_DB_CONFIG_PATH']) {
+  for (const key of [...POSTGRES_ENV_KEYS, ...MYSQL_ENV_KEYS, 'OPEN_STORY_DB_PROVIDER', 'OPEN_STORY_SQLITE_PATH', 'OPEN_STORY_DB_CONFIG_PATH']) {
     delete process.env[key];
   }
 }
@@ -85,6 +94,28 @@ test('DbService validates postgres settings before switching providers', () => {
   const settings = db.getDatabaseSettings();
   assert.equal(settings.activeProvider, 'sqlite');
   assert.equal(settings.postgresDatabase, null);
+});
+
+test('DbService validates mysql endpoint settings before switching providers', () => {
+  configureTempSqliteFallback('open-story-db-mysql-validation-');
+
+  const db = new DbService();
+
+  assert.throws(
+    () =>
+      db.updateDatabaseSettings({
+        mysql: {
+          port: 3306,
+          database: 'open_story',
+          username: 'open_story_app',
+        },
+      }),
+    /MySQL host or socket path is required/,
+  );
+
+  const settings = db.getDatabaseSettings();
+  assert.equal(settings.activeProvider, 'sqlite');
+  assert.equal(settings.mysqlDatabase, null);
 });
 
 test('DbService rejects empty database provider switching', () => {
@@ -182,14 +213,14 @@ test('DbService falls back to config file postgres settings when environment is 
   assert.equal(settings.postgresDatabase?.sslMode, 'require');
 });
 
-test('DbService requires postgres configuration in production runtime', () => {
+test('DbService requires relational database configuration in production runtime', () => {
   const previousNodeEnv = process.env.NODE_ENV;
   configureTempSqliteFallback('open-story-db-production-postgres-required-');
   process.env.NODE_ENV = 'production';
 
   try {
     const db = new DbService();
-    assert.throws(() => db.getDatabaseSettings(), /Postgres connection is required in production runtime/);
+    assert.throws(() => db.getDatabaseSettings(), /A Postgres or MySQL connection is required in production runtime/);
   } finally {
     if (previousNodeEnv === undefined) {
       delete process.env.NODE_ENV;
@@ -197,4 +228,29 @@ test('DbService requires postgres configuration in production runtime', () => {
       process.env.NODE_ENV = previousNodeEnv;
     }
   }
+});
+
+test('DbService resolves mysql Cloud SQL socket settings from environment', () => {
+  configureTempSqliteFallback('open-story-db-mysql-env-');
+  process.env.OPEN_STORY_DB_PROVIDER = 'mysql';
+  process.env.OPEN_STORY_MYSQL_SOCKET_PATH = '/cloudsql/project:region:instance';
+  process.env.OPEN_STORY_MYSQL_DATABASE = 'open_story';
+  process.env.OPEN_STORY_MYSQL_USERNAME = 'open_story_app';
+  process.env.OPEN_STORY_MYSQL_PASSWORD = 'env_secret';
+  process.env.OPEN_STORY_MYSQL_SSL_MODE = 'disable';
+
+  const settings = new DbService().getDatabaseSettings();
+
+  assert.equal(settings.activeProvider, 'mysql');
+  assert.equal(settings.mysqlDatabase?.host, null);
+  assert.equal(settings.mysqlDatabase?.port, 3306);
+  assert.equal(settings.mysqlDatabase?.socketPath, '/cloudsql/project:region:instance');
+  assert.equal(settings.mysqlDatabase?.database, 'open_story');
+  assert.equal(settings.mysqlDatabase?.username, 'open_story_app');
+  assert.equal(settings.mysqlDatabase?.sslMode, 'disable');
+  assert.equal(settings.mysqlDatabase?.configuredFromEnvironment, true);
+  assert.equal(
+    settings.activeDatabaseUrl,
+    'mysql://open_story_app@unix(/cloudsql/project:region:instance)/open_story?sslmode=disable',
+  );
 });
