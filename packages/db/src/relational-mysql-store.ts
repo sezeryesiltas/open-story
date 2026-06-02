@@ -49,7 +49,7 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS client (
-        id VARCHAR(36) PRIMARY KEY,
+        id CHAR(36) PRIMARY KEY,
         client_id VARCHAR(255) NOT NULL UNIQUE,
         name TEXT NOT NULL,
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -61,7 +61,7 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS admin_user (
-        id VARCHAR(36) PRIMARY KEY,
+        id CHAR(36) PRIMARY KEY,
         email VARCHAR(320) NOT NULL UNIQUE,
         role ENUM('super_admin', 'story_admin', 'story_editor') NOT NULL DEFAULT 'super_admin',
         password_hash TEXT NOT NULL,
@@ -75,8 +75,8 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS admin_session (
-        id VARCHAR(36) PRIMARY KEY,
-        user_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        user_id CHAR(36) NOT NULL,
         issued_at DATETIME(3) NOT NULL,
         expires_at DATETIME(3) NOT NULL,
         revoked_at DATETIME(3),
@@ -88,8 +88,8 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS static_token (
-        id VARCHAR(36) PRIMARY KEY,
-        client_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        client_id CHAR(36) NOT NULL,
         token_hash VARCHAR(255) NOT NULL UNIQUE,
         token_prefix VARCHAR(255) NOT NULL,
         label TEXT NOT NULL,
@@ -110,14 +110,14 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS admin_api_key (
-        id VARCHAR(36) PRIMARY KEY,
+        id CHAR(36) PRIMARY KEY,
         client_name TEXT NOT NULL,
         key_prefix VARCHAR(255) NOT NULL,
         client_secret_hash TEXT NOT NULL,
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
         revoked_at DATETIME(3),
         last_used_at DATETIME(3),
-        created_by_admin_user_id VARCHAR(36),
+        created_by_admin_user_id CHAR(36),
         created_at DATETIME(3) NOT NULL,
         updated_at DATETIME(3) NOT NULL,
         KEY idx_admin_api_key_active (is_active, created_at),
@@ -131,7 +131,7 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS placement (
-        id VARCHAR(36) PRIMARY KEY,
+        id CHAR(36) PRIMARY KEY,
         placement_key VARCHAR(255) NOT NULL UNIQUE,
         name TEXT NOT NULL,
         description TEXT,
@@ -144,7 +144,7 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS asset (
-        id VARCHAR(36) PRIMARY KEY,
+        id CHAR(36) PRIMARY KEY,
         kind ENUM('group_logo', 'group_badge_svg', 'story_image', 'story_video', 'story_video_poster') NOT NULL,
         source ENUM('upload', 'url', 'cloud_upload') NOT NULL,
         media_type ENUM('image', 'video') NOT NULL,
@@ -157,7 +157,7 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
         height INTEGER,
         duration_ms INTEGER,
         checksum_sha256 VARCHAR(255) NOT NULL,
-        created_by_admin_user_id VARCHAR(36),
+        created_by_admin_user_id CHAR(36),
         created_at DATETIME(3) NOT NULL,
         updated_at DATETIME(3) NOT NULL,
         KEY idx_asset_kind_created_at (kind, created_at),
@@ -173,14 +173,14 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story_group_set (
-        id VARCHAR(36) PRIMARY KEY,
-        placement_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        placement_id CHAR(36) NOT NULL,
         name TEXT NOT NULL,
         is_fallback BOOLEAN NOT NULL DEFAULT FALSE,
         is_archived BOOLEAN NOT NULL DEFAULT FALSE,
-        current_draft_revision_id VARCHAR(36) NOT NULL,
-        current_published_revision_id VARCHAR(36),
-        published_fallback_placement_id VARCHAR(36)
+        current_draft_revision_id CHAR(36) NOT NULL,
+        current_published_revision_id CHAR(36),
+        published_fallback_placement_id CHAR(36)
           GENERATED ALWAYS AS (
             CASE
               WHEN is_fallback = TRUE AND is_archived = FALSE AND current_published_revision_id IS NOT NULL
@@ -199,11 +199,11 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story_group (
-        id VARCHAR(36) PRIMARY KEY,
+        id CHAR(36) PRIMARY KEY,
         name TEXT NOT NULL,
         is_archived BOOLEAN NOT NULL DEFAULT FALSE,
-        current_draft_revision_id VARCHAR(36) NOT NULL,
-        current_published_revision_id VARCHAR(36),
+        current_draft_revision_id CHAR(36) NOT NULL,
+        current_published_revision_id CHAR(36),
         created_at DATETIME(3) NOT NULL,
         updated_at DATETIME(3) NOT NULL
       )
@@ -212,11 +212,11 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story (
-        id VARCHAR(36) PRIMARY KEY,
+        id CHAR(36) PRIMARY KEY,
         name TEXT NOT NULL,
         is_archived BOOLEAN NOT NULL DEFAULT FALSE,
-        current_draft_revision_id VARCHAR(36) NOT NULL,
-        current_published_revision_id VARCHAR(36),
+        current_draft_revision_id CHAR(36) NOT NULL,
+        current_published_revision_id CHAR(36),
         created_at DATETIME(3) NOT NULL,
         updated_at DATETIME(3) NOT NULL
       )
@@ -225,8 +225,8 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story_group_set_revision (
-        id VARCHAR(36) PRIMARY KEY,
-        story_group_set_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        story_group_set_id CHAR(36) NOT NULL,
         revision_no INTEGER NOT NULL,
         name TEXT NOT NULL,
         status ENUM('draft', 'published') NOT NULL,
@@ -234,7 +234,7 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
         ios_min_app_version VARCHAR(64),
         android_min_app_version VARCHAR(64),
         target_segments JSON NOT NULL,
-        created_by_admin_user_id VARCHAR(36),
+        created_by_admin_user_id CHAR(36),
         created_at DATETIME(3) NOT NULL,
         UNIQUE KEY uq_story_group_set_revision_no (story_group_set_id, revision_no),
         KEY idx_set_revision_published (story_group_set_id, status, created_at),
@@ -249,16 +249,16 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story_group_revision (
-        id VARCHAR(36) PRIMARY KEY,
-        story_group_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        story_group_id CHAR(36) NOT NULL,
         revision_no INTEGER NOT NULL,
         name TEXT NOT NULL,
         bottom_label TEXT,
-        logo_asset_id VARCHAR(36) NOT NULL,
+        logo_asset_id CHAR(36) NOT NULL,
         badge_kind ENUM('emoji', 'svg'),
         badge_value TEXT,
         status ENUM('draft', 'published') NOT NULL,
-        created_by_admin_user_id VARCHAR(36),
+        created_by_admin_user_id CHAR(36),
         created_at DATETIME(3) NOT NULL,
         UNIQUE KEY uq_story_group_revision_no (story_group_id, revision_no),
         KEY idx_group_revision_published (story_group_id, status, created_at),
@@ -279,19 +279,19 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story_revision (
-        id VARCHAR(36) PRIMARY KEY,
-        story_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        story_id CHAR(36) NOT NULL,
         revision_no INTEGER NOT NULL,
         name TEXT NOT NULL,
         media_type ENUM('image', 'video') NOT NULL,
-        media_asset_id VARCHAR(36) NOT NULL,
-        video_poster_asset_id VARCHAR(36),
+        media_asset_id CHAR(36) NOT NULL,
+        video_poster_asset_id CHAR(36),
         image_duration_ms INTEGER,
         cta_label TEXT,
         cta_type ENUM('url', 'deeplink'),
         cta_value TEXT,
         status ENUM('draft', 'published') NOT NULL,
-        created_by_admin_user_id VARCHAR(36),
+        created_by_admin_user_id CHAR(36),
         created_at DATETIME(3) NOT NULL,
         UNIQUE KEY uq_story_revision_no (story_id, revision_no),
         KEY idx_story_revision_published (story_id, status, created_at),
@@ -319,9 +319,9 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story_group_set_revision_group (
-        id VARCHAR(36) PRIMARY KEY,
-        story_group_set_revision_id VARCHAR(36) NOT NULL,
-        story_group_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        story_group_set_revision_id CHAR(36) NOT NULL,
+        story_group_id CHAR(36) NOT NULL,
         sort_order INTEGER NOT NULL,
         created_at DATETIME(3) NOT NULL,
         UNIQUE KEY uq_story_group_set_revision_group (story_group_set_revision_id, story_group_id),
@@ -337,9 +337,9 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
     sql: `
       CREATE TABLE IF NOT EXISTS story_group_revision_story (
-        id VARCHAR(36) PRIMARY KEY,
-        story_group_revision_id VARCHAR(36) NOT NULL,
-        story_id VARCHAR(36) NOT NULL,
+        id CHAR(36) PRIMARY KEY,
+        story_group_revision_id CHAR(36) NOT NULL,
+        story_id CHAR(36) NOT NULL,
         sort_order INTEGER NOT NULL,
         created_at DATETIME(3) NOT NULL,
         UNIQUE KEY uq_story_group_revision_story (story_group_revision_id, story_id),
