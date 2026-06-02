@@ -36,6 +36,7 @@ type MysqlRecordValues = {
 const MYSQL_RUNNER_PATH = fileURLToPath(new URL('./mysql-query-runner.mjs', import.meta.url));
 const MYSQL_MAX_BUFFER_BYTES = 50 * 1024 * 1024;
 const RELATIONAL_MIGRATION_ID = '0001_relational_story_platform_mysql';
+const MYSQL_TABLE_OPTIONS = 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 
 const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
   {
@@ -356,7 +357,14 @@ const RELATIONAL_SCHEMA_STATEMENTS: MysqlStatement[] = [
     sql: 'INSERT IGNORE INTO schema_migrations (id) VALUES (?)',
     params: [RELATIONAL_MIGRATION_ID],
   },
-];
+].map((statement) =>
+  statement.sql.includes('CREATE TABLE IF NOT EXISTS')
+    ? {
+        ...statement,
+        sql: `${statement.sql}\n      ${MYSQL_TABLE_OPTIONS}`,
+      }
+    : statement,
+);
 
 export function initializeRelationalMysqlDatabase(config: RelationalMysqlConfig): void {
   runMysqlStatements(config, RELATIONAL_SCHEMA_STATEMENTS);
