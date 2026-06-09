@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { jsonError } from '@/lib/server/api-response';
-import { ADMIN_AUTH_COOKIE_NAME, getAdminAuthTokenFromRequest } from '@/lib/server/backend-api';
+import { expireAdminAuthCookie, jsonError } from '@/lib/server/api-response';
+import { getAdminAuthTokenFromRequest } from '@/lib/server/backend-api';
 import { logoutAdminFromToken, mapApiServiceError } from '@/lib/server/auth-runtime';
 
 export const dynamic = 'force-dynamic';
@@ -25,12 +25,5 @@ export async function POST(request: NextRequest) {
   }
 
   const response = new NextResponse(null, { status: 204 });
-  response.cookies.set(ADMIN_AUTH_COOKIE_NAME, '', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.OPEN_STORY_COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production',
-    path: '/',
-    expires: new Date(0),
-  });
-  return response;
+  return expireAdminAuthCookie(response);
 }

@@ -23,7 +23,9 @@ export default function ChangePasswordPage() {
 
     const hydrateSession = async () => {
       try {
-        const response = await apiRequest<AuthSessionResponseDto>('/api/auth/me');
+        const response = await apiRequest<AuthSessionResponseDto>('/api/auth/me', {
+          suppressAuthRedirect: true,
+        });
         if (cancelled) {
           return;
         }
@@ -65,6 +67,7 @@ export default function ChangePasswordPage() {
     try {
       await apiRequest('/api/auth/change-password', {
         method: 'POST',
+        suppressAuthRedirect: true,
         body: JSON.stringify({
           currentPassword: temporaryPassword,
           newPassword,

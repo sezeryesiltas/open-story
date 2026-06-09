@@ -1,7 +1,9 @@
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
-export const ADMIN_AUTH_COOKIE_NAME = 'open_story_admin_access_token';
+import { ADMIN_AUTH_COOKIE_NAME } from './admin-auth-cookie';
+
+export { ADMIN_AUTH_COOKIE_NAME } from './admin-auth-cookie';
 
 type BackendErrorPayload = {
   error?: {

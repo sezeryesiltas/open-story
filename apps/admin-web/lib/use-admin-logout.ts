@@ -15,6 +15,7 @@ export function useAdminLogout() {
     try {
       await apiRequest<void>('/api/auth/logout', {
         method: 'POST',
+        suppressAuthRedirect: true,
       });
     } catch (error) {
       if (!(error instanceof ApiRequestError)) {

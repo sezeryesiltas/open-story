@@ -28,7 +28,9 @@ export default function LoginPage() {
 
     const hydrateSession = async () => {
       try {
-        const response = await apiRequest<AuthSessionResponseDto>('/api/auth/me');
+        const response = await apiRequest<AuthSessionResponseDto>('/api/auth/me', {
+          suppressAuthRedirect: true,
+        });
         if (cancelled) {
           return;
         }
@@ -61,6 +63,7 @@ export default function LoginPage() {
     try {
       const response = await apiRequest<LoginResponse>('/api/auth/login', {
         method: 'POST',
+        suppressAuthRedirect: true,
         body: JSON.stringify({
           email,
           password,
