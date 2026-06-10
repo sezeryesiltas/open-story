@@ -126,7 +126,7 @@ export const adminNavSections: AdminNavSection[] = [
         description: 'Update your password.',
         href: '/change-password',
         icon: ShieldCheck,
-        roles: ['super_admin'],
+        roles: ['super_admin', 'story_admin', 'story_editor'],
       }
     ]
   }

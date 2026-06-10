@@ -2,7 +2,7 @@
 
 import type { AuthSessionResponseDto } from '@open-story/contracts';
 import { Button } from '@open-story/ui/components/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@open-story/ui/components/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
 import { useRouter } from 'next/navigation';
@@ -12,9 +12,10 @@ import { ApiRequestError, apiRequest } from '@/lib/api';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
-  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [mustChangePassword, setMustChangePassword] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -30,10 +31,7 @@ export default function ChangePasswordPage() {
           return;
         }
 
-        if (!response.user.mustChangePassword) {
-          router.replace('/');
-          router.refresh();
-        }
+        setMustChangePassword(response.user.mustChangePassword);
       } catch (error) {
         if (cancelled) {
           return;
@@ -69,7 +67,7 @@ export default function ChangePasswordPage() {
         method: 'POST',
         suppressAuthRedirect: true,
         body: JSON.stringify({
-          currentPassword: temporaryPassword,
+          currentPassword,
           newPassword,
         }),
       });
@@ -87,31 +85,45 @@ export default function ChangePasswordPage() {
     }
   };
 
+  const currentPasswordLabel = mustChangePassword ? 'Temporary password' : 'Current password';
+  const currentPasswordHelp = mustChangePassword
+    ? 'Set a permanent password before continuing to the console.'
+    : 'Use the password you currently sign in with.';
+
   return (
     <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.03)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_32px_80px_-44px_rgba(0,0,0,1)]">
       <CardHeader>
         <CardTitle>Change Password</CardTitle>
+        <CardDescription>{currentPasswordHelp}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="temporaryPassword">Temporary password</Label>
+            <Label htmlFor="currentPassword">{currentPasswordLabel}</Label>
             <Input
-              id="temporaryPassword"
-              onChange={(event) => setTemporaryPassword(event.target.value)}
+              autoComplete="current-password"
+              id="currentPassword"
+              onChange={(event) => setCurrentPassword(event.target.value)}
               type="password"
-              value={temporaryPassword}
+              value={currentPassword}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="newPassword">New password</Label>
-            <Input id="newPassword" onChange={(event) => setNewPassword(event.target.value)} type="password" value={newPassword} />
+            <Input
+              autoComplete="new-password"
+              id="newPassword"
+              onChange={(event) => setNewPassword(event.target.value)}
+              type="password"
+              value={newPassword}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm new password</Label>
             <Input
+              autoComplete="new-password"
               id="confirmPassword"
               onChange={(event) => setConfirmPassword(event.target.value)}
               type="password"

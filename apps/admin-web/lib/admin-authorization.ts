@@ -29,8 +29,9 @@ const rolePageAccess: Record<AdminRole, string[]> = {
     '/stories',
     '/assets',
     '/preview',
+    '/change-password',
   ],
-  story_editor: ['/', '/stories', '/assets', '/preview'],
+  story_editor: ['/', '/stories', '/assets', '/preview', '/change-password'],
 };
 
 export function canAdminRoleAccessPath(role: AdminRole, path: string): boolean {
