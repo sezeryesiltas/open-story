@@ -168,6 +168,11 @@ test('asset list exposes current usage and only unused assets can be deleted', a
   assert.equal(listedLogo?.usageReferences[0]?.entityType, 'story_group');
   assert.equal(listedUnusedAsset?.usageCount, 0);
 
+  const listedWithoutUsage = await assetsService.list({ includeUsage: false }, authorization);
+  const listedLogoWithoutUsage = listedWithoutUsage.find((asset) => asset.id === logoAsset.id);
+  assert.equal(listedLogoWithoutUsage?.usageCount, 0);
+  assert.deepEqual(listedLogoWithoutUsage?.usageReferences, []);
+
   await assert.rejects(
     () => assetsService.delete(logoAsset.id, authorization),
     (error) => error instanceof ApiServiceError && error.statusCode === 409,

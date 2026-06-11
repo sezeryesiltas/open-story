@@ -9,7 +9,12 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const type = request.nextUrl.searchParams.get('type');
-    return NextResponse.json(await listAssets(type === null ? undefined : type, getAdminAuthTokenFromRequest(request)));
+    const includeUsage = request.nextUrl.searchParams.get('include_usage');
+    return NextResponse.json(
+      await listAssets(type === null ? undefined : type, getAdminAuthTokenFromRequest(request), {
+        includeUsage: includeUsage === null ? undefined : includeUsage !== 'false' && includeUsage !== '0',
+      }),
+    );
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');

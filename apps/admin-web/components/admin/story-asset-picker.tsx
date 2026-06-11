@@ -260,7 +260,7 @@ export function StoryAssetPicker({
 
   const assetsQuery = useQuery({
     queryKey: ['assets', assetType],
-    queryFn: () => apiRequest<AssetApiRecord[]>(`/api/assets?type=${assetType}`),
+    queryFn: () => apiRequest<AssetApiRecord[]>(`/api/assets?type=${assetType}&include_usage=false`),
   });
   const storageSettingsQuery = useQuery({
     queryKey: ASSET_UPLOAD_CAPABILITIES_QUERY_KEY,

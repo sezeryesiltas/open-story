@@ -293,6 +293,7 @@ export interface AssetDto {
 
 export interface ListAssetsQueryDto {
   type?: AssetTypeDto;
+  includeUsage?: boolean;
 }
 
 export interface CreateAssetFromUrlDto {

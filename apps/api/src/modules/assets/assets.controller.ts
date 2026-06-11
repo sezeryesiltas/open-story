@@ -32,9 +32,10 @@ export class AssetsController {
   @Get()
   async list(
     @Query('type') type?: AssetTypeDto,
+    @Query('include_usage') includeUsage?: string,
     @Headers('authorization') authorization?: string,
   ): Promise<AssetDto[]> {
-    return this.service.list({ type }, authorization);
+    return this.service.list({ type, includeUsage: parseIncludeUsage(includeUsage) }, authorization);
   }
 
   @Get('upload-capabilities')
@@ -114,4 +115,8 @@ export class AssetsController {
   ): Promise<void> {
     await this.service.delete(assetId, authorization);
   }
+}
+
+function parseIncludeUsage(value?: string): boolean {
+  return value !== 'false' && value !== '0';
 }

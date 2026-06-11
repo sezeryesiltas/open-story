@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Inject, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Param, Patch, Post, Query } from '@nestjs/common';
 import type {
   CreateStoryGroupSetDto,
   PublishStoryGroupSetDto,
@@ -14,8 +14,11 @@ export class StoryGroupSetController {
   private readonly service!: StoryGroupSetService;
 
   @Get()
-  async list(@Headers('authorization') authorization?: string): Promise<StoryGroupSetDto[]> {
-    return this.service.list(authorization);
+  async list(
+    @Headers('authorization') authorization?: string,
+    @Query('group_id') groupId?: string,
+  ): Promise<StoryGroupSetDto[]> {
+    return this.service.list(authorization, { groupId });
   }
 
   @Get(':setId')

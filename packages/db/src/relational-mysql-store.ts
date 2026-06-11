@@ -390,6 +390,18 @@ export function relationalMysqlInsertRecord(
   runMysqlStatements(config, [insertStatementForRecord(table, row)]);
 }
 
+export function relationalMysqlInsertRecords(
+  config: RelationalMysqlConfig,
+  table: StoryPlatformTableName,
+  rows: Array<{ id: string; [key: string]: unknown }>,
+): void {
+  if (rows.length === 0) {
+    return;
+  }
+
+  runMysqlStatements(config, rows.map((row) => insertStatementForRecord(table, row)));
+}
+
 export function relationalMysqlDeleteRecord(
   config: RelationalMysqlConfig,
   table: StoryPlatformTableName,

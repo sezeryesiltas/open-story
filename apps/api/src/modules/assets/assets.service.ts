@@ -35,12 +35,16 @@ export class AssetsService {
   async list(query: ListAssetsQueryDto, authorization?: string): Promise<AssetDto[]> {
     await this.adminAccessService.requireStoryEditorAccess(authorization);
 
-    const records = this.repository.list();
-    const usageByAssetId = this.repository.listCurrentUsageByAssetId(records.map((record) => record.id));
+    const records = this.repository
+      .list()
+      .filter((record) => (query.type ? toAssetDtoType(record.kind) === query.type : true));
+    const usageByAssetId =
+      query.includeUsage === false
+        ? new Map<string, AssetDto['usageReferences']>()
+        : this.repository.listCurrentUsageByAssetId(records.map((record) => record.id));
 
     return records
-      .map((record) => toAssetDto(record, usageByAssetId.get(record.id) ?? []))
-      .filter((asset) => (query.type ? asset.type === query.type : true));
+      .map((record) => toAssetDto(record, usageByAssetId.get(record.id) ?? []));
   }
 
   async getUploadCapabilities(authorization?: string): Promise<{ serverUploadAllowed: boolean }> {

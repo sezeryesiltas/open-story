@@ -8,6 +8,7 @@ import {
   relationalPostgresCountRows,
   relationalPostgresDeleteRecord,
   relationalPostgresInsertRecord,
+  relationalPostgresInsertRecords,
   relationalPostgresListAllRecords,
   relationalPostgresListPayloads,
   relationalPostgresTestConnection,
@@ -17,6 +18,7 @@ import {
   relationalMysqlCountRows,
   relationalMysqlDeleteRecord,
   relationalMysqlInsertRecord,
+  relationalMysqlInsertRecords,
   relationalMysqlListAllRecords,
   relationalMysqlListPayloads,
   relationalMysqlTestConnection,
@@ -1061,6 +1063,59 @@ export class DbService {
       .run(table, row.id, JSON.stringify(row), updatedAt);
 
     return row;
+  }
+
+  insertMany<T extends { id: string }>(table: TableName, rows: T[]): T[] {
+    if (rows.length === 0) {
+      return [];
+    }
+
+    for (const row of rows) {
+      if (!row.id?.trim()) {
+        throw new Error(`A valid id is required for table "${table}".`);
+      }
+    }
+
+    const activeConnection = this.database();
+
+    if (activeConnection.target.provider !== 'sqlite') {
+      if (activeConnection.target.provider === 'mysql') {
+        relationalMysqlInsertRecords(activeConnection.target.config, table, rows);
+      } else {
+        relationalPostgresInsertRecords(activeConnection.target.config, table, rows);
+      }
+      DbService.invalidateSqlReadCache(activeConnection.target.key);
+      return rows;
+    }
+
+    const sqlite = activeConnection.sqlite;
+    if (!sqlite) {
+      throw new Error('SQLite connection could not be opened.');
+    }
+
+    const updatedAt = new Date().toISOString();
+    const statement = sqlite.prepare(
+      `
+        INSERT INTO records (table_name, id, payload, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(table_name, id) DO UPDATE
+        SET payload = excluded.payload,
+            updated_at = excluded.updated_at
+      `,
+    );
+
+    sqlite.exec('BEGIN');
+    try {
+      for (const row of rows) {
+        statement.run(table, row.id, JSON.stringify(row), updatedAt);
+      }
+      sqlite.exec('COMMIT');
+    } catch (error) {
+      sqlite.exec('ROLLBACK');
+      throw error;
+    }
+
+    return rows;
   }
 
   findById<T extends { id: string }>(table: TableName, id: string): T | undefined {

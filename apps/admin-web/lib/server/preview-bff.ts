@@ -78,7 +78,7 @@ export async function buildPreviewWorkspaceSnapshotFromApi({
     listStoryGroupSets(authToken),
     listStoryGroups(authToken),
     listStories(authToken),
-    listAssets(undefined, authToken),
+    listAssets(undefined, authToken, { includeUsage: false }),
   ]);
 
   const previewPlacements = sortPlacements(

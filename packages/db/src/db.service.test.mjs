@@ -78,6 +78,41 @@ test('DbService tracks counts for canonical story platform tables', () => {
   assert.equal(db.list('storyGroupSetRevisions').length, 1);
 });
 
+test('DbService insertMany stores multiple records with one API call', () => {
+  configureTempSqliteFallback('open-story-db-insert-many-');
+
+  const db = new DbService();
+  const now = new Date().toISOString();
+  const firstId = randomUUID();
+  const secondId = randomUUID();
+
+  db.insertMany('placements', [
+    {
+      id: firstId,
+      key: 'home_top',
+      name: 'Home Top',
+      description: null,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: secondId,
+      key: 'home_bottom',
+      name: 'Home Bottom',
+      description: null,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ]);
+
+  assert.deepEqual(
+    db.list('placements').map((placement) => placement.id),
+    [firstId, secondId],
+  );
+});
+
 test('DbService validates postgres settings before switching providers', () => {
   configureTempSqliteFallback('open-story-db-postgres-validation-');
 

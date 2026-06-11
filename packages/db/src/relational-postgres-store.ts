@@ -425,6 +425,18 @@ export function relationalPostgresInsertRecord(
   runPostgresStatements(config, [insertStatementForRecord(table, row)]);
 }
 
+export function relationalPostgresInsertRecords(
+  config: RelationalPostgresConfig,
+  table: StoryPlatformTableName,
+  rows: Array<{ id: string; [key: string]: unknown }>,
+): void {
+  if (rows.length === 0) {
+    return;
+  }
+
+  runPostgresStatements(config, rows.map((row) => insertStatementForRecord(table, row)));
+}
+
 export function relationalPostgresDeleteRecord(
   config: RelationalPostgresConfig,
   table: StoryPlatformTableName,

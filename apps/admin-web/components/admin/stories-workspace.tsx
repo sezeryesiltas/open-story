@@ -333,9 +333,9 @@ export function StoriesWorkspace() {
       const [stories, storyGroups, storyImages, storyVideos, storyPosters] = await Promise.all([
         apiRequest<StoryApiRecord[]>('/api/stories'),
         apiRequest<StoryGroupApiRecord[]>('/api/story-groups'),
-        apiRequest<AssetApiRecord[]>('/api/assets?type=story_image'),
-        apiRequest<AssetApiRecord[]>('/api/assets?type=story_video'),
-        apiRequest<AssetApiRecord[]>('/api/assets?type=story_poster'),
+        apiRequest<AssetApiRecord[]>('/api/assets?type=story_image&include_usage=false'),
+        apiRequest<AssetApiRecord[]>('/api/assets?type=story_video&include_usage=false'),
+        apiRequest<AssetApiRecord[]>('/api/assets?type=story_poster&include_usage=false'),
       ]);
 
       return {

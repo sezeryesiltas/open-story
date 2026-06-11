@@ -279,7 +279,7 @@ export function StoryGroupsWorkspace() {
       const [storyGroups, storyGroupSets, groupLogoAssets] = await Promise.all([
         apiRequest<StoryGroupApiRecord[]>('/api/story-groups'),
         apiRequest<StoryGroupSetApiRecord[]>('/api/story-group-sets'),
-        apiRequest<AssetApiRecord[]>('/api/assets?type=group_logo'),
+        apiRequest<AssetApiRecord[]>('/api/assets?type=group_logo&include_usage=false'),
       ]);
 
       return {

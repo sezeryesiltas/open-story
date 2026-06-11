@@ -36,13 +36,17 @@ export class StoryGroupSetService {
     this.adminAccessService = adminAccessService;
   }
 
-  async list(authorization?: string): Promise<StoryGroupSetDto[]> {
+  async list(
+    authorization?: string,
+    filters: { groupId?: string } = {},
+  ): Promise<StoryGroupSetDto[]> {
     await this.adminAccessService.requireStoryEditorAccess(authorization);
 
     return this.repository
       .listSetRoots()
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-      .map((root) => this.toDto(root));
+      .map((root) => this.toDto(root))
+      .filter((storyGroupSet) => (filters.groupId ? storyGroupSet.group_ids.includes(filters.groupId) : true));
   }
 
   async get(setId: string, authorization?: string): Promise<StoryGroupSetDto> {

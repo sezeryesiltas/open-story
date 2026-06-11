@@ -87,14 +87,15 @@ export class StoryContentRepository {
       this.db.deleteById('storyGroupSetRevisionGroups', record.id);
     }
 
-    return groupIds.map((groupId, index) =>
-      this.db.insert<StoryGroupSetRevisionGroupRecord>('storyGroupSetRevisionGroups', {
+    return this.db.insertMany<StoryGroupSetRevisionGroupRecord>(
+      'storyGroupSetRevisionGroups',
+      groupIds.map((groupId, index) => ({
         id: randomUUID(),
         storyGroupSetRevisionId: revisionId,
         storyGroupId: groupId,
         sortOrder: index,
         createdAt,
-      }),
+      })),
     );
   }
 
@@ -152,14 +153,15 @@ export class StoryContentRepository {
       this.db.deleteById('storyGroupRevisionStories', record.id);
     }
 
-    return storyIds.map((storyId, index) =>
-      this.db.insert<StoryGroupRevisionStoryRecord>('storyGroupRevisionStories', {
+    return this.db.insertMany<StoryGroupRevisionStoryRecord>(
+      'storyGroupRevisionStories',
+      storyIds.map((storyId, index) => ({
         id: randomUUID(),
         storyGroupRevisionId: revisionId,
         storyId,
         sortOrder: index,
         createdAt,
-      }),
+      })),
     );
   }
 

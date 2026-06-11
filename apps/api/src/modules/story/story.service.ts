@@ -91,7 +91,7 @@ export class StoryService {
 
     this.repository.createStoryRoot(root);
     this.repository.createStoryRevision(draftRevision);
-    this.appendStoryToGroupDraft(targetGroup, storyId, access.adminUserId, now);
+    this.appendStoryToGroupDraft(targetGroup, storyId, access.adminUserId, now, normalizedPayload.position);
 
     return this.toDto(root);
   }
@@ -261,12 +261,13 @@ export class StoryService {
     storyId: string,
     adminUserId: string | null,
     now: string,
+    position?: number,
   ): void {
     const draftRevision = this.getGroupDraftRevision(groupRoot);
     const storyIds = this.repository
       .listGroupRevisionStories(draftRevision.id)
       .map((record) => record.storyId);
-    const nextStoryIds = [...storyIds, storyId];
+    const nextStoryIds = insertStoryIdAtPosition(storyIds, storyId, position);
     const nextDraftRevisionId = randomUUID();
     const nextRevision: StoryGroupRevisionRecord = {
       id: nextDraftRevisionId,
@@ -529,6 +530,7 @@ export class StoryService {
       posterAssetId: payload.poster_asset_id ?? null,
       imageDurationMs: payload.image_duration_ms ?? null,
       cta: payload.cta ?? null,
+      position: payload.position,
     };
   }
 }
@@ -541,6 +543,7 @@ type NormalizedStoryDraftPayload = {
   posterAssetId: string | null;
   imageDurationMs: number | null;
   cta: { label: string; type: 'url' | 'deeplink'; value: string } | null;
+  position?: number;
 };
 
 function areCtasEqual(
@@ -558,8 +561,12 @@ function areCtasEqual(
   return left.label === right.label && left.type === right.type && left.value === right.value;
 }
 
-function insertStoryIdAtPosition(storyIds: string[], storyId: string, position: number): string[] {
+function insertStoryIdAtPosition(storyIds: string[], storyId: string, position?: number): string[] {
   const nextStoryIds = storyIds.filter((candidateStoryId) => candidateStoryId !== storyId);
+  if (position === undefined) {
+    return [...nextStoryIds, storyId];
+  }
+
   const targetIndex = Math.max(0, Math.min(nextStoryIds.length, position - 1));
   nextStoryIds.splice(targetIndex, 0, storyId);
   return nextStoryIds;

@@ -24,6 +24,7 @@ export const storySchema = z
 export const createStoryDtoSchema = z
   .object({
     group_id: rootIdSchema,
+    position: z.number().int().positive().optional(),
     name: z.string().trim().min(1).max(256),
     media_type: z.enum(['image', 'video']),
     asset_id: rootIdSchema,
@@ -34,7 +35,7 @@ export const createStoryDtoSchema = z
   .strict();
 
 export const updateStoryDtoSchema = createStoryDtoSchema
-  .omit({ group_id: true })
+  .omit({ group_id: true, position: true })
   .partial()
   .strict();
 

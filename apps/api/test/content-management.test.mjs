@@ -290,6 +290,61 @@ test('set draft changes require republish and archived groups are filtered at ru
   assert.equal(feedAfterArchive?.groups[0]?.id, groupOne.group.id);
 });
 
+test('story group set list can be filtered by referenced group id', async () => {
+  const { db, authService, groupService, setService } = createHarness();
+  seedPlacement(db, { id: PLACEMENT_HOME_ID, key: 'home_top_story_bar' });
+  seedAsset(db, { id: ASSET_LOGO_1_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-1.png' });
+  seedAsset(db, { id: ASSET_LOGO_2_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-2.png' });
+
+  const authorization = await loginAsAdmin(authService);
+  const groupOne = await groupService.create(
+    {
+      name: 'Group One',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_1_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+  const groupTwo = await groupService.create(
+    {
+      name: 'Group Two',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_2_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+  const setOne = await setService.create(
+    {
+      placement_id: PLACEMENT_HOME_ID,
+      name: 'Set One',
+      is_fallback: false,
+      targets: [{ platform: 'ios', min_app_version: '1.0.0' }],
+      segments: [],
+      group_ids: [groupOne.id],
+    },
+    authorization,
+  );
+  await setService.create(
+    {
+      placement_id: PLACEMENT_HOME_ID,
+      name: 'Set Two',
+      is_fallback: false,
+      targets: [{ platform: 'android', min_app_version: '1.0.0' }],
+      segments: [],
+      group_ids: [groupTwo.id],
+    },
+    authorization,
+  );
+
+  const filteredSets = await setService.list(authorization, { groupId: groupOne.id });
+
+  assert.deepEqual(filteredSets.map((storyGroupSet) => storyGroupSet.id), [setOne.id]);
+});
+
 test('archiving published stories and groups clears their published revision pointer', async () => {
   const { db, authService, groupService, storyService } = createHarness();
   seedAsset(db, { id: ASSET_LOGO_1_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-1.png' });
@@ -370,6 +425,62 @@ test('group draft update blocks removing an unpublished story from its only grou
       error.statusCode === 409 &&
       error.message.includes(story.id),
   );
+});
+
+test('story create inserts into the target group draft at the requested position', async () => {
+  const { db, authService, groupService, storyService } = createHarness();
+  seedAsset(db, { id: ASSET_LOGO_1_ID, kind: 'group_logo', mediaType: 'image', publicUrl: 'https://cdn.example.com/logo-1.png' });
+  seedAsset(db, { id: ASSET_STORY_1_ID, kind: 'story_image', mediaType: 'image', publicUrl: 'https://cdn.example.com/story-1.png' });
+  seedAsset(db, { id: ASSET_STORY_2_ID, kind: 'story_image', mediaType: 'image', publicUrl: 'https://cdn.example.com/story-2.png' });
+  seedAsset(db, { id: ASSET_STORY_DRAFT_ID, kind: 'story_image', mediaType: 'image', publicUrl: 'https://cdn.example.com/story-3.png' });
+
+  const authorization = await loginAsAdmin(authService);
+  const group = await groupService.create(
+    {
+      name: 'Ordered Group',
+      bottom_label: null,
+      logo_asset_id: ASSET_LOGO_1_ID,
+      badge: null,
+      story_ids: [],
+    },
+    authorization,
+  );
+
+  const firstStory = await storyService.create(
+    {
+      group_id: group.id,
+      name: 'First Story',
+      media_type: 'image',
+      asset_id: ASSET_STORY_1_ID,
+      cta: null,
+    },
+    authorization,
+  );
+  const secondStory = await storyService.create(
+    {
+      group_id: group.id,
+      name: 'Second Story',
+      media_type: 'image',
+      asset_id: ASSET_STORY_2_ID,
+      cta: null,
+    },
+    authorization,
+  );
+  const insertedStory = await storyService.create(
+    {
+      group_id: group.id,
+      position: 1,
+      name: 'Inserted Story',
+      media_type: 'image',
+      asset_id: ASSET_STORY_DRAFT_ID,
+      cta: null,
+    },
+    authorization,
+  );
+
+  const groupAfterCreate = await groupService.get(group.id, authorization);
+
+  assert.deepEqual(groupAfterCreate.story_ids, [insertedStory.id, firstStory.id, secondStory.id]);
 });
 
 test('story admin reads use latest historical group when current group pointers drift', async () => {

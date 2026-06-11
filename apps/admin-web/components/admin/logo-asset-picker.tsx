@@ -136,7 +136,7 @@ export function LogoAssetPicker({
 
   const assetsQuery = useQuery({
     queryKey: ['assets', 'group_logo'],
-    queryFn: () => apiRequest<AssetApiRecord[]>('/api/assets?type=group_logo'),
+    queryFn: () => apiRequest<AssetApiRecord[]>('/api/assets?type=group_logo&include_usage=false'),
   });
   const storageSettingsQuery = useQuery({
     queryKey: ASSET_UPLOAD_CAPABILITIES_QUERY_KEY,

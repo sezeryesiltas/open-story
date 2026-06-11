@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jsonError } from '@/lib/server/api-response';
 import {
   createStory,
-  getStory,
   listStories,
-  syncStoryMembership,
 } from '@/lib/server/admin-bff';
 import { BackendApiError, getAdminAuthTokenFromRequest } from '@/lib/server/backend-api';
 
@@ -44,6 +42,7 @@ export async function POST(request: NextRequest) {
     const story = await createStory(
       {
         group_id: payload.group_id,
+        position: payload.position,
         name: payload.name,
         media_type: payload.media_type,
         asset_id: payload.asset_id,
@@ -53,9 +52,8 @@ export async function POST(request: NextRequest) {
       },
       authToken,
     );
-    await syncStoryMembership(story.id, payload.group_id, payload.position, authToken);
 
-    return NextResponse.json(await getStory(story.id, authToken), { status: 201 });
+    return NextResponse.json(story, { status: 201 });
   } catch (error) {
     if (error instanceof BackendApiError) {
       return jsonError(error.message, error.status, error.code ?? 'validation_error');

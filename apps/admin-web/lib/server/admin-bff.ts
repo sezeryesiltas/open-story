@@ -31,11 +31,11 @@ import type {
   UpdateStoryGroupSetDto,
 } from '@open-story/contracts';
 
-import { backendApiRequest } from './backend-api';
+import { backendApiRequest } from './backend-api-request.ts';
 import {
   getAdminCurrentPublishedRevisionId,
   getAdminPublishState,
-} from './admin-record-state';
+} from './admin-record-state.ts';
 
 export type AdminPlacementRecord = PlacementDto & {
   connectedSetCount: number;
@@ -155,8 +155,19 @@ export async function updatePlacement(placementId: string, payload: UpdatePlacem
   });
 }
 
-export async function listAssets(type?: string, authToken?: string | null): Promise<AdminAssetRecord[]> {
-  const query = type ? `?type=${encodeURIComponent(type)}` : '';
+export async function listAssets(
+  type?: string,
+  authToken?: string | null,
+  options: { includeUsage?: boolean } = {},
+): Promise<AdminAssetRecord[]> {
+  const searchParams = new URLSearchParams();
+  if (type) {
+    searchParams.set('type', type);
+  }
+  if (options.includeUsage === false) {
+    searchParams.set('include_usage', 'false');
+  }
+  const query = searchParams.size > 0 ? `?${searchParams.toString()}` : '';
   const assets = await backendApiRequest<AssetDto[]>(`/v1/assets${query}`, {
     authToken,
   });
@@ -231,7 +242,7 @@ export async function listStoryGroups(authToken?: string | null): Promise<AdminS
 export async function getStoryGroup(storyGroupId: string, authToken?: string | null): Promise<AdminStoryGroupRecord> {
   const [storyGroup, storyGroupSets] = await Promise.all([
     backendApiRequest<StoryGroupDto>(`/v1/story-groups/${storyGroupId}`, { authToken }),
-    backendApiRequest<StoryGroupSetDto[]>('/v1/story-group-sets', { authToken }),
+    listStoryGroupSetsForStoryGroup(storyGroupId, authToken),
   ]);
 
   return mapStoryGroup(storyGroup, storyGroupSets);
@@ -278,7 +289,7 @@ export async function publishStoryGroup(storyGroupId: string, payload: PublishSt
     body: JSON.stringify(payload),
   });
 
-  const storyGroupSets = await backendApiRequest<StoryGroupSetDto[]>('/v1/story-group-sets', { authToken });
+  const storyGroupSets = await listStoryGroupSetsForStoryGroup(storyGroup.id, authToken);
   return mapStoryGroup(storyGroup, storyGroupSets);
 }
 
@@ -289,7 +300,7 @@ export async function archiveStoryGroup(storyGroupId: string, archived: boolean,
     body: JSON.stringify({ archived }),
   });
 
-  const storyGroupSets = await backendApiRequest<StoryGroupSetDto[]>('/v1/story-group-sets', { authToken });
+  const storyGroupSets = await listStoryGroupSetsForStoryGroup(storyGroup.id, authToken);
   return mapStoryGroup(storyGroup, storyGroupSets);
 }
 
@@ -303,12 +314,8 @@ export async function listStories(authToken?: string | null): Promise<AdminStory
 }
 
 export async function getStory(storyId: string, authToken?: string | null): Promise<AdminStoryRecord> {
-  const [story, storyGroups] = await Promise.all([
-    backendApiRequest<StoryDto>(`/v1/stories/${storyId}`, { authToken }),
-    backendApiRequest<StoryGroupDto[]>('/v1/story-groups', { authToken }),
-  ]);
-
-  return mapStory(story, storyGroups);
+  const story = await backendApiRequest<StoryDto>(`/v1/stories/${storyId}`, { authToken });
+  return mapStory(story, [await getStoryGroupRaw(story.group_id, authToken)]);
 }
 
 export async function createStory(payload: CreateStoryDto, authToken?: string | null): Promise<AdminStoryRecord> {
@@ -318,8 +325,7 @@ export async function createStory(payload: CreateStoryDto, authToken?: string | 
     body: JSON.stringify(payload),
   });
 
-  const storyGroups = await backendApiRequest<StoryGroupDto[]>('/v1/story-groups', { authToken });
-  return mapStory(story, storyGroups);
+  return mapStory(story, [await getStoryGroupRaw(story.group_id, authToken)]);
 }
 
 export async function updateStory(storyId: string, payload: UpdateStoryDto, authToken?: string | null): Promise<AdminStoryRecord> {
@@ -329,8 +335,7 @@ export async function updateStory(storyId: string, payload: UpdateStoryDto, auth
     body: JSON.stringify(payload),
   });
 
-  const storyGroups = await backendApiRequest<StoryGroupDto[]>('/v1/story-groups', { authToken });
-  return mapStory(story, storyGroups);
+  return mapStory(story, [await getStoryGroupRaw(story.group_id, authToken)]);
 }
 
 export async function publishStory(storyId: string, payload: PublishStoryDto, authToken?: string | null): Promise<AdminStoryRecord> {
@@ -340,8 +345,7 @@ export async function publishStory(storyId: string, payload: PublishStoryDto, au
     body: JSON.stringify(payload),
   });
 
-  const storyGroups = await backendApiRequest<StoryGroupDto[]>('/v1/story-groups', { authToken });
-  return mapStory(story, storyGroups);
+  return mapStory(story, [await getStoryGroupRaw(story.group_id, authToken)]);
 }
 
 export async function archiveStory(storyId: string, archived: boolean, authToken?: string | null): Promise<AdminStoryRecord> {
@@ -351,8 +355,7 @@ export async function archiveStory(storyId: string, archived: boolean, authToken
     body: JSON.stringify({ archived }),
   });
 
-  const storyGroups = await backendApiRequest<StoryGroupDto[]>('/v1/story-groups', { authToken });
-  return mapStory(story, storyGroups);
+  return mapStory(story, [await getStoryGroupRaw(story.group_id, authToken)]);
 }
 
 export async function getClient(authToken?: string | null): Promise<ClientDto> {
@@ -527,6 +530,20 @@ export function mapStory(story: StoryDto, storyGroups: StoryGroupDto[]): AdminSt
 
 export function removeId(ids: string[], value: string): string[] {
   return ids.filter((id) => id !== value);
+}
+
+async function getStoryGroupRaw(storyGroupId: string, authToken?: string | null): Promise<StoryGroupDto> {
+  return backendApiRequest<StoryGroupDto>(`/v1/story-groups/${storyGroupId}`, { authToken });
+}
+
+async function listStoryGroupSetsForStoryGroup(
+  storyGroupId: string,
+  authToken?: string | null,
+): Promise<StoryGroupSetDto[]> {
+  return backendApiRequest<StoryGroupSetDto[]>(
+    `/v1/story-group-sets?group_id=${encodeURIComponent(storyGroupId)}`,
+    { authToken },
+  );
 }
 
 export async function syncStoryGroupSetReferences(
