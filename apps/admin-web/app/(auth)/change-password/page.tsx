@@ -5,6 +5,7 @@ import { Button } from '@open-story/ui/components/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@open-story/ui/components/card';
 import { Input } from '@open-story/ui/components/input';
 import { Label } from '@open-story/ui/components/label';
+import { cn } from '@open-story/ui/lib/utils';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 
@@ -85,6 +86,12 @@ export default function ChangePasswordPage() {
     }
   };
 
+  const handleCancel = () => {
+    router.replace('/');
+    router.refresh();
+  };
+
+  const canCancel = mustChangePassword === false;
   const currentPasswordLabel = mustChangePassword ? 'Temporary password' : 'Current password';
   const currentPasswordHelp = mustChangePassword
     ? 'Set a permanent password before continuing to the console.'
@@ -137,9 +144,20 @@ export default function ChangePasswordPage() {
             </div>
           ) : null}
 
-          <Button className="w-full" disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'Updating password...' : 'Update password'}
-          </Button>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            {canCancel ? (
+              <Button disabled={isSubmitting} onClick={handleCancel} type="button" variant="outline">
+                Cancel
+              </Button>
+            ) : null}
+            <Button
+              className={cn(canCancel && 'sm:min-w-40', !canCancel && 'w-full')}
+              disabled={isSubmitting}
+              type="submit"
+            >
+              {isSubmitting ? 'Updating password...' : 'Update password'}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
