@@ -14,5 +14,7 @@
       "default": true
     }
   ],
-  "java.import.gradle.java.home": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+  "java.import.gradle.java.home": "/Applications/Android Studio.app/Contents/jbr/Contents/Home",
+  "chat.utilityModel": "saka/glm-5.2",
+  "chat.utilitySmallModel": "saka/glm-5.2"
 }

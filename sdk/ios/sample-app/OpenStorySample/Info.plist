@@ -25,11 +25,11 @@
 	<key>OPEN_STORY_CLIENT_ID</key>
 	<string>public-client-id</string>
 	<key>OPEN_STORY_PLACEMENT_KEY</key>
-	<string>placement_home</string>
+	<string>home_page</string>
 	<key>OPEN_STORY_STATIC_TOKEN</key>
-	<string>ost_r5XVXMIyXxTwIXLu1rcT95v8-VhGfjdt</string>
+	<string>ost_M54fRdbSBNUVa6-ru2tjqpFDSqjY3RpU</string>
 	<key>OPEN_STORY_USER_SEGMENTS_CSV</key>
-	<string>premium</string>
+	<string></string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
