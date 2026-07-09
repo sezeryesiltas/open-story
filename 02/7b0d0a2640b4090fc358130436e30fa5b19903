@@ -1,0 +1,14 @@
+sdk/ios/sample-app/OpenStorySample/Info.plist
+  h_70c90359a37cfe 28,30,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "027b0d0a2640b4090fc358130436e30fa5b19903",
+  "prompts": {},
+  "humans": {
+    "h_70c90359a37cfe": {
+      "author": "Mert Kamil2 <mert@tetogames.com>"
+    }
+  }
+}
