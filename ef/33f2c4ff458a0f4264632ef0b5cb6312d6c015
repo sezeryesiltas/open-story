@@ -1,0 +1,14 @@
+.gitignore
+  h_70c90359a37cfe 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ef33f2c4ff458a0f4264632ef0b5cb6312d6c015",
+  "prompts": {},
+  "humans": {
+    "h_70c90359a37cfe": {
+      "author": "Mert Kamil2 <mert@tetogames.com>"
+    }
+  }
+}
